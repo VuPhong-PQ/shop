@@ -19,12 +19,20 @@ import { insertProductSchema } from "@shared/schema";
 import { z } from "zod";
 import type { Product, Category } from "@shared/schema";
 
-const productFormSchema = insertProductSchema.extend({
+const productFormSchema = z.object({
+  name: z.string().min(1, "Tên sản phẩm là bắt buộc"),
+  description: z.string().optional().default(""),
+  sku: z.string().min(1, "Mã SKU là bắt buộc"),
+  barcode: z.string().optional().default(""),
   price: z.string().min(1, "Giá bán là bắt buộc"),
-  costPrice: z.string().optional(),
-  barcode: z.string().optional(),
-  description: z.string().optional(),
-  image: z.string().optional(),
+  costPrice: z.string().optional().default(""),
+  image: z.string().optional().default(""),
+  categoryId: z.string().min(1, "Danh mục là bắt buộc"),
+  storeId: z.string().default("550e8400-e29b-41d4-a716-446655440002"),
+  isActive: z.boolean().default(true),
+  stockQuantity: z.number().min(0, "Số lượng tồn kho phải >= 0").default(0),
+  minStockLevel: z.number().min(0, "Mức tồn kho tối thiểu phải >= 0").default(5),
+  unit: z.string().default("chiếc"),
 });
 
 type ProductFormData = z.infer<typeof productFormSchema>;
@@ -56,10 +64,10 @@ export default function Products() {
       price: "",
       costPrice: "",
       categoryId: "",
-      storeId: "store-1", // Should come from context
+      storeId: "550e8400-e29b-41d4-a716-446655440002",
       stockQuantity: 0,
       minStockLevel: 5,
-      unit: "pcs",
+      unit: "chiếc",
       image: "",
     },
   });
@@ -408,11 +416,12 @@ export default function Products() {
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              <SelectItem value="pcs">Cái</SelectItem>
+                              <SelectItem value="chiếc">Chiếc</SelectItem>
+                              <SelectItem value="cặp">Cặp</SelectItem>
                               <SelectItem value="kg">Kg</SelectItem>
                               <SelectItem value="liter">Lít</SelectItem>
-                              <SelectItem value="box">Thùng</SelectItem>
-                              <SelectItem value="pack">Gói</SelectItem>
+                              <SelectItem value="thùng">Thùng</SelectItem>
+                              <SelectItem value="gói">Gói</SelectItem>
                             </SelectContent>
                           </Select>
                           <FormMessage />
@@ -466,6 +475,7 @@ export default function Products() {
                       type="submit"
                       disabled={addProductMutation.isPending || editProductMutation.isPending}
                       data-testid="button-save-product"
+                      onClick={() => console.log('Submit button clicked')}
                     >
                       {addProductMutation.isPending || editProductMutation.isPending 
                         ? "Đang lưu..." 
