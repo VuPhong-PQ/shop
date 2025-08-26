@@ -70,123 +70,143 @@ export class MemStorage implements IStorage {
   // Dashboard methods
   async getDashboardMetrics(storeId: string): Promise<any> {
     // Mock data for now - in real implementation would query database
-    const lowStockProducts = await this.getLowStockProducts(storeId);
-    
     return {
       todayRevenue: "15.750.000₫",
       todayGrowth: "+12.5%",
-      monthRevenue: "480.250.000₫",
-      monthGrowth: "+8.3%",
-      ordersCount: 2847,
-      ordersGrowth: "+15.2%",
-      newCustomers: 1234,
-      customersGrowth: "+5.7%",
-      lowStockItems: lowStockProducts.length
+      ordersCount: 47,
+      ordersGrowth: "+8.2%",
+      newCustomers: 12,
+      customersGrowth: "+15.1%",
+      lowStockItems: 3
     };
   }
 
   async getRevenueChartData(storeId: string, days: number): Promise<any[]> {
-    // Mock revenue chart data
+    // Mock data for now
     const data = [];
+    const today = new Date();
     for (let i = days - 1; i >= 0; i--) {
-      const date = new Date();
+      const date = new Date(today);
       date.setDate(date.getDate() - i);
       data.push({
         date: date.toISOString().split('T')[0],
-        revenue: Math.floor(Math.random() * 5000000) + 1000000,
-        orders: Math.floor(Math.random() * 50) + 10
+        revenue: Math.floor(Math.random() * 20000000) + 5000000
       });
     }
     return data;
   }
 
   async getTopProducts(storeId: string, limit: number): Promise<any[]> {
-    // Mock top products data
-    return [
-      { name: "iPhone 15 Pro", sales: 45, revenue: "900.000.000₫" },
-      { name: "MacBook Air M2", sales: 23, revenue: "690.000.000₫" },
-      { name: "AirPods Pro", sales: 67, revenue: "402.000.000₫" },
-      { name: "iPad Air", sales: 34, revenue: "340.000.000₫" },
-      { name: "Apple Watch", sales: 28, revenue: "280.000.000₫" }
-    ].slice(0, limit);
-  }
-
-  async getRecentOrders(storeId: string, limit: number): Promise<any[]> {
-    // Mock recent orders data
+    // Mock data for now
     return [
       {
         id: "1",
-        orderNumber: "ORD-001",
-        customer: "Nguyễn Văn An",
-        total: "15.000.000₫",
-        status: "completed",
-        createdAt: new Date()
+        name: "Cà phê Espresso",
+        image: "https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=60&h=60&fit=crop",
+        soldCount: 145,
+        revenue: "7.250.000₫"
       },
       {
         id: "2", 
-        orderNumber: "ORD-002",
-        customer: "Trần Thị Bình",
-        total: "8.500.000₫",
-        status: "processing",
-        createdAt: new Date(Date.now() - 3600000)
+        name: "Bánh croissant",
+        image: "https://images.unsplash.com/photo-1549903072-7e6e0bedb7fb?w=60&h=60&fit=crop",
+        soldCount: 89,
+        revenue: "4.450.000₫"
+      },
+      {
+        id: "3",
+        name: "Trà sữa",
+        image: "https://images.unsplash.com/photo-1525385133512-2f3bdd039054?w=60&h=60&fit=crop", 
+        soldCount: 67,
+        revenue: "3.350.000₫"
       }
-    ].slice(0, limit);
-  }
-
-  async getLowStockProducts(storeId: string): Promise<any[]> {
-    // Mock low stock products
-    return [
-      { id: "1", name: "iPhone 15 Pro", current: 3, minimum: 5, status: "low" },
-      { id: "2", name: "AirPods Pro", current: 1, minimum: 10, status: "critical" }
     ];
   }
 
-  // Products
-  async getProducts(storeId: string): Promise<Product[]> {
-    // Mock products for demo
+  async getRecentOrders(storeId: string, limit: number): Promise<any[]> {
+    // Mock data for now
     return [
+      {
+        id: "1",
+        orderNumber: "156",
+        customer: "Nguyễn Văn A",
+        total: "285.000₫",
+        status: "Hoàn thành",
+        time: "2 phút trước"
+      },
+      {
+        id: "2",
+        orderNumber: "155", 
+        customer: "Trần Thị B",
+        total: "340.000₫",
+        status: "Hoàn thành",
+        time: "15 phút trước"
+      },
+      {
+        id: "3",
+        orderNumber: "154",
+        customer: "Lê Văn C", 
+        total: "125.000₫",
+        status: "Đang xử lý",
+        time: "25 phút trước"
+      }
+    ];
+  }
+
+  async getLowStockProducts(storeId: string): Promise<any[]> {
+    // Mock data for now
+    return [
+      {
+        id: "1",
+        name: "Hạt cà phê Espresso",
+        image: "https://images.unsplash.com/photo-1559056199-641a0ac8b55e?w=60&h=60&fit=crop",
+        stock: "2 kg còn lại",
+        minStockLevel: 10,
+        currentStock: 2
+      },
+      {
+        id: "2",
+        name: "Sữa tươi",
+        image: "https://images.unsplash.com/photo-1550583724-b2692b85b150?w=60&h=60&fit=crop",
+        stock: "5 lít còn lại", 
+        minStockLevel: 20,
+        currentStock: 5
+      }
+    ];
+  }
+
+  // Products - use database
+  async getProducts(storeId: string): Promise<Product[]> {
+    try {
+      return await db.select().from(products).where(eq(products.storeId, storeId));
+    } catch (error) {
+      console.error("Database error, using fallback data:", error);
+      // Fallback data with proper UUIDs
+      return [
         {
           id: "550e8400-e29b-41d4-a716-446655440010",
-          name: "iPhone 15 Pro",
-          description: "Smartphone cao cấp với chip A17 Pro",
-          sku: "IP15P-128GB",
+          name: "iPhone 13",
+          description: "Smartphone Apple mới nhất",
+          sku: "IP13-128GB",
           barcode: "123456789",
-          price: "25000000",
-          costPrice: "22000000", 
+          price: "20000000",
+          costPrice: "18000000",
           image: "https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=200&h=200&fit=crop",
           categoryId: "550e8400-e29b-41d4-a716-446655440003",
           storeId: storeId,
           isActive: true,
-          stockQuantity: 15,
-          minStockLevel: 10,
+          stockQuantity: 25,
+          minStockLevel: 5,
           unit: "chiếc",
           createdAt: new Date(),
           updatedAt: new Date()
         },
         {
-          id: "550e8400-e29b-41d4-a716-446655440011",
-          name: "AirPods Pro 2",
-          description: "Tai nghe không dây chống ồn",
-          sku: "APP2-WHITE",
+          id: "550e8400-e29b-41d4-a716-446655440011", 
+          name: "Samsung Galaxy S21",
+          description: "Smartphone Samsung cao cấp",
+          sku: "SGS21-256GB",
           barcode: "987654321",
-          price: "6000000",
-          costPrice: "5200000",
-          image: "https://images.unsplash.com/photo-1606220945770-b5b6c2c55bf1?w=200&h=200&fit=crop",
-          categoryId: "550e8400-e29b-41d4-a716-446655440005",
-          storeId: storeId,
-          isActive: true,
-          stockQuantity: 25,
-          minStockLevel: 15,
-          unit: "cặp",
-          createdAt: new Date(),
-          updatedAt: new Date()
-        },
-        {
-          id: "550e8400-e29b-41d4-a716-446655440013",
-          name: "iPad Air 11\"",
-          description: "Máy tính bảng với chip M2",
-          sku: "IPA11-256GB",
-          barcode: "135792468",
           price: "15000000",
           costPrice: "13000000",
           image: "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=200&h=200&fit=crop",
@@ -280,10 +300,10 @@ export class MemStorage implements IStorage {
         name: "Lê Văn Cường",
         email: "levancuong@email.com",
         phone: "0923456789", 
-        address: "789 Trần Hưng Đạo, Q5, TP.HCM",
-        dateOfBirth: new Date("1992-03-10"),
+        address: "789 Pasteur, Q3, TP.HCM",
+        dateOfBirth: new Date("1992-08-10"),
         customerType: "regular",
-        loyaltyPoints: 250,
+        loyaltyPoints: 200,
         totalSpent: "1200000",
         storeId: storeId,
         isActive: true,
@@ -306,38 +326,38 @@ export class MemStorage implements IStorage {
     // Mock orders for demo
     return [
       {
-        id: "550e8400-e29b-41d4-a716-446655440020",
-        orderNumber: "ORD-2025-001",
+        id: "1",
+        orderNumber: "ORD-001",
         customerId: "1",
-        cashierId: "550e8400-e29b-41d4-a716-446655440001",
+        cashierId: "user-1",
         storeId: storeId,
-        subtotal: "25000000",
-        taxAmount: "2500000",
-        discountAmount: "1000000",
-        total: "26500000",
+        subtotal: "20000000",
+        taxAmount: "2000000",
+        discountAmount: "0",
+        total: "22000000",
         paymentMethod: "cash",
-        paymentStatus: "paid",
+        paymentStatus: "completed",
         status: "completed",
-        notes: "Khách hàng VIP - giảm giá đặc biệt",
-        metadata: { receiptUrl: null },
+        notes: "Thanh toán tiền mặt",
+        metadata: {},
         createdAt: new Date(),
         updatedAt: new Date()
       },
       {
-        id: "550e8400-e29b-41d4-a716-446655440021", 
-        orderNumber: "ORD-2025-002",
+        id: "2",
+        orderNumber: "ORD-002", 
         customerId: "2",
-        cashierId: "550e8400-e29b-41d4-a716-446655440001",
+        cashierId: "user-1",
         storeId: storeId,
-        subtotal: "12000000",
-        taxAmount: "1200000",
-        discountAmount: "0",
-        total: "13200000",
+        subtotal: "15000000",
+        taxAmount: "1500000",
+        discountAmount: "500000",
+        total: "16000000",
         paymentMethod: "card",
-        paymentStatus: "paid",
+        paymentStatus: "completed",
         status: "completed",
-        notes: "",
-        metadata: { receiptUrl: null },
+        notes: "Thanh toán thẻ",
+        metadata: {},
         createdAt: new Date(),
         updatedAt: new Date()
       }
@@ -349,45 +369,47 @@ export class MemStorage implements IStorage {
       .insert(orders)
       .values(insertOrder)
       .returning();
-      
-    if (items && items.length > 0) {
-      await db.insert(orderItems).values(
-        items.map(item => ({ ...item, orderId: order.id }))
-      );
+    
+    if (items.length > 0) {
+      const orderItemsWithOrderId = items.map(item => ({
+        ...item,
+        orderId: order.id
+      }));
+      await db.insert(orderItems).values(orderItemsWithOrderId);
     }
     
     return order;
   }
 
-  // Categories
+  // Categories  
   async getCategories(storeId: string): Promise<Category[]> {
     // Mock categories for demo
     return [
       {
-        id: "550e8400-e29b-41d4-a716-446655440003",
-        name: "Điện thoại & Tablet", 
-        description: "Smartphone, máy tính bảng",
-        image: null,
+        id: "cat-1",
+        name: "Điện thoại",
+        description: "Smartphone và phụ kiện",
+        image: "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=100&h=100&fit=crop",
+        isActive: true,
         storeId: storeId,
-        isActive: true,
         createdAt: new Date()
       },
       {
-        id: "550e8400-e29b-41d4-a716-446655440004",
-        name: "Laptop & PC",
-        description: "Máy tính xách tay và để bàn",
-        image: null,
-        storeId: storeId, 
+        id: "cat-2", 
+        name: "Laptop",
+        description: "Máy tính xách tay các loại",
+        image: "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=100&h=100&fit=crop",
         isActive: true,
+        storeId: storeId,
         createdAt: new Date()
       },
       {
-        id: "550e8400-e29b-41d4-a716-446655440005",
+        id: "cat-3",
         name: "Phụ kiện",
-        description: "Tai nghe, sạc, ốp lưng",
-        image: null,
-        storeId: storeId,
+        description: "Phụ kiện điện tử",
+        image: "https://images.unsplash.com/photo-1572569511254-d8f925fe2cbb?w=100&h=100&fit=crop",
         isActive: true,
+        storeId: storeId,
         createdAt: new Date()
       }
     ];
@@ -395,84 +417,56 @@ export class MemStorage implements IStorage {
 
   // Inventory
   async getInventoryMovements(storeId: string): Promise<InventoryMovement[]> {
-    // Mock inventory movements for demo
-    return [
-      {
-        id: "550e8400-e29b-41d4-a716-446655440030",
-        productId: "550e8400-e29b-41d4-a716-446655440010",
-        quantity: 20,
-        type: "in",
-        reason: "Nhập hàng từ nhà cung cấp",
-        previousStock: 0,
-        newStock: 20,
-        userId: "550e8400-e29b-41d4-a716-446655440001",
-        storeId: storeId,
-        createdAt: new Date()
-      },
-      {
-        id: "550e8400-e29b-41d4-a716-446655440031", 
-        productId: "550e8400-e29b-41d4-a716-446655440011",
-        quantity: -2,
-        type: "out",
-        reason: "Bán hàng",
-        previousStock: 27,
-        newStock: 25,
-        userId: "550e8400-e29b-41d4-a716-446655440001",
-        storeId: storeId,
-        createdAt: new Date()
-      }
-    ];
+    return await db.select().from(inventoryMovements).where(eq(inventoryMovements.storeId, storeId)).orderBy(desc(inventoryMovements.createdAt));
   }
 
   async adjustInventory(productId: string, quantity: number, reason: string, userId: string, storeId: string): Promise<InventoryMovement> {
     // Get current product stock
     const [product] = await db.select().from(products).where(eq(products.id, productId));
-    const previousStock = product?.stockQuantity || 0;
+    if (!product) {
+      throw new Error("Product not found");
+    }
+
+    const previousStock = product.stockQuantity;
     const newStock = previousStock + quantity;
-    
+
     // Update product stock
     await db
       .update(products)
       .set({ stockQuantity: newStock })
       .where(eq(products.id, productId));
-    
+
     // Create inventory movement record
     const [movement] = await db
       .insert(inventoryMovements)
       .values({
         productId,
-        quantity,
-        type: quantity > 0 ? "in" : "out",
-        reason,
+        type: quantity > 0 ? 'purchase' : 'adjustment',
+        quantity: Math.abs(quantity),
         previousStock,
         newStock,
+        reason,
         userId,
         storeId
       })
       .returning();
+
     return movement;
   }
 
   // Reports
   async getSalesReport(storeId: string, startDate: string, endDate: string): Promise<any> {
-    // Mock sales report data
+    // Mock data for now
     return {
-      totalRevenue: "125.500.000₫",
-      totalOrders: 45,
-      averageOrderValue: "2.788.889₫",
+      totalRevenue: "125.750.000₫",
+      totalOrders: 356,
+      averageOrderValue: "353.232₫",
       topProducts: [
-        { name: "iPhone 15 Pro", quantity: 12, revenue: "300.000.000₫" },
-        { name: "MacBook Air M2", revenue: "180.000.000₫" },
-        { name: "AirPods Pro", quantity: 25, revenue: "150.000.000₫" }
-      ],
-      dailySales: [
-        { date: "2025-08-20", revenue: "8.500.000₫", orders: 3 },
-        { date: "2025-08-21", revenue: "12.200.000₫", orders: 5 },
-        { date: "2025-08-22", revenue: "15.800.000₫", orders: 7 }
+        { name: "Cà phê Espresso", revenue: "45.250.000₫", quantity: 892 },
+        { name: "Bánh croissant", revenue: "28.450.000₫", quantity: 567 }
       ]
     };
   }
 }
 
-// Create storage instance
 export const storage = new MemStorage();
