@@ -87,17 +87,21 @@ export default function Sales() {
 
   // Add product to cart
   const addToCart = (product: Product) => {
+    console.log('Adding product to cart:', product);
     const existingItem = cart.find(item => item.id === product.id);
     
     if (existingItem) {
+      console.log('Product exists, updating quantity');
       updateQuantity(product.id, existingItem.quantity + 1);
     } else {
+      console.log('New product, adding to cart');
       const newItem: CartItem = {
         ...product,
         quantity: 1,
         totalPrice: parseFloat(product.price)
       };
       setCart([...cart, newItem]);
+      console.log('Cart after adding:', [...cart, newItem]);
     }
   };
 
