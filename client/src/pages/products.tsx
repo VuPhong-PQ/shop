@@ -49,6 +49,11 @@ export default function Products() {
     queryKey: ['/api/products'],
   });
 
+  // Debug logs
+  console.log('Products data:', products);
+  console.log('Products count:', products.length);
+  console.log('isLoading:', isLoading);
+
   const { data: categories = [] } = useQuery<Category[]>({
     queryKey: ['/api/categories'],
   });
@@ -158,6 +163,12 @@ export default function Products() {
     const matchesCategory = selectedCategory === "all" || product.categoryId === selectedCategory;
     return matchesSearch && matchesCategory;
   });
+
+  // Debug filtered products
+  console.log('Filtered products:', filteredProducts);
+  console.log('Filtered products count:', filteredProducts.length);
+  console.log('Search term:', searchTerm);
+  console.log('Selected category:', selectedCategory);
 
   // Handle form submission
   const onSubmit = (data: ProductFormData) => {
