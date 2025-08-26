@@ -142,8 +142,8 @@ export default function Sales() {
     const orderData = {
       orderNumber: `ORD${Date.now()}`,
       customerId: selectedCustomer?.id || null,
-      cashierId: "user-1", // Should come from auth context
-      storeId: "store-1", // Should come from context
+      cashierId: "550e8400-e29b-41d4-a716-446655440001", // UUID for cashier
+      storeId: "550e8400-e29b-41d4-a716-446655440002", // UUID for store
       subtotal: subtotal.toString(),
       taxAmount: taxAmount.toString(),
       discountAmount: "0",

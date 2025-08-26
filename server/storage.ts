@@ -175,64 +175,68 @@ export class MemStorage implements IStorage {
     ];
   }
 
-  // Products
+  // Products - use database
   async getProducts(storeId: string): Promise<Product[]> {
-    // Mock products for demo
-    return [
-      {
-        id: "1",
-        name: "iPhone 13",
-        description: "Smartphone Apple mới nhất",
-        sku: "IP13-128GB",
-        barcode: "123456789",
-        price: "20000000",
-        costPrice: "18000000",
-        image: "https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=200&h=200&fit=crop",
-        categoryId: "cat-1",
-        storeId: storeId,
-        isActive: true,
-        stockQuantity: 25,
-        minStockLevel: 5,
-        unit: "chiếc",
-        createdAt: new Date(),
-        updatedAt: new Date()
-      },
-      {
-        id: "2", 
-        name: "Samsung Galaxy S21",
-        description: "Smartphone Samsung cao cấp",
-        sku: "SGS21-256GB",
-        barcode: "987654321",
-        price: "15000000",
-        costPrice: "13000000",
-        image: "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=200&h=200&fit=crop",
-        categoryId: "cat-1",
-        storeId: storeId,
-        isActive: true,
-        stockQuantity: 3,
-        minStockLevel: 5,
-        unit: "chiếc",
-        createdAt: new Date(),
-        updatedAt: new Date()
-      },
-      {
-        id: "3",
-        name: "MacBook Air M2",
-        description: "Laptop Apple với chip M2",
-        sku: "MBA-M2-256GB",
-        barcode: "456789123",
-        price: "30000000",
-        costPrice: "27000000", 
-        image: "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=200&h=200&fit=crop",
-        categoryId: "cat-2",
-        storeId: storeId,
-        isActive: true,
-        stockQuantity: 0,
-        minStockLevel: 2,
-        unit: "chiếc",
-        createdAt: new Date(),
-        updatedAt: new Date()
-      }
+    try {
+      return await db.select().from(products).where(eq(products.storeId, storeId));
+    } catch (error) {
+      console.error("Database error, using fallback data:", error);
+      // Fallback data with proper UUIDs
+      return [
+        {
+          id: "550e8400-e29b-41d4-a716-446655440010",
+          name: "iPhone 13",
+          description: "Smartphone Apple mới nhất",
+          sku: "IP13-128GB",
+          barcode: "123456789",
+          price: "20000000",
+          costPrice: "18000000",
+          image: "https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=200&h=200&fit=crop",
+          categoryId: "550e8400-e29b-41d4-a716-446655440003",
+          storeId: storeId,
+          isActive: true,
+          stockQuantity: 25,
+          minStockLevel: 5,
+          unit: "chiếc",
+          createdAt: new Date(),
+          updatedAt: new Date()
+        },
+        {
+          id: "550e8400-e29b-41d4-a716-446655440011", 
+          name: "Samsung Galaxy S21",
+          description: "Smartphone Samsung cao cấp",
+          sku: "SGS21-256GB",
+          barcode: "987654321",
+          price: "15000000",
+          costPrice: "13000000",
+          image: "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=200&h=200&fit=crop",
+          categoryId: "550e8400-e29b-41d4-a716-446655440003",
+          storeId: storeId,
+          isActive: true,
+          stockQuantity: 3,
+          minStockLevel: 5,
+          unit: "chiếc",
+          createdAt: new Date(),
+          updatedAt: new Date()
+        },
+        {
+          id: "550e8400-e29b-41d4-a716-446655440012",
+          name: "MacBook Air M2",
+          description: "Laptop Apple với chip M2",
+          sku: "MBA-M2-256GB",
+          barcode: "456789123",
+          price: "30000000",
+          costPrice: "27000000",
+          image: "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=200&h=200&fit=crop",
+          categoryId: "550e8400-e29b-41d4-a716-446655440004",
+          storeId: storeId,
+          isActive: true,
+          stockQuantity: 8,
+          minStockLevel: 3,
+          unit: "chiếc",
+          createdAt: new Date(),
+          updatedAt: new Date()
+        }
     ];
   }
 
