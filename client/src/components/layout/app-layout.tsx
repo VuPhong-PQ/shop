@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Sidebar } from "./sidebar";
 import { Header } from "./header";
-import { NotificationModal } from "../ui/notification-modal";
+import { NotificationModal } from "@/components/ui/notification-modal";
 import { useWebSocket } from "@/hooks/use-websocket";
 
 interface AppLayoutProps {

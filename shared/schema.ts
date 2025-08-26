@@ -70,6 +70,7 @@ export const customers = pgTable("customers", {
   phone: text("phone"),
   address: text("address"),
   dateOfBirth: timestamp("date_of_birth"),
+  customerType: text("customer_type", { enum: ["regular", "premium", "vip"] }).notNull().default("regular"),
   loyaltyPoints: integer("loyalty_points").notNull().default(0),
   totalSpent: decimal("total_spent", { precision: 12, scale: 2 }).notNull().default("0"),
   storeId: uuid("store_id").notNull(),
