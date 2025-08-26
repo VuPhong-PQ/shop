@@ -22,6 +22,9 @@ import type { Product, Category } from "@shared/schema";
 const productFormSchema = insertProductSchema.extend({
   price: z.string().min(1, "Giá bán là bắt buộc"),
   costPrice: z.string().optional(),
+  barcode: z.string().optional(),
+  description: z.string().optional(),
+  image: z.string().optional(),
 });
 
 type ProductFormData = z.infer<typeof productFormSchema>;
@@ -69,10 +72,8 @@ export default function Products() {
         price: productData.price,
         costPrice: productData.costPrice || null,
       };
-      return apiRequest('/api/products', {
-        method: 'POST',
-        body: JSON.stringify(formattedData),
-      });
+      const response = await apiRequest('POST', '/api/products', formattedData);
+      return response.json();
     },
     onSuccess: () => {
       toast({
@@ -95,10 +96,8 @@ export default function Products() {
   // Edit product mutation
   const editProductMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: Partial<ProductFormData> }) => {
-      return apiRequest(`/api/products/${id}`, {
-        method: 'PUT',
-        body: JSON.stringify(data),
-      });
+      const response = await apiRequest('PUT', `/api/products/${id}`, data);
+      return response.json();
     },
     onSuccess: () => {
       toast({
@@ -121,9 +120,8 @@ export default function Products() {
   // Delete product mutation
   const deleteProductMutation = useMutation({
     mutationFn: async (id: string) => {
-      return apiRequest(`/api/products/${id}`, {
-        method: 'DELETE',
-      });
+      const response = await apiRequest('DELETE', `/api/products/${id}`);
+      return response.json();
     },
     onSuccess: () => {
       toast({
