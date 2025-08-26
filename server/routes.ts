@@ -86,6 +86,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Reports APIs
+  app.get("/api/reports/sales-summary", async (req, res) => {
+    try {
+      const storeId = req.headers['x-store-id'] as string || '';
+      const { startDate, endDate } = req.query;
+      const summary = await storage.getSalesSummary(storeId, startDate as string, endDate as string);
+      res.json(summary);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch sales summary" });
+    }
+  });
+
+  app.get("/api/reports/product-performance", async (req, res) => {
+    try {
+      const storeId = req.headers['x-store-id'] as string || '';
+      const { startDate, endDate } = req.query;
+      const performance = await storage.getProductPerformance(storeId, startDate as string, endDate as string);
+      res.json(performance);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch product performance" });
+    }
+  });
+
+  app.get("/api/reports/customer-analytics", async (req, res) => {
+    try {
+      const storeId = req.headers['x-store-id'] as string || '';
+      const { startDate, endDate } = req.query;
+      const analytics = await storage.getCustomerAnalytics(storeId, startDate as string, endDate as string);
+      res.json(analytics);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch customer analytics" });
+    }
+  });
+
+  app.get("/api/reports/profit-analysis", async (req, res) => {
+    try {
+      const storeId = req.headers['x-store-id'] as string || '';
+      const { startDate, endDate } = req.query;
+      const analysis = await storage.getProfitAnalysis(storeId, startDate as string, endDate as string);
+      res.json(analysis);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch profit analysis" });
+    }
+  });
+
   // Products
   app.get("/api/products", async (req, res) => {
     try {
