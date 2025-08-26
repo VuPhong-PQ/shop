@@ -190,23 +190,40 @@ export default function Sales() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 max-h-[calc(100vh-300px)] overflow-y-auto">
                 {filteredProducts.map((product) => (
-                  <Card 
+                  <div 
                     key={product.id} 
                     className="cursor-pointer hover:shadow-md transition-shadow"
-                    onClick={() => addToCart(product)}
+                    onClick={() => {
+                      console.log('Product clicked:', product);
+                      addToCart(product);
+                    }}
                     data-testid={`product-card-${product.id}`}
                   >
-                    <CardContent className="p-4">
-                      <img
-                        src={product.image || "https://images.unsplash.com/photo-1559056199-641a0ac8b55e?w=200&h=150&fit=crop"}
-                        alt={product.name}
-                        className="w-full h-32 object-cover rounded-lg mb-3"
-                      />
-                      <h3 className="font-medium text-sm mb-1 line-clamp-2">{product.name}</h3>
-                      <p className="text-lg font-bold text-primary">{parseInt(product.price).toLocaleString('vi-VN')}₫</p>
-                      <p className="text-xs text-gray-500">Tồn: {product.stockQuantity}</p>
-                    </CardContent>
-                  </Card>
+                    <Card>
+                      <CardContent className="p-4">
+                        <img
+                          src={product.image || "https://images.unsplash.com/photo-1559056199-641a0ac8b55e?w=200&h=150&fit=crop"}
+                          alt={product.name}
+                          className="w-full h-32 object-cover rounded-lg mb-3"
+                        />
+                        <h3 className="font-medium text-sm mb-1 line-clamp-2">{product.name}</h3>
+                        <p className="text-lg font-bold text-primary">{parseInt(product.price).toLocaleString('vi-VN')}₫</p>
+                        <p className="text-xs text-gray-500">Tồn: {product.stockQuantity}</p>
+                        <Button 
+                          className="w-full mt-2" 
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            console.log('Button clicked for product:', product);
+                            addToCart(product);
+                          }}
+                        >
+                          <Plus className="w-4 h-4 mr-1" />
+                          Thêm vào giỏ
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  </div>
                 ))}
               </div>
             </CardContent>
