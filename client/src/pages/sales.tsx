@@ -51,7 +51,8 @@ export default function Sales() {
   // Create order mutation
   const createOrderMutation = useMutation({
     mutationFn: async (orderData: any) => {
-      return apiRequest('/api/orders', orderData);
+      const response = await apiRequest('POST', '/api/orders', orderData);
+      return response.json();
     },
     onSuccess: () => {
       toast({

@@ -187,7 +187,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (error instanceof z.ZodError) {
         res.status(400).json({ error: "Invalid order data", details: error.errors });
       } else {
-        res.status(500).json({ error: "Failed to create order", details: error.message });
+        res.status(500).json({ error: "Failed to create order", details: (error as Error).message });
       }
     }
   });
