@@ -149,9 +149,13 @@ export default function Products() {
 
   // Handle form submission
   const onSubmit = (data: ProductFormData) => {
+    console.log('Form submitted with data:', data);
+    console.log('Form errors:', form.formState.errors);
     if (editingProduct) {
+      console.log('Editing product:', editingProduct);
       editProductMutation.mutate({ id: editingProduct.id, data });
     } else {
+      console.log('Adding new product');
       addProductMutation.mutate(data);
     }
   };
@@ -296,7 +300,7 @@ export default function Products() {
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Danh mục</FormLabel>
-                          <Select onValueChange={field.onChange} value={field.value}>
+                          <Select onValueChange={field.onChange} value={field.value || ""}>
                             <FormControl>
                               <SelectTrigger data-testid="select-product-category">
                                 <SelectValue placeholder="Chọn danh mục" />
@@ -397,7 +401,7 @@ export default function Products() {
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Đơn vị</FormLabel>
-                          <Select onValueChange={field.onChange} value={field.value}>
+                          <Select onValueChange={field.onChange} value={field.value || ""}>
                             <FormControl>
                               <SelectTrigger data-testid="select-product-unit">
                                 <SelectValue />
