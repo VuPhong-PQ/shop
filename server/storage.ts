@@ -544,6 +544,120 @@ export class MemStorage implements IStorage {
       ]
     };
   }
+
+  // Staff Management
+  async getStaff(): Promise<any[]> {
+    const users = await this.db.select().from(usersTable);
+    return users.map(user => ({
+      ...user,
+      role: user.role || "staff",
+      status: user.isActive ? "active" : "inactive",
+      workSchedule: user.workSchedule || "9:00-18:00",
+      permissions: this.getRolePermissions(user.role || "staff")
+    }));
+  }
+
+  async createStaff(staffData: any): Promise<any> {
+    const staff = await this.db.insert(usersTable).values({
+      id: `staff-${Date.now()}`,
+      ...staffData,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    }).returning();
+    return staff[0];
+  }
+
+  async updateStaff(id: string, updates: any): Promise<any> {
+    const staff = await this.db.update(usersTable)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(usersTable.id, id))
+      .returning();
+    return staff[0];
+  }
+
+  async deleteStaff(id: string): Promise<void> {
+    await this.db.delete(usersTable).where(eq(usersTable.id, id));
+  }
+
+  async getRoles(): Promise<any[]> {
+    return [
+      {
+        id: "admin",
+        name: "Quản trị viên",
+        description: "Toàn quyền quản lý hệ thống",
+        permissions: ["all"],
+        color: "red"
+      },
+      {
+        id: "manager",
+        name: "Quản lý cửa hàng",
+        description: "Quản lý cửa hàng và nhân viên",
+        permissions: ["manage_staff", "manage_products", "manage_orders", "view_reports"],
+        color: "blue"
+      },
+      {
+        id: "cashier",
+        name: "Thu ngân",
+        description: "Xử lý bán hàng và thanh toán",
+        permissions: ["create_orders", "manage_customers", "view_products"],
+        color: "green"
+      },
+      {
+        id: "staff",
+        name: "Nhân viên",
+        description: "Quyền truy cập cơ bản",
+        permissions: ["view_products", "create_orders"],
+        color: "gray"
+      },
+      {
+        id: "inventory",
+        name: "Thủ kho",
+        description: "Quản lý kho và kiểm hàng",
+        permissions: ["manage_inventory", "view_products", "manage_stock"],
+        color: "orange"
+      }
+    ];
+  }
+
+  async getStaffGroups(): Promise<any[]> {
+    return [
+      {
+        id: "management",
+        name: "Ban quản lý",
+        description: "Quản trị viên và quản lý cửa hàng",
+        memberCount: 2
+      },
+      {
+        id: "sales",
+        name: "Bán hàng",
+        description: "Nhân viên bán hàng và thu ngân",
+        memberCount: 5
+      },
+      {
+        id: "warehouse",
+        name: "Kho vận",
+        description: "Nhân viên kho và logistics",
+        memberCount: 2
+      },
+      {
+        id: "parttime",
+        name: "Bán thời gian",
+        description: "Nhân viên làm bán thời gian",
+        memberCount: 3
+      }
+    ];
+  }
+
+  private getRolePermissions(role: string): string[] {
+    const roleMap: { [key: string]: string[] } = {
+      admin: ["all"],
+      manager: ["manage_staff", "manage_products", "manage_orders", "view_reports"],
+      cashier: ["create_orders", "manage_customers", "view_products"],
+      staff: ["view_products", "create_orders"],
+      inventory: ["manage_inventory", "view_products", "manage_stock"]
+    };
+    return roleMap[role] || roleMap.staff;
+  }
 }
 
 // Create storage instance

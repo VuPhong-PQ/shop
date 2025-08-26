@@ -209,6 +209,70 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Staff Management
+  app.get("/api/staff", async (req, res) => {
+    try {
+      const staff = await storage.getStaff();
+      res.json(staff);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch staff" });
+    }
+  });
+
+  app.post("/api/staff", async (req, res) => {
+    try {
+      const result = insertUserSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ error: "Invalid staff data", details: result.error });
+      }
+      const staff = await storage.createStaff(result.data);
+      broadcast({ type: 'staff_created', data: staff });
+      res.status(201).json(staff);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to create staff" });
+    }
+  });
+
+  app.put("/api/staff/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const staff = await storage.updateStaff(id, req.body);
+      broadcast({ type: 'staff_updated', data: staff });
+      res.json(staff);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update staff" });
+    }
+  });
+
+  app.delete("/api/staff/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      await storage.deleteStaff(id);
+      broadcast({ type: 'staff_deleted', data: { id } });
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete staff" });
+    }
+  });
+
+  app.get("/api/roles", async (req, res) => {
+    try {
+      const roles = await storage.getRoles();
+      res.json(roles);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch roles" });
+    }
+  });
+
+  app.get("/api/staff-groups", async (req, res) => {
+    try {
+      const groups = await storage.getStaffGroups();
+      res.json(groups);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch staff groups" });
+    }
+  });
+
   // Orders
   app.get("/api/orders", async (req, res) => {
     try {
