@@ -88,7 +88,9 @@ export default function Products() {
         title: "Thành công",
         description: "Sản phẩm đã được thêm thành công",
       });
+      // Force refresh both products and categories
       queryClient.invalidateQueries({ queryKey: ['/api/products'] });
+      queryClient.refetchQueries({ queryKey: ['/api/products'] });
       setIsAddDialogOpen(false);
       form.reset();
     },
@@ -113,6 +115,8 @@ export default function Products() {
         description: "Sản phẩm đã được cập nhật",
       });
       queryClient.invalidateQueries({ queryKey: ['/api/products'] });
+      queryClient.refetchQueries({ queryKey: ['/api/products'] });
+      setIsAddDialogOpen(false);
       setEditingProduct(null);
       form.reset();
     },
