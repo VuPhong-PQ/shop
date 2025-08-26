@@ -51,10 +51,7 @@ export default function Sales() {
   // Create order mutation
   const createOrderMutation = useMutation({
     mutationFn: async (orderData: any) => {
-      return apiRequest('/api/orders', {
-        method: 'POST',
-        body: JSON.stringify(orderData),
-      });
+      return apiRequest('/api/orders', orderData);
     },
     onSuccess: () => {
       toast({
@@ -245,7 +242,7 @@ export default function Sales() {
                     <SelectValue placeholder="Chọn khách hàng (tùy chọn)" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Khách vãng lai</SelectItem>
+                    <SelectItem value="walk-in">Khách vãng lai</SelectItem>
                     {customers.map((customer) => (
                       <SelectItem key={customer.id} value={customer.id}>
                         {customer.name} - {customer.phone}

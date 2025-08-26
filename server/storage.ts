@@ -48,7 +48,7 @@ export interface IStorage {
   getSalesReport(storeId: string, startDate: string, endDate: string): Promise<any>;
 }
 
-export class DatabaseStorage implements IStorage {
+export class MemStorage implements IStorage {
   async getUser(id: string): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.id, id));
     return user || undefined;
@@ -177,7 +177,63 @@ export class DatabaseStorage implements IStorage {
 
   // Products
   async getProducts(storeId: string): Promise<Product[]> {
-    return await db.select().from(products).where(eq(products.storeId, storeId));
+    // Mock products for demo
+    return [
+      {
+        id: "1",
+        name: "iPhone 13",
+        description: "Smartphone Apple mới nhất",
+        sku: "IP13-128GB",
+        barcode: "123456789",
+        price: "20000000",
+        costPrice: "18000000",
+        image: "https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=200&h=200&fit=crop",
+        categoryId: "cat-1",
+        storeId: storeId,
+        isActive: true,
+        stockQuantity: 25,
+        minStockLevel: 5,
+        unit: "chiếc",
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+      {
+        id: "2", 
+        name: "Samsung Galaxy S21",
+        description: "Smartphone Samsung cao cấp",
+        sku: "SGS21-256GB",
+        barcode: "987654321",
+        price: "15000000",
+        costPrice: "13000000",
+        image: "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=200&h=200&fit=crop",
+        categoryId: "cat-1",
+        storeId: storeId,
+        isActive: true,
+        stockQuantity: 3,
+        minStockLevel: 5,
+        unit: "chiếc",
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+      {
+        id: "3",
+        name: "MacBook Air M2",
+        description: "Laptop Apple với chip M2",
+        sku: "MBA-M2-256GB",
+        barcode: "456789123",
+        price: "30000000",
+        costPrice: "27000000", 
+        image: "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=200&h=200&fit=crop",
+        categoryId: "cat-2",
+        storeId: storeId,
+        isActive: true,
+        stockQuantity: 0,
+        minStockLevel: 2,
+        unit: "chiếc",
+        createdAt: new Date(),
+        updatedAt: new Date()
+      }
+    ];
   }
 
   async createProduct(insertProduct: InsertProduct): Promise<Product> {
@@ -203,7 +259,54 @@ export class DatabaseStorage implements IStorage {
 
   // Customers
   async getCustomers(storeId: string): Promise<Customer[]> {
-    return await db.select().from(customers).where(eq(customers.storeId, storeId));
+    // Mock customers for demo
+    return [
+      {
+        id: "1",
+        name: "Nguyễn Văn An",
+        email: "nguyenvanan@email.com",
+        phone: "0901234567",
+        address: "123 Lê Lợi, Q1, TP.HCM",
+        dateOfBirth: new Date("1990-05-15"),
+        customerType: "vip",
+        loyaltyPoints: 1500,
+        totalSpent: "5000000",
+        storeId: storeId,
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+      {
+        id: "2",
+        name: "Trần Thị Bình",
+        email: "tranthibinh@email.com", 
+        phone: "0912345678",
+        address: "456 Nguyễn Huệ, Q1, TP.HCM",
+        dateOfBirth: new Date("1985-12-20"),
+        customerType: "premium",
+        loyaltyPoints: 800,
+        totalSpent: "3200000",
+        storeId: storeId,
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+      {
+        id: "3",
+        name: "Lê Văn Cường",
+        email: "levancuong@email.com",
+        phone: "0923456789", 
+        address: "789 Pasteur, Q3, TP.HCM",
+        dateOfBirth: new Date("1992-08-10"),
+        customerType: "regular",
+        loyaltyPoints: 200,
+        totalSpent: "1200000",
+        storeId: storeId,
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      }
+    ];
   }
 
   async createCustomer(insertCustomer: InsertCustomer): Promise<Customer> {
@@ -216,7 +319,45 @@ export class DatabaseStorage implements IStorage {
 
   // Orders
   async getOrders(storeId: string): Promise<Order[]> {
-    return await db.select().from(orders).where(eq(orders.storeId, storeId)).orderBy(desc(orders.createdAt));
+    // Mock orders for demo
+    return [
+      {
+        id: "1",
+        orderNumber: "ORD-001",
+        customerId: "1",
+        cashierId: "user-1",
+        storeId: storeId,
+        subtotal: "20000000",
+        taxAmount: "2000000",
+        discountAmount: "0",
+        total: "22000000",
+        paymentMethod: "cash",
+        paymentStatus: "completed",
+        status: "completed",
+        notes: "Thanh toán tiền mặt",
+        metadata: {},
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+      {
+        id: "2",
+        orderNumber: "ORD-002", 
+        customerId: "2",
+        cashierId: "user-1",
+        storeId: storeId,
+        subtotal: "15000000",
+        taxAmount: "1500000",
+        discountAmount: "500000",
+        total: "16000000",
+        paymentMethod: "card",
+        paymentStatus: "completed",
+        status: "completed",
+        notes: "Thanh toán thẻ",
+        metadata: {},
+        createdAt: new Date(),
+        updatedAt: new Date()
+      }
+    ];
   }
 
   async createOrder(insertOrder: InsertOrder, items: InsertOrderItem[]): Promise<Order> {
@@ -238,7 +379,36 @@ export class DatabaseStorage implements IStorage {
 
   // Categories  
   async getCategories(storeId: string): Promise<Category[]> {
-    return await db.select().from(categories).where(eq(categories.storeId, storeId));
+    // Mock categories for demo
+    return [
+      {
+        id: "cat-1",
+        name: "Điện thoại",
+        description: "Smartphone và phụ kiện",
+        image: "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=100&h=100&fit=crop",
+        isActive: true,
+        storeId: storeId,
+        createdAt: new Date()
+      },
+      {
+        id: "cat-2", 
+        name: "Laptop",
+        description: "Máy tính xách tay các loại",
+        image: "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=100&h=100&fit=crop",
+        isActive: true,
+        storeId: storeId,
+        createdAt: new Date()
+      },
+      {
+        id: "cat-3",
+        name: "Phụ kiện",
+        description: "Phụ kiện điện tử",
+        image: "https://images.unsplash.com/photo-1572569511254-d8f925fe2cbb?w=100&h=100&fit=crop",
+        isActive: true,
+        storeId: storeId,
+        createdAt: new Date()
+      }
+    ];
   }
 
   // Inventory
@@ -295,4 +465,4 @@ export class DatabaseStorage implements IStorage {
   }
 }
 
-export const storage = new DatabaseStorage();
+export const storage = new MemStorage();
