@@ -174,8 +174,8 @@ export default function Products() {
   // Filter products
   const filteredProducts = products.filter(product => {
   const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = selectedCategory === "all" || product.categoryId === selectedCategory;
-    return matchesSearch && matchesCategory;
+  const matchesCategory = selectedCategory === "all" || String(product.categoryId) === String(selectedCategory);
+  return matchesSearch && matchesCategory;
   });
 
   // Debug filtered products
