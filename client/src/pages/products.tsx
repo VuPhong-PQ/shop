@@ -22,7 +22,6 @@ import type { Product, Category } from "@shared/schema";
 const productFormSchema = z.object({
   name: z.string().min(1, "Tên sản phẩm là bắt buộc"),
   description: z.string().optional().default(""),
-  sku: z.string().min(1, "Mã SKU là bắt buộc"),
   barcode: z.string().optional().default(""),
   price: z.string().min(1, "Giá bán là bắt buộc"),
   costPrice: z.string().optional().default(""),
@@ -64,7 +63,6 @@ export default function Products() {
     defaultValues: {
       name: "",
       description: "",
-      sku: "",
       barcode: "",
       price: "",
       costPrice: "",
@@ -158,8 +156,7 @@ export default function Products() {
 
   // Filter products
   const filteredProducts = products.filter(product => {
-    const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         product.sku.toLowerCase().includes(searchTerm.toLowerCase());
+  const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = selectedCategory === "all" || product.categoryId === selectedCategory;
     return matchesSearch && matchesCategory;
   });
@@ -190,6 +187,8 @@ export default function Products() {
       name: product.name,
       description: product.description || "",
       sku: product.sku,
+    // sku: product.sku,
+    // sku: product.sku,
       barcode: product.barcode || "",
       price: product.price,
       costPrice: product.costPrice || "",
@@ -302,6 +301,7 @@ export default function Products() {
                         </FormItem>
                       )}
                     />
+                      {/* Đã xóa trường SKU trong form */}
 
                     <FormField
                       control={form.control}
@@ -560,6 +560,7 @@ export default function Products() {
                         {product.name}
                       </h3>
                       <p className="text-sm text-gray-600 mb-2">SKU: {product.sku}</p>
+                      {/* Đã xóa hiển thị SKU */}
                       
                       <div className="flex items-center justify-between mb-3">
                         <div>
