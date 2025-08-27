@@ -1,4 +1,5 @@
 import { Link, useLocation } from "wouter";
+import { useState } from "react";
 import {
   LayoutDashboard,
   ShoppingCart,
@@ -9,14 +10,25 @@ import {
   UserCheck,
   Settings,
   ScanBarcode,
-  LogOut
+  LogOut,
+  ChevronDown,
+  ChevronRight,
+  Folder,
+  Tag
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navigation = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard },
   { name: 'Bán hàng', href: '/sales', icon: ShoppingCart },
-  { name: 'Sản phẩm', href: '/products', icon: Package },
+  { 
+    name: 'Sản phẩm', 
+    icon: Package,
+    submenu: [
+      { name: 'Danh sách sản phẩm', href: '/products', icon: Package },
+      { name: 'Nhóm sản phẩm', href: '/product-groups', icon: Folder }
+    ]
+  },
   { name: 'Khách hàng', href: '/customers', icon: Users },
   { name: 'Kho hàng', href: '/inventory', icon: Warehouse },
   { name: 'Báo cáo', href: '/reports', icon: BarChart3 },
@@ -26,6 +38,15 @@ const navigation = [
 
 export function Sidebar() {
   const [location] = useLocation();
+  const [expandedMenus, setExpandedMenus] = useState<string[]>(['Sản phẩm']);
+
+  const toggleMenu = (menuName: string) => {
+    setExpandedMenus(prev => 
+      prev.includes(menuName) 
+        ? prev.filter(name => name !== menuName)
+        : [...prev, menuName]
+    );
+  };
 
   return (
     <aside className="w-64 bg-white shadow-lg border-r border-gray-200" data-testid="sidebar">
@@ -44,8 +65,67 @@ export function Sidebar() {
       <nav className="p-4 space-y-2">
         <div className="space-y-1">
           {navigation.map((item) => {
-            const isActive = location === item.href;
             const Icon = item.icon;
+            
+            // Handle menu items with submenu
+            if (item.submenu) {
+              const isExpanded = expandedMenus.includes(item.name);
+              const hasActiveSubmenu = item.submenu.some(subitem => location === subitem.href);
+              
+              return (
+                <div key={item.name}>
+                  <div
+                    onClick={() => toggleMenu(item.name)}
+                    className={cn(
+                      "flex items-center justify-between px-4 py-3 rounded-lg font-medium transition-colors cursor-pointer",
+                      hasActiveSubmenu
+                        ? "text-primary bg-blue-50"
+                        : "text-gray-600 hover:bg-gray-50"
+                    )}
+                    data-testid={`nav-${item.name.toLowerCase()}`}
+                  >
+                    <div className="flex items-center space-x-3">
+                      <Icon className="w-5 h-5" />
+                      <span>{item.name}</span>
+                    </div>
+                    {isExpanded ? (
+                      <ChevronDown className="w-4 h-4" />
+                    ) : (
+                      <ChevronRight className="w-4 h-4" />
+                    )}
+                  </div>
+                  
+                  {isExpanded && (
+                    <div className="ml-6 mt-1 space-y-1">
+                      {item.submenu.map((subitem) => {
+                        const isActive = location === subitem.href;
+                        const SubIcon = subitem.icon;
+                        
+                        return (
+                          <Link key={subitem.name} href={subitem.href}>
+                            <div
+                              className={cn(
+                                "flex items-center space-x-3 px-4 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer",
+                                isActive
+                                  ? "text-primary bg-blue-50"
+                                  : "text-gray-600 hover:bg-gray-50"
+                              )}
+                              data-testid={`nav-${subitem.href.slice(1)}`}
+                            >
+                              <SubIcon className="w-4 h-4" />
+                              <span>{subitem.name}</span>
+                            </div>
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            }
+            
+            // Handle regular menu items
+            const isActive = location === item.href;
             
             return (
               <Link key={item.name} href={item.href}>

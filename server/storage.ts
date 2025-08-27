@@ -658,6 +658,29 @@ export class MemStorage implements IStorage {
     };
     return roleMap[role] || roleMap.staff;
   }
+
+  // Category Management
+  async createCategory(categoryData: any): Promise<any> {
+    const category = await this.db.insert(categoriesTable).values({
+      id: categoryData.id || `cat-${Date.now()}`,
+      ...categoryData,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    }).returning();
+    return category[0];
+  }
+
+  async updateCategory(id: string, updates: any): Promise<any> {
+    const category = await this.db.update(categoriesTable)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(categoriesTable.id, id))
+      .returning();
+    return category[0];
+  }
+
+  async deleteCategory(id: string): Promise<void> {
+    await this.db.delete(categoriesTable).where(eq(categoriesTable.id, id));
+  }
 }
 
 // Create storage instance

@@ -312,6 +312,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/categories", async (req, res) => {
+    try {
+      const categoryData = req.body;
+      const category = await storage.createCategory(categoryData);
+      res.json(category);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to create category" });
+    }
+  });
+
+  app.put("/api/categories/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const updates = req.body;
+      const category = await storage.updateCategory(id, updates);
+      res.json(category);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update category" });
+    }
+  });
+
+  app.delete("/api/categories/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      await storage.deleteCategory(id);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete category" });
+    }
+  });
+
   // Inventory
   app.get("/api/inventory/movements", async (req, res) => {
     try {

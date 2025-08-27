@@ -7,6 +7,7 @@ import NotFound from "@/pages/not-found";
 import Dashboard from "@/pages/dashboard";
 import Sales from "@/pages/sales";
 import Products from "@/pages/products";
+import ProductGroups from "@/pages/product-groups";
 import Customers from "@/pages/customers";
 import Inventory from "@/pages/inventory";
 import Reports from "@/pages/reports";
@@ -19,6 +20,7 @@ function Router() {
       <Route path="/" component={Dashboard} />
       <Route path="/sales" component={Sales} />
       <Route path="/products" component={Products} />
+      <Route path="/product-groups" component={ProductGroups} />
       <Route path="/customers" component={Customers} />
       <Route path="/inventory" component={Inventory} />
       <Route path="/reports" component={Reports} />
