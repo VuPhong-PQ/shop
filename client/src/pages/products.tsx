@@ -109,8 +109,24 @@ export default function Products() {
   // Edit product mutation
   const editProductMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: Partial<ProductFormData> }) => {
-      const response = await apiRequest('PUT', `/api/products/${id}`, data);
-      return response.json();
+      // Map lại dữ liệu cho đúng backend
+      const mappedData = {
+        productId: parseInt(id),
+        name: data.name,
+        barcode: data.barcode,
+        categoryId: data.categoryId ? parseInt(data.categoryId as string) : null,
+        price: data.price ? parseFloat(data.price as string) : 0,
+        costPrice: data.costPrice ? parseFloat(data.costPrice as string) : null,
+        stockQuantity: data.stockQuantity ?? 0,
+        minStockLevel: data.minStockLevel ?? 0,
+        unit: data.unit,
+        imageUrl: data.image,
+        description: data.description,
+      };
+  const response = await apiRequest('PUT', `/api/products/${id}`, mappedData);
+  // Nếu response là 204 No Content thì trả về null, vẫn coi là thành công
+  if (response.status === 204) return null;
+  return response.json();
     },
     onSuccess: () => {
       toast({
@@ -135,8 +151,9 @@ export default function Products() {
   // Delete product mutation
   const deleteProductMutation = useMutation({
     mutationFn: async (id: string) => {
-      const response = await apiRequest('DELETE', `/api/products/${id}`);
-      return response.json();
+  const response = await apiRequest('DELETE', `/api/products/${id}`);
+  if (response.status === 204) return null;
+  return response.json();
     },
     onSuccess: () => {
       toast({
@@ -172,8 +189,9 @@ export default function Products() {
     console.log('Form submitted with data:', data);
     console.log('Form errors:', form.formState.errors);
     if (editingProduct) {
+      const productId = editingProduct.productId ?? editingProduct.id;
       console.log('Editing product:', editingProduct);
-      editProductMutation.mutate({ id: editingProduct.id, data });
+      editProductMutation.mutate({ id: productId, data });
     } else {
       console.log('Adding new product');
       addProductMutation.mutate(data);
@@ -243,7 +261,7 @@ export default function Products() {
               <SelectContent>
                 <SelectItem value="all">Tất cả danh mục</SelectItem>
                 {categories.map((category) => (
-                  <SelectItem key={category.id} value={category.id}>
+                  <SelectItem key={category.categoryId ?? category.id} value={String(category.categoryId ?? category.id)}>
                     {category.name}
                   </SelectItem>
                 ))}
@@ -331,7 +349,7 @@ export default function Products() {
                             </FormControl>
                             <SelectContent>
                               {categories.map((category) => (
-                                <SelectItem key={category.id} value={category.id}>
+                                <SelectItem key={category.categoryId ?? category.id} value={String(category.categoryId ?? category.id)}>
                                   {category.name}
                                 </SelectItem>
                               ))}
@@ -598,7 +616,7 @@ export default function Products() {
                           variant="outline"
                           size="sm"
                           className="text-red-600 hover:text-red-700"
-                          onClick={() => handleDeleteProduct(product.id)}
+                          onClick={() => handleDeleteProduct(product.productId ?? product.id)}
                           data-testid={`button-delete-${product.id}`}
                         >
                           <Trash2 className="w-4 h-4" />
