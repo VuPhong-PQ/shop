@@ -1,0 +1,12 @@
+{
+  "Version": 1,
+  "Hash": "975EwDL4mTFZl6qc3LjNbXf1GB8FGIWJP9buJLjcsEM=",
+  "Source": "RetailPointBackend",
+  "BasePath": "_content/RetailPointBackend",
+  "Mode": "Default",
+  "ManifestType": "Build",
+  "ReferencedProjectsConfiguration": [],
+  "DiscoveryPatterns": [],
+  "Assets": [],
+  "Endpoints": []
+}

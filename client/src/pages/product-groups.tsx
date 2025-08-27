@@ -116,7 +116,7 @@ export default function ProductGroups() {
   const updateCategoryMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: Partial<CategoryFormData> }) => {
       const response = await apiRequest('PUT', `/api/categories/${id}`, data);
-      return response.json();
+      return response.ok;
     },
     onSuccess: () => {
       toast({
@@ -140,7 +140,7 @@ export default function ProductGroups() {
   const deleteCategoryMutation = useMutation({
     mutationFn: async (id: string) => {
       const response = await apiRequest('DELETE', `/api/categories/${id}`);
-      return response.json();
+      return response.ok;
     },
     onSuccess: () => {
       toast({
@@ -166,13 +166,19 @@ export default function ProductGroups() {
 
   const onSubmit = (data: CategoryFormData) => {
     if (editingCategory) {
-      updateCategoryMutation.mutate({ id: editingCategory.id, data });
+      const id = (editingCategory.categoryId ?? editingCategory.CategoryId ?? editingCategory.id ?? "").toString();
+      if (!id || id === "undefined" || id === "null") {
+        toast({ title: "Lỗi", description: "Không xác định được ID nhóm sản phẩm!", variant: "destructive" });
+        return;
+      }
+  updateCategoryMutation.mutate({ id, data: { ...data, categoryId: Number(id) } });
     } else {
       addCategoryMutation.mutate(data);
     }
   };
 
   const handleEditCategory = (category: any) => {
+    console.log("DEBUG category:", category);
     setEditingCategory(category);
     form.reset({
       name: category.name || "",
@@ -184,8 +190,13 @@ export default function ProductGroups() {
     setIsAddDialogOpen(true);
   };
 
-  const handleDeleteCategory = (id: string) => {
-    const productsInCategory = products.filter((p: any) => p.categoryId === id).length;
+  const handleDeleteCategory = (idOrCategory: any) => {
+    // idOrCategory có thể là id hoặc object category
+    let id = idOrCategory;
+    if (typeof idOrCategory === 'object' && idOrCategory !== null) {
+      id = idOrCategory.categoryId ?? idOrCategory.CategoryId ?? idOrCategory.id;
+    }
+    const productsInCategory = products.filter((p: any) => p.categoryId === id || p.categoryId === Number(id)).length;
     if (productsInCategory > 0) {
       toast({
         title: "Không thể xóa",
@@ -194,14 +205,13 @@ export default function ProductGroups() {
       });
       return;
     }
-    
     if (confirm("Bạn có chắc muốn xóa nhóm sản phẩm này?")) {
       deleteCategoryMutation.mutate(id);
     }
   };
 
   const getProductCount = (categoryId: string) => {
-    return products.filter((p: any) => p.categoryId === categoryId).length;
+  return products.filter((p: any) => (p.categoryId === categoryId || p.categoryId === Number(categoryId))).length;
   };
 
   return (
@@ -400,7 +410,8 @@ export default function ProductGroups() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {filteredCategories.map((category: any) => {
-              const productCount = getProductCount(category.id);
+            const catId = category.CategoryId ?? category.id;
+            const productCount = getProductCount(catId);
               return (
                 <Card key={category.id} className="hover:shadow-md transition-shadow" data-testid={`category-card-${category.id}`}>
                   <CardContent className="p-6">
@@ -442,7 +453,7 @@ export default function ProductGroups() {
                             Chỉnh sửa
                           </DropdownMenuItem>
                           <DropdownMenuItem 
-                            onClick={() => handleDeleteCategory(category.id)}
+                  onClick={() => handleDeleteCategory(category)}
                             className="text-red-600"
                             disabled={productCount > 0}
                           >
@@ -461,7 +472,7 @@ export default function ProductGroups() {
                       <span>Thứ tự: {category.sortOrder || 0}</span>
                       <div className="flex items-center space-x-1">
                         <Grid3X3 className="w-3 h-3" />
-                        <span>#{category.id.slice(-4)}</span>
+                <span>#{typeof catId === 'string' ? catId.slice(-4) : String(catId ?? '').slice(-4)}</span>
                       </div>
                     </div>
                   </CardContent>
