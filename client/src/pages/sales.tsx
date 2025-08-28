@@ -202,7 +202,13 @@ export default function Sales() {
                     <Card>
                       <CardContent className="p-4">
                         <img
-                          src={product.image || "https://images.unsplash.com/photo-1559056199-641a0ac8b55e?w=200&h=150&fit=crop"}
+                          src={
+                            product.imageUrl && product.imageUrl !== ""
+                              ? (product.imageUrl.startsWith("http") ? product.imageUrl : `http://localhost:5271${product.imageUrl}`)
+                              : (product.image && product.image !== ""
+                                ? (product.image.startsWith("http") ? product.image : `http://localhost:5271${product.image}`)
+                                : "https://images.unsplash.com/photo-1559056199-641a0ac8b55e?w=200&h=150&fit=crop")
+                          }
                           alt={product.name}
                           className="w-full h-32 object-cover rounded-lg mb-3"
                         />

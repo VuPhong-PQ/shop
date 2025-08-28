@@ -37,7 +37,7 @@ const productFormSchema = z.object({
   barcode: z.string().optional().default(""),
   price: z.number().min(0, "Giá bán là bắt buộc"),
   costPrice: z.number().min(0).optional().default(0),
-  image: z.any().optional(),
+  image: z.string().optional(),
   categoryId: z.string().min(1, "Danh mục là bắt buộc"),
   storeId: z.string().default("550e8400-e29b-41d4-a716-446655440002"),
   isActive: z.boolean().default(true),
@@ -62,6 +62,9 @@ export default function Products() {
 
   // Debug logs
   console.log('Products data:', products);
+  if (Array.isArray(products) && products.length > 0) {
+    console.log('Sample product:', products[0]);
+  }
   console.log('Products count:', products.length);
   console.log('isLoading:', isLoading);
 
@@ -92,6 +95,7 @@ export default function Products() {
     mutationFn: async (productData: ProductFormData) => {
       const formattedData = {
         ...productData,
+        imageUrl: productData.image, // map image (frontend) -> imageUrl (backend)
         price: Number(productData.price),
         costPrice: productData.costPrice !== undefined ? Number(productData.costPrice) : 0,
         stockQuantity: Number(productData.stockQuantity),
@@ -134,7 +138,7 @@ export default function Products() {
         stockQuantity: data.stockQuantity !== undefined ? Number(data.stockQuantity) : 0,
         minStockLevel: data.minStockLevel !== undefined ? Number(data.minStockLevel) : 0,
         unit: data.unit,
-        imageUrl: data.image,
+        imageUrl: data.image, // map image (frontend) -> imageUrl (backend)
         description: data.description,
       };
       const response = await apiRequest('PUT', `/api/products/${id}`, mappedData);
@@ -147,8 +151,8 @@ export default function Products() {
         title: "Thành công",
         description: "Sản phẩm đã được cập nhật",
       });
-      queryClient.invalidateQueries({ queryKey: ['/api/products'] });
-      queryClient.refetchQueries({ queryKey: ['/api/products'] });
+  queryClient.invalidateQueries({ queryKey: ['/api/products'] });
+  setTimeout(() => queryClient.refetchQueries({ queryKey: ['/api/products'] }), 300);
       setIsAddDialogOpen(false);
       setEditingProduct(null);
       form.reset();
@@ -528,24 +532,27 @@ export default function Products() {
           ) : (
             filteredProducts.map((product) => {
               const stockStatus = getStockStatus(product);
+              // Ưu tiên imageUrl, sau đó đến image, cuối cùng là ảnh mặc định
+              let imageUrl = product.imageUrl || product.image || "https://images.unsplash.com/photo-1559056199-641a0ac8b55e?w=300&h=200&fit=crop";
+              if (imageUrl && typeof imageUrl === "string" && !imageUrl.startsWith("http")) {
+                imageUrl = `http://localhost:5271${imageUrl}`;
+              }
+              const key = product.productId || product.id;
               return (
-                <Card key={product.id} className="overflow-hidden" data-testid={`product-card-${product.id}`}>
+                <Card key={key} className="overflow-hidden" data-testid={`product-card-${key}`}> 
                   <CardContent className="p-0">
                     <div className="relative">
-                      <img
-                        src={
-                          product.image && typeof product.image === "string"
-                            ? product.image.startsWith("http")
-                              ? product.image
-                              : `http://localhost:5271${product.image}`
-                            : "https://images.unsplash.com/photo-1559056199-641a0ac8b55e?w=300&h=200&fit=crop"
-                        }
-                        alt={product.name}
-                        className="w-full h-48 object-cover"
-                      />
+                      <div className="w-full h-48 bg-gray-100 flex items-center justify-center overflow-hidden">
+                        <img
+                          src={imageUrl}
+                          alt={product.name}
+                          className="max-w-full max-h-full object-contain"
+                          style={{ width: '100%', height: '100%' }}
+                        />
+                      </div>
                       <Badge
                         className={`absolute top-2 right-2 text-white ${stockStatus.color}`}
-                        data-testid={`stock-status-${product.id}`}
+                        data-testid={`stock-status-${key}`}
                       >
                         {stockStatus.label}
                       </Badge>
@@ -554,13 +561,13 @@ export default function Products() {
                       )}
                     </div>
                     <div className="p-4">
-                      <h3 className="font-semibold text-lg mb-1 line-clamp-2" data-testid={`product-name-${product.id}`}>
+                      <h3 className="font-semibold text-lg mb-1 line-clamp-2" data-testid={`product-name-${key}`}>
                         {product.name}
                       </h3>
                       {/* Đã xóa hiển thị SKU */}
                       <div className="flex items-center justify-between mb-3">
                         <div>
-                          <p className="text-2xl font-bold text-primary" data-testid={`product-price-${product.id}`}>
+                          <p className="text-2xl font-bold text-primary" data-testid={`product-price-${key}`}>
                             {parseInt(product.price).toLocaleString('vi-VN')}₫
                           </p>
                           {product.costPrice && (
@@ -570,7 +577,7 @@ export default function Products() {
                           )}
                         </div>
                         <div className="text-right">
-                          <p className="text-sm font-medium" data-testid={`product-stock-${product.id}`}>
+                          <p className="text-sm font-medium" data-testid={`product-stock-${key}`}>
                             Tồn: {product.stockQuantity} {product.unit}
                           </p>
                           <p className="text-xs text-gray-500">
@@ -584,7 +591,7 @@ export default function Products() {
                           size="sm"
                           className="flex-1"
                           onClick={() => handleEditProduct(product)}
-                          data-testid={`button-edit-${product.id}`}
+                          data-testid={`button-edit-${key}`}
                         >
                           <Edit className="w-4 h-4 mr-2" />
                           Sửa
@@ -593,8 +600,8 @@ export default function Products() {
                           variant="outline"
                           size="sm"
                           className="text-red-600 hover:text-red-700"
-                          onClick={() => handleDeleteProduct(product.id)}
-                          data-testid={`button-delete-${product.id}`}
+                          onClick={() => handleDeleteProduct(key)}
+                          data-testid={`button-delete-${key}`}
                         >
                           <Trash2 className="w-4 h-4" />
                         </Button>
