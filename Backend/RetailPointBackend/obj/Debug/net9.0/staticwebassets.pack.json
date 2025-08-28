@@ -1,0 +1,37 @@
+{
+  "Files": [
+    {
+      "Id": "D:\\laptrinh\\thiekepm\\RetailPoint\\Backend\\RetailPointBackend\\wwwroot\\uploads\\1aa1e964-1c45-43d2-bcdf-dc69518b52c9.jpeg",
+      "PackagePath": "staticwebassets\\uploads\\1aa1e964-1c45-43d2-bcdf-dc69518b52c9.jpeg"
+    },
+    {
+      "Id": "D:\\laptrinh\\thiekepm\\RetailPoint\\Backend\\RetailPointBackend\\wwwroot\\uploads\\c9eaa530-358f-4204-8032-e13ed0827875.jpeg",
+      "PackagePath": "staticwebassets\\uploads\\c9eaa530-358f-4204-8032-e13ed0827875.jpeg"
+    },
+    {
+      "Id": "D:\\laptrinh\\thiekepm\\RetailPoint\\Backend\\RetailPointBackend\\wwwroot\\uploads\\f1beabf0-51c3-46d1-95f6-7a430de64ac5.jpeg",
+      "PackagePath": "staticwebassets\\uploads\\f1beabf0-51c3-46d1-95f6-7a430de64ac5.jpeg"
+    },
+    {
+      "Id": "obj\\Debug\\net9.0\\staticwebassets\\msbuild.RetailPointBackend.Microsoft.AspNetCore.StaticWebAssetEndpoints.props",
+      "PackagePath": "build\\Microsoft.AspNetCore.StaticWebAssetEndpoints.props"
+    },
+    {
+      "Id": "obj\\Debug\\net9.0\\staticwebassets\\msbuild.RetailPointBackend.Microsoft.AspNetCore.StaticWebAssets.props",
+      "PackagePath": "build\\Microsoft.AspNetCore.StaticWebAssets.props"
+    },
+    {
+      "Id": "obj\\Debug\\net9.0\\staticwebassets\\msbuild.build.RetailPointBackend.props",
+      "PackagePath": "build\\RetailPointBackend.props"
+    },
+    {
+      "Id": "obj\\Debug\\net9.0\\staticwebassets\\msbuild.buildMultiTargeting.RetailPointBackend.props",
+      "PackagePath": "buildMultiTargeting\\RetailPointBackend.props"
+    },
+    {
+      "Id": "obj\\Debug\\net9.0\\staticwebassets\\msbuild.buildTransitive.RetailPointBackend.props",
+      "PackagePath": "buildTransitive\\RetailPointBackend.props"
+    }
+  ],
+  "ElementsToRemove": []
+}

@@ -164,3 +164,4 @@ D:\laptrinh\thiekepm\RetailPoint\Backend\RetailPointBackend\bin\Debug\net9.0\run
 D:\laptrinh\thiekepm\RetailPoint\Backend\RetailPointBackend\bin\Debug\net9.0\runtimes\win\lib\net6.0\System.Security.Cryptography.ProtectedData.dll
 D:\laptrinh\thiekepm\RetailPoint\Backend\RetailPointBackend\bin\Debug\net9.0\runtimes\win\lib\net6.0\System.Windows.Extensions.dll
 D:\laptrinh\thiekepm\RetailPoint\Backend\RetailPointBackend\obj\Debug\net9.0\RetailPointBackend.sourcelink.json
+D:\laptrinh\thiekepm\RetailPoint\Backend\RetailPointBackend\bin\Debug\net9.0\RetailPointBackend.staticwebassets.runtime.json

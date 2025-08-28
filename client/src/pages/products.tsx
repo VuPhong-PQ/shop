@@ -1,3 +1,15 @@
+// Hàm upload ảnh lên server, trả về url
+async function uploadImage(file) {
+  const formData = new FormData();
+  formData.append("file", file);
+  const res = await fetch("http://localhost:5271/api/upload/image", {
+    method: "POST",
+    body: formData,
+  });
+  if (!res.ok) throw new Error("Upload ảnh thất bại");
+  const data = await res.json();
+  return data.url.startsWith("/") ? `http://localhost:5271${data.url}` : data.url;
+}
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { AppLayout } from "@/components/layout/app-layout";
@@ -23,9 +35,9 @@ const productFormSchema = z.object({
   name: z.string().min(1, "Tên sản phẩm là bắt buộc"),
   description: z.string().optional().default(""),
   barcode: z.string().optional().default(""),
-  price: z.string().min(1, "Giá bán là bắt buộc"),
-  costPrice: z.string().optional().default(""),
-  image: z.string().optional().default(""),
+  price: z.number().min(0, "Giá bán là bắt buộc"),
+  costPrice: z.number().min(0).optional().default(0),
+  image: z.any().optional(),
   categoryId: z.string().min(1, "Danh mục là bắt buộc"),
   storeId: z.string().default("550e8400-e29b-41d4-a716-446655440002"),
   isActive: z.boolean().default(true),
@@ -64,8 +76,8 @@ export default function Products() {
       name: "",
       description: "",
       barcode: "",
-      price: "",
-      costPrice: "",
+      price: 0,
+      costPrice: 0,
       categoryId: "",
       storeId: "550e8400-e29b-41d4-a716-446655440002",
       stockQuantity: 0,
@@ -80,8 +92,10 @@ export default function Products() {
     mutationFn: async (productData: ProductFormData) => {
       const formattedData = {
         ...productData,
-        price: productData.price,
-        costPrice: productData.costPrice || null,
+        price: Number(productData.price),
+        costPrice: productData.costPrice !== undefined ? Number(productData.costPrice) : 0,
+        stockQuantity: Number(productData.stockQuantity),
+        minStockLevel: Number(productData.minStockLevel),
       };
       const response = await apiRequest('POST', '/api/products', formattedData);
       return response.json();
@@ -115,18 +129,18 @@ export default function Products() {
         name: data.name,
         barcode: data.barcode,
         categoryId: data.categoryId ? parseInt(data.categoryId as string) : null,
-        price: data.price ? parseFloat(data.price as string) : 0,
-        costPrice: data.costPrice ? parseFloat(data.costPrice as string) : null,
-        stockQuantity: data.stockQuantity ?? 0,
-        minStockLevel: data.minStockLevel ?? 0,
+        price: data.price !== undefined ? Number(data.price) : 0,
+        costPrice: data.costPrice !== undefined ? Number(data.costPrice) : 0,
+        stockQuantity: data.stockQuantity !== undefined ? Number(data.stockQuantity) : 0,
+        minStockLevel: data.minStockLevel !== undefined ? Number(data.minStockLevel) : 0,
         unit: data.unit,
         imageUrl: data.image,
         description: data.description,
       };
-  const response = await apiRequest('PUT', `/api/products/${id}`, mappedData);
-  // Nếu response là 204 No Content thì trả về null, vẫn coi là thành công
-  if (response.status === 204) return null;
-  return response.json();
+      const response = await apiRequest('PUT', `/api/products/${id}`, mappedData);
+      // Nếu response là 204 No Content thì trả về null, vẫn coi là thành công
+      if (response.status === 204) return null;
+      return response.json();
     },
     onSuccess: () => {
       toast({
@@ -189,9 +203,14 @@ export default function Products() {
     console.log('Form submitted with data:', data);
     console.log('Form errors:', form.formState.errors);
     if (editingProduct) {
-      const productId = editingProduct.productId ?? editingProduct.id;
-      console.log('Editing product:', editingProduct);
-      editProductMutation.mutate({ id: productId, data });
+      // Đảm bảo lấy đúng id (string hoặc số đều được, backend nhận uuid hoặc int)
+      const productId = editingProduct.id || editingProduct.productId || editingProduct._id;
+      if (!productId) {
+        toast({ title: 'Lỗi', description: 'Không xác định được ID sản phẩm để cập nhật', variant: 'destructive' });
+        return;
+      }
+      console.log('Editing product:', editingProduct, 'id:', productId);
+      editProductMutation.mutate({ id: String(productId), data });
     } else {
       console.log('Adding new product');
       addProductMutation.mutate(data);
@@ -204,16 +223,13 @@ export default function Products() {
     form.reset({
       name: product.name,
       description: product.description || "",
-      sku: product.sku,
-    // sku: product.sku,
-    // sku: product.sku,
       barcode: product.barcode || "",
-      price: product.price,
-      costPrice: product.costPrice || "",
-      categoryId: product.categoryId || "",
+      price: Number(product.price),
+      costPrice: product.costPrice ? Number(product.costPrice) : 0,
+      categoryId: product.categoryId ? String(product.categoryId) : "",
       storeId: product.storeId,
-      stockQuantity: product.stockQuantity,
-      minStockLevel: product.minStockLevel,
+      stockQuantity: Number(product.stockQuantity),
+      minStockLevel: Number(product.minStockLevel),
       unit: product.unit,
       image: product.image || "",
     });
@@ -260,8 +276,8 @@ export default function Products() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Tất cả danh mục</SelectItem>
-                {categories.map((category) => (
-                  <SelectItem key={category.categoryId ?? category.id} value={String(category.categoryId ?? category.id)}>
+                {categories.filter(category => !!category.id).map((category) => (
+                  <SelectItem key={category.id} value={String(category.id)}>
                     {category.name}
                   </SelectItem>
                 ))}
@@ -288,7 +304,6 @@ export default function Products() {
                   {editingProduct ? "Chỉnh sửa sản phẩm" : "Thêm sản phẩm mới"}
                 </DialogTitle>
               </DialogHeader>
-
               <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -299,28 +314,12 @@ export default function Products() {
                         <FormItem>
                           <FormLabel>Tên sản phẩm *</FormLabel>
                           <FormControl>
-                            <Input {...field} data-testid="input-product-name" />
+                            <Input {...field} placeholder="Tên sản phẩm" data-testid="input-product-name" />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
-
-                    <FormField
-                      control={form.control}
-                      name="sku"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Mã SKU *</FormLabel>
-                          <FormControl>
-                            <Input {...field} data-testid="input-product-sku" />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                      {/* Đã xóa trường SKU trong form */}
-
                     <FormField
                       control={form.control}
                       name="barcode"
@@ -328,13 +327,12 @@ export default function Products() {
                         <FormItem>
                           <FormLabel>Mã vạch</FormLabel>
                           <FormControl>
-                            <Input {...field} data-testid="input-product-barcode" />
+                            <Input {...field} placeholder="Mã vạch" data-testid="input-product-barcode" />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
-
                     <FormField
                       control={form.control}
                       name="categoryId"
@@ -348,8 +346,8 @@ export default function Products() {
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              {categories.map((category) => (
-                                <SelectItem key={category.categoryId ?? category.id} value={String(category.categoryId ?? category.id)}>
+                              {categories.filter(category => !!category.id).map((category) => (
+                                <SelectItem key={category.id} value={String(category.id)}>
                                   {category.name}
                                 </SelectItem>
                               ))}
@@ -359,7 +357,6 @@ export default function Products() {
                         </FormItem>
                       )}
                     />
-
                     <FormField
                       control={form.control}
                       name="price"
@@ -367,18 +364,12 @@ export default function Products() {
                         <FormItem>
                           <FormLabel>Giá bán *</FormLabel>
                           <FormControl>
-                            <Input 
-                              {...field} 
-                              type="number" 
-                              placeholder="0"
-                              data-testid="input-product-price"
-                            />
+                            <Input {...field} type="number" placeholder="0" data-testid="input-product-price" onChange={e => field.onChange(e.target.value === '' ? '' : Number(e.target.value))} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
-
                     <FormField
                       control={form.control}
                       name="costPrice"
@@ -386,18 +377,12 @@ export default function Products() {
                         <FormItem>
                           <FormLabel>Giá vốn</FormLabel>
                           <FormControl>
-                            <Input 
-                              {...field} 
-                              type="number" 
-                              placeholder="0"
-                              data-testid="input-product-cost"
-                            />
+                            <Input {...field} type="number" placeholder="0" data-testid="input-product-costPrice" onChange={e => field.onChange(e.target.value === '' ? '' : Number(e.target.value))} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
-
                     <FormField
                       control={form.control}
                       name="stockQuantity"
@@ -405,18 +390,12 @@ export default function Products() {
                         <FormItem>
                           <FormLabel>Số lượng tồn kho</FormLabel>
                           <FormControl>
-                            <Input 
-                              {...field} 
-                              type="number" 
-                              onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
-                              data-testid="input-product-stock"
-                            />
+                            <Input {...field} type="number" placeholder="0" data-testid="input-product-stockQuantity" onChange={e => field.onChange(e.target.value === '' ? '' : Number(e.target.value))} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
-
                     <FormField
                       control={form.control}
                       name="minStockLevel"
@@ -424,77 +403,73 @@ export default function Products() {
                         <FormItem>
                           <FormLabel>Mức tồn kho tối thiểu</FormLabel>
                           <FormControl>
-                            <Input 
-                              {...field} 
-                              type="number" 
-                              onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
-                              data-testid="input-product-min-stock"
-                            />
+                            <Input {...field} type="number" placeholder="0" data-testid="input-product-minStockLevel" onChange={e => field.onChange(e.target.value === '' ? '' : Number(e.target.value))} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
-
                     <FormField
                       control={form.control}
                       name="unit"
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Đơn vị</FormLabel>
-                          <Select onValueChange={field.onChange} value={field.value || ""}>
-                            <FormControl>
-                              <SelectTrigger data-testid="select-product-unit">
-                                <SelectValue />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="chiếc">Chiếc</SelectItem>
-                              <SelectItem value="cặp">Cặp</SelectItem>
-                              <SelectItem value="kg">Kg</SelectItem>
-                              <SelectItem value="liter">Lít</SelectItem>
-                              <SelectItem value="thùng">Thùng</SelectItem>
-                              <SelectItem value="gói">Gói</SelectItem>
-                            </SelectContent>
-                          </Select>
+                          <FormControl>
+                            <Input {...field} placeholder="Đơn vị" data-testid="input-product-unit" />
+                          </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
-
+                    {/* Upload hình ảnh */}
                     <FormField
                       control={form.control}
                       name="image"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>URL hình ảnh</FormLabel>
+                          <FormLabel>Hình ảnh</FormLabel>
                           <FormControl>
-                            <Input {...field} data-testid="input-product-image" />
+                            <div>
+                              <Input
+                                type="file"
+                                accept="image/*"
+                                onChange={async (e) => {
+                                  const file = e.target.files?.[0];
+                                  if (file) {
+                                    try {
+                                      const url = await uploadImage(file);
+                                      field.onChange(url);
+                                      toast({ title: "Tải ảnh thành công", description: "Ảnh đã được upload." });
+                                    } catch {
+                                      toast({ title: "Lỗi", description: "Tải ảnh thất bại", variant: "destructive" });
+                                    }
+                                  }
+                                }}
+                              />
+                              {typeof field.value === "string" && field.value && (
+                                <img src={field.value} alt="preview" style={{ maxWidth: 120, marginTop: 8 }} />
+                              )}
+                            </div>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="description"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Mô tả</FormLabel>
+                          <FormControl>
+                            <Textarea {...field} placeholder="Mô tả sản phẩm" data-testid="input-product-description" />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
                   </div>
-
-                  <FormField
-                    control={form.control}
-                    name="description"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Mô tả</FormLabel>
-                        <FormControl>
-                          <Textarea 
-                            {...field} 
-                            rows={3}
-                            data-testid="textarea-product-description"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
                   <div className="flex justify-end space-x-2">
                     <Button
                       type="button"
@@ -558,7 +533,13 @@ export default function Products() {
                   <CardContent className="p-0">
                     <div className="relative">
                       <img
-                        src={product.image || "https://images.unsplash.com/photo-1559056199-641a0ac8b55e?w=300&h=200&fit=crop"}
+                        src={
+                          product.image && typeof product.image === "string"
+                            ? product.image.startsWith("http")
+                              ? product.image
+                              : `http://localhost:5271${product.image}`
+                            : "https://images.unsplash.com/photo-1559056199-641a0ac8b55e?w=300&h=200&fit=crop"
+                        }
                         alt={product.name}
                         className="w-full h-48 object-cover"
                       />
@@ -572,14 +553,11 @@ export default function Products() {
                         <AlertTriangle className="absolute top-2 left-2 w-5 h-5 text-orange-500" />
                       )}
                     </div>
-                    
                     <div className="p-4">
                       <h3 className="font-semibold text-lg mb-1 line-clamp-2" data-testid={`product-name-${product.id}`}>
                         {product.name}
                       </h3>
-                      <p className="text-sm text-gray-600 mb-2">SKU: {product.sku}</p>
                       {/* Đã xóa hiển thị SKU */}
-                      
                       <div className="flex items-center justify-between mb-3">
                         <div>
                           <p className="text-2xl font-bold text-primary" data-testid={`product-price-${product.id}`}>
@@ -600,7 +578,6 @@ export default function Products() {
                           </p>
                         </div>
                       </div>
-
                       <div className="flex space-x-2">
                         <Button
                           variant="outline"
@@ -616,7 +593,7 @@ export default function Products() {
                           variant="outline"
                           size="sm"
                           className="text-red-600 hover:text-red-700"
-                          onClick={() => handleDeleteProduct(product.productId ?? product.id)}
+                          onClick={() => handleDeleteProduct(product.id)}
                           data-testid={`button-delete-${product.id}`}
                         >
                           <Trash2 className="w-4 h-4" />

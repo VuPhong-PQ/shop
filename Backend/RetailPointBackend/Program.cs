@@ -39,6 +39,9 @@ if (app.Environment.IsDevelopment())
 app.MapControllers();
 
 
+
+// Bật phục vụ file tĩnh (ảnh upload)
+app.UseStaticFiles();
 app.UseHttpsRedirection();
 // Bật CORS trước khi map controller
 app.UseCors();
