@@ -14,6 +14,12 @@ namespace RetailPointBackend.Controllers
             _context = context;
         }
 
+        [HttpGet]
+        public async Task<ActionResult<IEnumerable<ProductGroup>>> GetProductGroups()
+        {
+            return await _context.ProductGroups.ToListAsync();
+        }
+
         [HttpPost]
         public async Task<IActionResult> CreateProductGroup([FromBody] ProductGroup group)
         {

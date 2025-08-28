@@ -35,7 +35,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-const categoryFormSchema = z.object({
+const productGroupFormSchema = z.object({
   name: z.string().min(1, "Tên nhóm là bắt buộc"),
   description: z.string().optional(),
   isActive: z.boolean().default(true),
@@ -43,7 +43,7 @@ const categoryFormSchema = z.object({
   color: z.string().optional()
 });
 
-type CategoryFormData = z.infer<typeof categoryFormSchema>;
+type ProductGroupFormData = z.infer<typeof productGroupFormSchema>;
 
 const getCategoryColor = (color?: string) => {
   const colors: { [key: string]: string } = {
@@ -61,21 +61,21 @@ export default function ProductGroups() {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [editingCategory, setEditingCategory] = useState<any | null>(null);
+  const [editingGroup, setEditingGroup] = useState<any | null>(null);
 
-  // Fetch categories
-  const { data: categories = [], isLoading } = useQuery({
-    queryKey: ['/api/categories'],
-  });
+  // Fetch product groups
+  const { data: productGroups = [], isLoading } = useQuery({
+    queryKey: ['/api/productgroups'],
+  }) as { data: any[]; isLoading: boolean };
 
   // Fetch products to count items per category
   const { data: products = [] } = useQuery({
     queryKey: ['/api/products'],
-  });
+  }) as { data: any[] };
 
   // Form
-  const form = useForm<CategoryFormData>({
-    resolver: zodResolver(categoryFormSchema),
+  const form = useForm<ProductGroupFormData>({
+    resolver: zodResolver(productGroupFormSchema),
     defaultValues: {
       name: "",
       description: "",
@@ -86,12 +86,14 @@ export default function ProductGroups() {
   });
 
   // Mutations
-  const addCategoryMutation = useMutation({
-    mutationFn: async (categoryData: CategoryFormData) => {
-      const response = await apiRequest('POST', '/api/categories', {
-        ...categoryData,
-        id: `cat-${Date.now()}`,
-        storeId: "550e8400-e29b-41d4-a716-446655440002"
+  const addProductGroupMutation = useMutation({
+    mutationFn: async (groupData: ProductGroupFormData) => {
+      const response = await apiRequest('POST', '/api/productgroups', {
+        name: groupData.name,
+        description: groupData.description,
+        color: groupData.color,
+        order: groupData.sortOrder,
+        isVisible: groupData.isActive,
       });
       return response.json();
     },
@@ -100,7 +102,7 @@ export default function ProductGroups() {
         title: "Thành công",
         description: "Nhóm sản phẩm đã được thêm thành công",
       });
-      queryClient.invalidateQueries({ queryKey: ['/api/categories'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/productgroups'] });
       setIsAddDialogOpen(false);
       form.reset();
     },
@@ -113,9 +115,15 @@ export default function ProductGroups() {
     }
   });
 
-  const updateCategoryMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: Partial<CategoryFormData> }) => {
-      const response = await apiRequest('PUT', `/api/categories/${id}`, data);
+  const updateProductGroupMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: number; data: Partial<ProductGroupFormData> }) => {
+      const response = await apiRequest('PUT', `/api/productgroups/${id}`, {
+        name: data.name,
+        description: data.description,
+        color: data.color,
+        order: data.sortOrder,
+        isVisible: data.isActive,
+      });
       return response.ok;
     },
     onSuccess: () => {
@@ -123,8 +131,8 @@ export default function ProductGroups() {
         title: "Thành công",
         description: "Nhóm sản phẩm đã được cập nhật",
       });
-      queryClient.invalidateQueries({ queryKey: ['/api/categories'] });
-      setEditingCategory(null);
+      queryClient.invalidateQueries({ queryKey: ['/api/productgroups'] });
+      setEditingGroup(null);
       setIsAddDialogOpen(false);
       form.reset();
     },
@@ -137,9 +145,9 @@ export default function ProductGroups() {
     }
   });
 
-  const deleteCategoryMutation = useMutation({
-    mutationFn: async (id: string) => {
-      const response = await apiRequest('DELETE', `/api/categories/${id}`);
+  const deleteProductGroupMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const response = await apiRequest('DELETE', `/api/productgroups/${id}`);
       return response.ok;
     },
     onSuccess: () => {
@@ -147,7 +155,7 @@ export default function ProductGroups() {
         title: "Thành công",
         description: "Nhóm sản phẩm đã được xóa",
       });
-      queryClient.invalidateQueries({ queryKey: ['/api/categories'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/productgroups'] });
     },
     onError: () => {
       toast({
@@ -159,59 +167,57 @@ export default function ProductGroups() {
   });
 
   // Filter categories
-  const filteredCategories = categories.filter((category: any) => {
-    return category.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-           category.description?.toLowerCase().includes(searchTerm.toLowerCase());
+  const filteredGroups = productGroups.filter((group: any) => {
+    return group.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+           group.description?.toLowerCase().includes(searchTerm.toLowerCase());
   });
 
-  const onSubmit = (data: CategoryFormData) => {
-    if (editingCategory) {
-      const id = (editingCategory.categoryId ?? editingCategory.CategoryId ?? editingCategory.id ?? "").toString();
+  const onSubmit = (data: ProductGroupFormData) => {
+    if (editingGroup) {
+      const id = (editingGroup.productGroupId ?? editingGroup.ProductGroupId ?? editingGroup.id ?? "").toString();
       if (!id || id === "undefined" || id === "null") {
         toast({ title: "Lỗi", description: "Không xác định được ID nhóm sản phẩm!", variant: "destructive" });
         return;
       }
-  updateCategoryMutation.mutate({ id, data: { ...data, categoryId: Number(id) } });
+      updateProductGroupMutation.mutate({ id: Number(id), data });
     } else {
-      addCategoryMutation.mutate(data);
+      addProductGroupMutation.mutate(data);
     }
   };
 
-  const handleEditCategory = (category: any) => {
-    console.log("DEBUG category:", category);
-    setEditingCategory(category);
+  const handleEditGroup = (group: any) => {
+    setEditingGroup(group);
     form.reset({
-      name: category.name || "",
-      description: category.description || "",
-      isActive: category.isActive ?? true,
-      sortOrder: category.sortOrder || 0,
-      color: category.color || "blue"
+      name: group.name || "",
+      description: group.description || "",
+      isActive: group.isVisible ?? true,
+      sortOrder: group.order || 0,
+      color: group.color || "blue"
     });
     setIsAddDialogOpen(true);
   };
 
-  const handleDeleteCategory = (idOrCategory: any) => {
-    // idOrCategory có thể là id hoặc object category
-    let id = idOrCategory;
-    if (typeof idOrCategory === 'object' && idOrCategory !== null) {
-      id = idOrCategory.categoryId ?? idOrCategory.CategoryId ?? idOrCategory.id;
+  const handleDeleteGroup = (idOrGroup: any) => {
+    let id = idOrGroup;
+    if (typeof idOrGroup === 'object' && idOrGroup !== null) {
+      id = idOrGroup.productGroupId ?? idOrGroup.ProductGroupId ?? idOrGroup.id;
     }
-    const productsInCategory = products.filter((p: any) => p.categoryId === id || p.categoryId === Number(id)).length;
-    if (productsInCategory > 0) {
+    const productsInGroup = products.filter((p: any) => p.productGroupId === id || p.productGroupId === Number(id)).length;
+    if (productsInGroup > 0) {
       toast({
         title: "Không thể xóa",
-        description: `Nhóm này còn ${productsInCategory} sản phẩm. Hãy di chuyển sản phẩm trước khi xóa.`,
+        description: `Nhóm này còn ${productsInGroup} sản phẩm. Hãy di chuyển sản phẩm trước khi xóa.`,
         variant: "destructive",
       });
       return;
     }
     if (confirm("Bạn có chắc muốn xóa nhóm sản phẩm này?")) {
-      deleteCategoryMutation.mutate(id);
+      deleteProductGroupMutation.mutate(Number(id));
     }
   };
 
-  const getProductCount = (categoryId: string) => {
-  return products.filter((p: any) => (p.categoryId === categoryId || p.categoryId === Number(categoryId))).length;
+  const getProductCount = (groupId: string) => {
+    return products.filter((p: any) => (p.productGroupId === groupId || p.productGroupId === Number(groupId))).length;
   };
 
   return (
@@ -228,10 +234,10 @@ export default function ProductGroups() {
             <DialogTrigger asChild>
               <Button 
                 onClick={() => {
-                  setEditingCategory(null);
+                  setEditingGroup(null);
                   form.reset();
                 }}
-                data-testid="button-add-category"
+                data-testid="button-add-group"
               >
                 <FolderPlus className="w-4 h-4 mr-2" />
                 Thêm nhóm mới
@@ -240,7 +246,7 @@ export default function ProductGroups() {
             <DialogContent className="max-w-md">
               <DialogHeader>
                 <DialogTitle>
-                  {editingCategory ? "Chỉnh sửa nhóm sản phẩm" : "Thêm nhóm sản phẩm mới"}
+                  {editingGroup ? "Chỉnh sửa nhóm sản phẩm" : "Thêm nhóm sản phẩm mới"}
                 </DialogTitle>
               </DialogHeader>
               
@@ -342,12 +348,12 @@ export default function ProductGroups() {
                     </Button>
                     <Button
                       type="submit"
-                      disabled={addCategoryMutation.isPending || updateCategoryMutation.isPending}
-                      data-testid="button-save-category"
+                      disabled={addProductGroupMutation.isPending || updateProductGroupMutation.isPending}
+                      data-testid="button-save-group"
                     >
-                      {addCategoryMutation.isPending || updateCategoryMutation.isPending 
+                      {addProductGroupMutation.isPending || updateProductGroupMutation.isPending 
                         ? "Đang lưu..." 
-                        : (editingCategory ? "Cập nhật" : "Thêm nhóm")
+                        : (editingGroup ? "Cập nhật" : "Thêm nhóm")
                       }
                     </Button>
                   </div>
@@ -373,7 +379,7 @@ export default function ProductGroups() {
           </CardContent>
         </Card>
 
-        {/* Categories Grid */}
+        {/* Product Groups Grid */}
         {isLoading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {[...Array(8)].map((_, i) => (
@@ -388,7 +394,7 @@ export default function ProductGroups() {
               </Card>
             ))}
           </div>
-        ) : filteredCategories.length === 0 ? (
+        ) : filteredGroups.length === 0 ? (
           <Card>
             <CardContent className="p-12 text-center">
               <Folder className="w-16 h-16 mx-auto mb-4 text-gray-400" />
@@ -409,25 +415,25 @@ export default function ProductGroups() {
           </Card>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {filteredCategories.map((category: any) => {
-            const catId = category.CategoryId ?? category.id;
-            const productCount = getProductCount(catId);
+            {filteredGroups.map((group: any) => {
+              const groupId = group.ProductGroupId ?? group.productGroupId ?? group.id;
+              const productCount = getProductCount(groupId);
               return (
-                <Card key={category.id} className="hover:shadow-md transition-shadow" data-testid={`category-card-${category.id}`}>
+                <Card key={groupId} className="hover:shadow-md transition-shadow" data-testid={`group-card-${groupId}`}>
                   <CardContent className="p-6">
                     <div className="flex items-start justify-between mb-4">
                       <div className="flex items-center space-x-3">
-                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${getCategoryColor(category.color)}`}>
+                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${getCategoryColor(group.color)}`}>
                           <Folder className="w-5 h-5" />
                         </div>
                         <div className="flex-1">
-                          <h3 className="font-semibold text-gray-900 truncate">{category.name}</h3>
+                          <h3 className="font-semibold text-gray-900 truncate">{group.name}</h3>
                           <div className="flex items-center space-x-2 mt-1">
                             <Badge variant="outline" className="text-xs">
                               <Package className="w-3 h-3 mr-1" />
                               {productCount} sản phẩm
                             </Badge>
-                            {category.isActive ? (
+                            {group.isVisible ? (
                               <Badge variant="outline" className="text-xs text-green-600">
                                 <Eye className="w-3 h-3 mr-1" />
                                 Hiển thị
@@ -448,12 +454,12 @@ export default function ProductGroups() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent>
-                          <DropdownMenuItem onClick={() => handleEditCategory(category)}>
+                          <DropdownMenuItem onClick={() => handleEditGroup(group)}>
                             <Edit className="mr-2 h-4 w-4" />
                             Chỉnh sửa
                           </DropdownMenuItem>
                           <DropdownMenuItem 
-                  onClick={() => handleDeleteCategory(category)}
+                            onClick={() => handleDeleteGroup(group)}
                             className="text-red-600"
                             disabled={productCount > 0}
                           >
@@ -464,15 +470,15 @@ export default function ProductGroups() {
                       </DropdownMenu>
                     </div>
 
-                    {category.description && (
-                      <p className="text-sm text-gray-600 mb-3 line-clamp-2">{category.description}</p>
+                    {group.description && (
+                      <p className="text-sm text-gray-600 mb-3 line-clamp-2">{group.description}</p>
                     )}
 
                     <div className="flex items-center justify-between text-sm text-gray-500">
-                      <span>Thứ tự: {category.sortOrder || 0}</span>
+                      <span>Thứ tự: {group.order || 0}</span>
                       <div className="flex items-center space-x-1">
                         <Grid3X3 className="w-3 h-3" />
-                <span>#{typeof catId === 'string' ? catId.slice(-4) : String(catId ?? '').slice(-4)}</span>
+                        <span>#{typeof groupId === 'string' ? groupId.slice(-4) : String(groupId ?? '').slice(-4)}</span>
                       </div>
                     </div>
                   </CardContent>
@@ -490,7 +496,7 @@ export default function ProductGroups() {
                 <Folder className="w-5 h-5 text-blue-600" />
                 <div>
                   <p className="text-sm font-medium">Tổng nhóm</p>
-                  <p className="text-2xl font-bold">{categories.length}</p>
+                  <p className="text-2xl font-bold">{productGroups.length}</p>
                 </div>
               </div>
             </CardContent>
@@ -501,7 +507,7 @@ export default function ProductGroups() {
                 <Eye className="w-5 h-5 text-green-600" />
                 <div>
                   <p className="text-sm font-medium">Đang hiển thị</p>
-                  <p className="text-2xl font-bold">{categories.filter((c: any) => c.isActive).length}</p>
+                  <p className="text-2xl font-bold">{productGroups.filter((g: any) => g.isVisible).length}</p>
                 </div>
               </div>
             </CardContent>
@@ -524,10 +530,10 @@ export default function ProductGroups() {
                 <div>
                   <p className="text-sm font-medium">Nhóm phổ biến</p>
                   <p className="text-lg font-bold">
-                    {categories.length > 0 
-                      ? categories.reduce((max: any, cat: any) => 
-                          getProductCount(cat.id) > getProductCount(max.id) ? cat : max, 
-                          categories[0]
+                    {productGroups.length > 0 
+                      ? productGroups.reduce((max: any, g: any) => 
+                          getProductCount(g.ProductGroupId ?? g.productGroupId ?? g.id) > getProductCount(max.ProductGroupId ?? max.productGroupId ?? max.id) ? g : max, 
+                          productGroups[0]
                         )?.name?.slice(0, 10) + "..."
                       : "N/A"
                     }

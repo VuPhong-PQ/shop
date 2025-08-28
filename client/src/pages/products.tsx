@@ -52,6 +52,7 @@ export default function Products() {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const [selectedGroup, setSelectedGroup] = useState<string>("all");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
 
@@ -71,6 +72,12 @@ export default function Products() {
   const { data: categories = [] } = useQuery<Category[]>({
     queryKey: ['/api/categories'],
   });
+
+  // Thay đổi endpoint lấy nhóm sản phẩm
+  const { data: productGroups = [] } = useQuery<any[]>({
+    queryKey: ['/api/productgroups'],
+  });
+  console.log('productGroups:', productGroups);
 
   // Form for adding/editing products
   const form = useForm<ProductFormData>({
@@ -193,7 +200,8 @@ export default function Products() {
   const filteredProducts = products.filter(product => {
   const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase());
   const matchesCategory = selectedCategory === "all" || String(product.categoryId) === String(selectedCategory);
-  return matchesSearch && matchesCategory;
+  const matchesGroup = selectedGroup === "all" || String(product.productGroupId) === String(selectedGroup);
+  return matchesSearch && matchesCategory && matchesGroup;
   });
 
   // Debug filtered products
@@ -285,6 +293,24 @@ export default function Products() {
                     {category.name}
                   </SelectItem>
                 ))}
+              </SelectContent>
+            </Select>
+            {/* Thêm dropdown nhóm sản phẩm vào phần lọc */}
+            <Select value={selectedGroup} onValueChange={setSelectedGroup}>
+              <SelectTrigger className="w-48" data-testid="select-group-filter">
+                <SelectValue placeholder="Tất cả nhóm sản phẩm" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tất cả nhóm sản phẩm</SelectItem>
+                {productGroups.length === 0 ? (
+                  <SelectItem disabled value="none">Không có nhóm sản phẩm nào</SelectItem>
+                ) : (
+                  productGroups.map((group) => (
+                    <SelectItem key={group.ProductGroupId} value={String(group.ProductGroupId)}>
+                      {group.name}
+                    </SelectItem>
+                  ))
+                )}
               </SelectContent>
             </Select>
           </div>
