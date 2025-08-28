@@ -350,11 +350,20 @@ export default function Products() {
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              {categories.filter(category => !!category.id).map((category) => (
-                                <SelectItem key={category.id} value={String(category.id)}>
-                                  {category.name}
-                                </SelectItem>
-                              ))}
+                              {categories.length === 0 ? (
+                                <div className="px-4 py-2 text-gray-500">Không có danh mục nào</div>
+                              ) : (
+                                categories
+                                  .filter(category => !!(category.id || category.categoryId))
+                                  .map((category) => {
+                                    const catId = category.id || category.categoryId;
+                                    return (
+                                      <SelectItem key={catId} value={String(catId)}>
+                                        {category.name}
+                                      </SelectItem>
+                                    );
+                                  })
+                              )}
                             </SelectContent>
                           </Select>
                           <FormMessage />

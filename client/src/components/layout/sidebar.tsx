@@ -56,8 +56,8 @@ export function Sidebar() {
             <ScanBarcode className="text-white text-lg" />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-gray-900">POS Pro</h1>
-            <p className="text-sm text-gray-500">Cửa hàng ABC</p>
+            <h1 className="text-xl font-bold text-gray-900">PinkWish Shop</h1>
+            <p className="text-sm text-gray-500"></p>
           </div>
         </div>
       </div>
@@ -157,7 +157,7 @@ export function Sidebar() {
           />
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-gray-900 truncate" data-testid="user-name">
-              Nguyễn Thu Hương
+              Ruby
             </p>
             <p className="text-xs text-gray-500 truncate" data-testid="user-role">
               Quản lý

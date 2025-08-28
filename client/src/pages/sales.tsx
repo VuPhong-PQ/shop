@@ -9,7 +9,7 @@ import { Separator } from "@/components/ui/separator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
-import { Search, Plus, Minus, Trash2, ShoppingCart, CreditCard, Banknote, QrCode, Smartphone } from "lucide-react";
+import { Search, Plus, Minus, Trash2, ShoppingCart, CreditCard, Banknote, QrCode, Smartphone, AlertTriangle } from "lucide-react";
 import type { Product, Customer } from "@shared/schema";
 
 interface CartItem extends Product {
@@ -189,48 +189,75 @@ export default function Sales() {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 max-h-[calc(100vh-300px)] overflow-y-auto">
-                {filteredProducts.map((product) => (
-                  <div 
-                    key={product.id} 
-                    className="cursor-pointer hover:shadow-md transition-shadow"
-                    onClick={() => {
-                      console.log('Product clicked:', product);
-                      addToCart(product);
-                    }}
-                    data-testid={`product-card-${product.id}`}
-                  >
-                    <Card>
-                      <CardContent className="p-4">
-                        <img
-                          src={
-                            product.imageUrl && product.imageUrl !== ""
-                              ? (product.imageUrl.startsWith("http") ? product.imageUrl : `http://localhost:5271${product.imageUrl}`)
-                              : (product.image && product.image !== ""
-                                ? (product.image.startsWith("http") ? product.image : `http://localhost:5271${product.image}`)
-                                : "https://images.unsplash.com/photo-1559056199-641a0ac8b55e?w=200&h=150&fit=crop")
-                          }
-                          alt={product.name}
-                          className="w-full h-32 object-cover rounded-lg mb-3"
-                        />
-                        <h3 className="font-medium text-sm mb-1 line-clamp-2">{product.name}</h3>
-                        <p className="text-lg font-bold text-primary">{parseInt(product.price).toLocaleString('vi-VN')}₫</p>
-                        <p className="text-xs text-gray-500">Tồn: {product.stockQuantity}</p>
-                        <Button 
-                          className="w-full mt-2" 
-                          size="sm"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            console.log('Button clicked for product:', product);
-                            addToCart(product);
-                          }}
-                        >
-                          <Plus className="w-4 h-4 mr-1" />
-                          Thêm vào giỏ
-                        </Button>
-                      </CardContent>
-                    </Card>
-                  </div>
-                ))}
+                {filteredProducts.map((product) => {
+                  // Tính trạng thái tồn kho giống trang sản phẩm
+                  let stockStatus = { label: '', color: '' };
+                  if (product.stockQuantity === 0) {
+                    stockStatus = { label: 'Hết hàng', color: 'bg-red-500' };
+                  } else if (product.stockQuantity <= product.minStockLevel) {
+                    stockStatus = { label: 'Sắp hết', color: 'bg-orange-500' };
+                  } else {
+                    stockStatus = { label: 'Còn hàng', color: 'bg-green-500' };
+                  }
+                  const key = product.productId || product.id;
+                  return (
+                    <div
+                      key={key}
+                      className="cursor-pointer hover:shadow-md transition-shadow"
+                      onClick={() => {
+                        console.log('Product clicked:', product);
+                        addToCart(product);
+                      }}
+                      data-testid={`product-card-${key}`}
+                    >
+                      <Card>
+                        <CardContent className="p-4">
+                          <div className="relative">
+                            <div className="w-full h-32 bg-gray-100 flex items-center justify-center overflow-hidden rounded-lg mb-3">
+                              <img
+                                src={
+                                  product.imageUrl && product.imageUrl !== ""
+                                    ? (product.imageUrl.startsWith("http") ? product.imageUrl : `http://localhost:5271${product.imageUrl}`)
+                                    : (product.image && product.image !== ""
+                                      ? (product.image.startsWith("http") ? product.image : `http://localhost:5271${product.image}`)
+                                      : "https://images.unsplash.com/photo-1559056199-641a0ac8b55e?w=200&h=150&fit=crop")
+                                }
+                                alt={product.name}
+                                className="max-w-full max-h-full object-contain"
+                                style={{ width: '100%', height: '100%' }}
+                              />
+                              <Badge
+                                className={`absolute top-2 right-2 text-white ${stockStatus.color}`}
+                                data-testid={`stock-status-${key}`}
+                              >
+                                {stockStatus.label}
+                              </Badge>
+                              {product.stockQuantity <= product.minStockLevel && (
+                                <AlertTriangle className="absolute top-2 left-2 w-5 h-5 text-orange-500" />
+                              )}
+                            </div>
+                          </div>
+                          <h3 className="font-medium text-sm mb-1 line-clamp-2">{product.name}</h3>
+                          <p className="text-lg font-bold text-primary">{parseInt(product.price).toLocaleString('vi-VN')}₫</p>
+                          <p className="text-xs text-gray-500">Tồn: {product.stockQuantity} {product.unit}</p>
+                          <p className="text-xs text-gray-500">Tối thiểu: {product.minStockLevel}</p>
+                          <Button
+                            className="w-full mt-2"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              console.log('Button clicked for product:', product);
+                              addToCart(product);
+                            }}
+                          >
+                            <Plus className="w-4 h-4 mr-1" />
+                            Thêm vào hóa đơn
+                          </Button>
+                        </CardContent>
+                      </Card>
+                    </div>
+                  );
+                })}
               </div>
             </CardContent>
           </Card>

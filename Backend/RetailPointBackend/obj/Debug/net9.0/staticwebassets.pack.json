@@ -1,8 +1,16 @@
 {
   "Files": [
     {
+      "Id": "D:\\laptrinh\\thiekepm\\RetailPoint\\Backend\\RetailPointBackend\\wwwroot\\uploads\\18d9d250-3f95-42f6-a1e6-81c272b63cfb.jpeg",
+      "PackagePath": "staticwebassets\\uploads\\18d9d250-3f95-42f6-a1e6-81c272b63cfb.jpeg"
+    },
+    {
       "Id": "D:\\laptrinh\\thiekepm\\RetailPoint\\Backend\\RetailPointBackend\\wwwroot\\uploads\\1aa1e964-1c45-43d2-bcdf-dc69518b52c9.jpeg",
       "PackagePath": "staticwebassets\\uploads\\1aa1e964-1c45-43d2-bcdf-dc69518b52c9.jpeg"
+    },
+    {
+      "Id": "D:\\laptrinh\\thiekepm\\RetailPoint\\Backend\\RetailPointBackend\\wwwroot\\uploads\\53718ea0-2045-48c6-aeef-02d86d6a4ad6.jpeg",
+      "PackagePath": "staticwebassets\\uploads\\53718ea0-2045-48c6-aeef-02d86d6a4ad6.jpeg"
     },
     {
       "Id": "D:\\laptrinh\\thiekepm\\RetailPoint\\Backend\\RetailPointBackend\\wwwroot\\uploads\\546514e5-fc5c-4a60-b533-1fded212d3ec.jpeg",
@@ -13,12 +21,44 @@
       "PackagePath": "staticwebassets\\uploads\\54b694dc-1119-467a-a356-93401cd0a0c6.jpeg"
     },
     {
+      "Id": "D:\\laptrinh\\thiekepm\\RetailPoint\\Backend\\RetailPointBackend\\wwwroot\\uploads\\9a39cbeb-5f4f-4042-8625-efc34115d675.jpeg",
+      "PackagePath": "staticwebassets\\uploads\\9a39cbeb-5f4f-4042-8625-efc34115d675.jpeg"
+    },
+    {
+      "Id": "D:\\laptrinh\\thiekepm\\RetailPoint\\Backend\\RetailPointBackend\\wwwroot\\uploads\\9c01fcae-1af8-4971-b1bd-4f418e8bc098.jpeg",
+      "PackagePath": "staticwebassets\\uploads\\9c01fcae-1af8-4971-b1bd-4f418e8bc098.jpeg"
+    },
+    {
+      "Id": "D:\\laptrinh\\thiekepm\\RetailPoint\\Backend\\RetailPointBackend\\wwwroot\\uploads\\a1d452db-e473-44ac-81e3-7214805edcab.jpeg",
+      "PackagePath": "staticwebassets\\uploads\\a1d452db-e473-44ac-81e3-7214805edcab.jpeg"
+    },
+    {
+      "Id": "D:\\laptrinh\\thiekepm\\RetailPoint\\Backend\\RetailPointBackend\\wwwroot\\uploads\\ad24d6e2-38cc-448c-b920-befe88eb273c.jpeg",
+      "PackagePath": "staticwebassets\\uploads\\ad24d6e2-38cc-448c-b920-befe88eb273c.jpeg"
+    },
+    {
+      "Id": "D:\\laptrinh\\thiekepm\\RetailPoint\\Backend\\RetailPointBackend\\wwwroot\\uploads\\bd5807ad-0d68-4e91-9dbd-214a2403eced.jpeg",
+      "PackagePath": "staticwebassets\\uploads\\bd5807ad-0d68-4e91-9dbd-214a2403eced.jpeg"
+    },
+    {
+      "Id": "D:\\laptrinh\\thiekepm\\RetailPoint\\Backend\\RetailPointBackend\\wwwroot\\uploads\\c0861a40-ff9f-4226-b03c-f1c9dfd19229.jpeg",
+      "PackagePath": "staticwebassets\\uploads\\c0861a40-ff9f-4226-b03c-f1c9dfd19229.jpeg"
+    },
+    {
+      "Id": "D:\\laptrinh\\thiekepm\\RetailPoint\\Backend\\RetailPointBackend\\wwwroot\\uploads\\c24b2251-1e2d-4d93-ae12-296bc3ed07a3.jpeg",
+      "PackagePath": "staticwebassets\\uploads\\c24b2251-1e2d-4d93-ae12-296bc3ed07a3.jpeg"
+    },
+    {
       "Id": "D:\\laptrinh\\thiekepm\\RetailPoint\\Backend\\RetailPointBackend\\wwwroot\\uploads\\c9eaa530-358f-4204-8032-e13ed0827875.jpeg",
       "PackagePath": "staticwebassets\\uploads\\c9eaa530-358f-4204-8032-e13ed0827875.jpeg"
     },
     {
       "Id": "D:\\laptrinh\\thiekepm\\RetailPoint\\Backend\\RetailPointBackend\\wwwroot\\uploads\\f1beabf0-51c3-46d1-95f6-7a430de64ac5.jpeg",
       "PackagePath": "staticwebassets\\uploads\\f1beabf0-51c3-46d1-95f6-7a430de64ac5.jpeg"
+    },
+    {
+      "Id": "D:\\laptrinh\\thiekepm\\RetailPoint\\Backend\\RetailPointBackend\\wwwroot\\uploads\\f71c4d0c-50ae-4daf-b1be-54ff4416b702.jpeg",
+      "PackagePath": "staticwebassets\\uploads\\f71c4d0c-50ae-4daf-b1be-54ff4416b702.jpeg"
     },
     {
       "Id": "obj\\Debug\\net9.0\\staticwebassets\\msbuild.RetailPointBackend.Microsoft.AspNetCore.StaticWebAssetEndpoints.props",
