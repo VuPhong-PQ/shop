@@ -454,7 +454,13 @@ export default function Inventory() {
                               <td className="px-6 py-4">
                                 <div className="flex items-center">
                                   <img
-                                    src={product.image || "https://images.unsplash.com/photo-1559056199-641a0ac8b55e?w=40&h=40&fit=crop"}
+                                    src={
+                                      product.ImageUrl
+                                        ? product.ImageUrl.startsWith("/uploads")
+                                          ? `http://localhost:5271${product.ImageUrl}`
+                                          : product.ImageUrl
+                                        : product.image || "https://images.unsplash.com/photo-1559056199-641a0ac8b55e?w=40&h=40&fit=crop"
+                                    }
                                     alt={product.name}
                                     className="w-10 h-10 rounded-lg object-cover mr-3"
                                   />

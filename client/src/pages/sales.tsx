@@ -15,6 +15,7 @@ import type { Product, Customer } from "@shared/schema";
 interface CartItem extends Product {
   quantity: number;
   totalPrice: number;
+  cartItemId: string;
 }
 
 interface PaymentMethod {
@@ -88,21 +89,15 @@ export default function Sales() {
   // Add product to cart
   const addToCart = (product: Product) => {
     console.log('Adding product to cart:', product);
-    const existingItem = cart.find(item => item.id === product.id);
-    
-    if (existingItem) {
-      console.log('Product exists, updating quantity');
-      updateQuantity(product.id, existingItem.quantity + 1);
-    } else {
-      console.log('New product, adding to cart');
-      const newItem: CartItem = {
-        ...product,
-        quantity: 1,
-        totalPrice: parseFloat(product.price)
-      };
-      setCart([...cart, newItem]);
-      console.log('Cart after adding:', [...cart, newItem]);
-    }
+    // Luôn thêm một dòng mới, không gộp số lượng
+    const newItem: CartItem = {
+      ...product,
+      cartItemId: `${Date.now()}-${Math.random()}`,
+      quantity: 1,
+      totalPrice: parseFloat(product.price)
+    };
+    setCart([...cart, newItem]);
+    console.log('Cart after adding:', [...cart, newItem]);
   };
 
   // Update quantity
@@ -111,9 +106,8 @@ export default function Sales() {
       removeFromCart(productId);
       return;
     }
-
     setCart(cart.map(item => 
-      item.id === productId 
+      item.cartItemId === productId 
         ? { 
             ...item, 
             quantity: newQuantity, 
@@ -125,7 +119,7 @@ export default function Sales() {
 
   // Remove from cart
   const removeFromCart = (productId: string) => {
-    setCart(cart.filter(item => item.id !== productId));
+  setCart(cart.filter(item => item.cartItemId !== productId));
   };
 
   // Clear cart
@@ -325,7 +319,7 @@ export default function Sales() {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                          onClick={() => updateQuantity(item.cartItemId, item.quantity - 1)}
                           data-testid={`button-decrease-${item.id}`}
                         >
                           <Minus className="w-3 h-3" />
@@ -334,7 +328,7 @@ export default function Sales() {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                          onClick={() => updateQuantity(item.cartItemId, item.quantity + 1)}
                           data-testid={`button-increase-${item.id}`}
                         >
                           <Plus className="w-3 h-3" />
@@ -342,7 +336,7 @@ export default function Sales() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => removeFromCart(item.id)}
+                          onClick={() => removeFromCart(item.cartItemId)}
                           data-testid={`button-remove-${item.id}`}
                         >
                           <Trash2 className="w-3 h-3" />
