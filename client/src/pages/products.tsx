@@ -1,3 +1,4 @@
+import { Textarea } from "@/components/ui/textarea";
 // Hàm upload ảnh lên server, trả về url
 async function uploadImage(file) {
   const formData = new FormData();
@@ -16,8 +17,6 @@ import { AppLayout } from "@/components/layout/app-layout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
@@ -38,7 +37,7 @@ const productFormSchema = z.object({
   price: z.number().min(0, "Giá bán là bắt buộc"),
   costPrice: z.number().min(0).optional().default(0),
   image: z.string().optional(),
-  categoryId: z.string().min(1, "Danh mục là bắt buộc"),
+  productGroupId: z.string().min(1, "Nhóm sản phẩm là bắt buộc"),
   storeId: z.string().default("550e8400-e29b-41d4-a716-446655440002"),
   isActive: z.boolean().default(true),
   stockQuantity: z.number().min(0, "Số lượng tồn kho phải >= 0").default(0),
@@ -69,14 +68,22 @@ export default function Products() {
   console.log('Products count:', products.length);
   console.log('isLoading:', isLoading);
 
-  const { data: categories = [] } = useQuery<Category[]>({
-    queryKey: ['/api/categories'],
-  });
+  // const { data: categories = [] } = useQuery<Category[]>({
+  //   queryKey: ['/api/categories'],
+  // });
+  
 
   // Thay đổi endpoint lấy nhóm sản phẩm
   const { data: productGroups = [] } = useQuery<any[]>({
     queryKey: ['/api/productgroups'],
   });
+  // Map productGroups to Select options format for dropdowns
+  const productGroupOptions = productGroups
+    .filter(g => g.productGroupId || g.ProductGroupId)
+    .map(g => ({
+      label: g.name,
+      value: String(g.productGroupId ?? g.ProductGroupId),
+    }));
   console.log('productGroups:', productGroups);
 
   // Form for adding/editing products
@@ -88,12 +95,12 @@ export default function Products() {
       barcode: "",
       price: 0,
       costPrice: 0,
-      categoryId: "",
+      productGroupId: "",
       storeId: "550e8400-e29b-41d4-a716-446655440002",
       stockQuantity: 0,
       minStockLevel: 5,
       unit: "chiếc",
-      image: "",
+      image: ""
     },
   });
 
@@ -102,6 +109,7 @@ export default function Products() {
     mutationFn: async (productData: ProductFormData) => {
       const formattedData = {
         ...productData,
+        productGroupId: productData.productGroupId ? parseInt(productData.productGroupId) : null,
         imageUrl: productData.image, // map image (frontend) -> imageUrl (backend)
         price: Number(productData.price),
         costPrice: productData.costPrice !== undefined ? Number(productData.costPrice) : 0,
@@ -122,10 +130,11 @@ export default function Products() {
       setIsAddDialogOpen(false);
       form.reset();
     },
-    onError: () => {
+    onError: (error: any) => {
+      console.error('Add product error:', error);
       toast({
         title: "Lỗi",
-        description: "Không thể thêm sản phẩm. Vui lòng thử lại.",
+        description: `Không thể thêm sản phẩm. ${error?.message || ''}`,
         variant: "destructive",
       });
     }
@@ -199,7 +208,7 @@ export default function Products() {
   // Filter products
   const filteredProducts = products.filter(product => {
   const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase());
-  const matchesCategory = selectedCategory === "all" || String(product.categoryId) === String(selectedCategory);
+  const matchesCategory = selectedCategory === "all" || String(product.productGroupId) === String(selectedCategory);
   const matchesGroup = selectedGroup === "all" || String(product.productGroupId) === String(selectedGroup);
   return matchesSearch && matchesCategory && matchesGroup;
   });
@@ -212,8 +221,9 @@ export default function Products() {
 
   // Handle form submission
   const onSubmit = (data: ProductFormData) => {
-    console.log('Form submitted with data:', data);
-    console.log('Form errors:', form.formState.errors);
+  console.log('onSubmit called');
+  console.log('Form submitted with data:', data);
+  console.log('Form errors:', form.formState.errors);
     if (editingProduct) {
       // Đảm bảo lấy đúng id (string hoặc số đều được, backend nhận uuid hoặc int)
       const productId = editingProduct.id || editingProduct.productId || editingProduct._id;
@@ -225,7 +235,11 @@ export default function Products() {
       editProductMutation.mutate({ id: String(productId), data });
     } else {
       console.log('Adding new product');
-      addProductMutation.mutate(data);
+      // Loại bỏ categoryId nếu không cần thiết, ép productGroupId về số
+      const { categoryId, ...rest } = data;
+      const payload = { ...rest, productGroupId: Number(data.productGroupId) };
+      console.log('Submit payload:', payload);
+      addProductMutation.mutate(payload);
     }
   };
 
@@ -288,11 +302,11 @@ export default function Products() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Tất cả danh mục</SelectItem>
-                {categories.filter(category => !!category.id).map((category) => (
-                  <SelectItem key={category.id} value={String(category.id)}>
-                    {category.name}
-                  </SelectItem>
-                ))}
+                {productGroupOptions.map((option) => (
+  <SelectItem key={option.value} value={option.value}>
+    {option.label}
+  </SelectItem>
+))}
               </SelectContent>
             </Select>
             {/* Thêm dropdown nhóm sản phẩm vào phần lọc */}
@@ -365,30 +379,25 @@ export default function Products() {
                     />
                     <FormField
                       control={form.control}
-                      name="categoryId"
+                      name="productGroupId"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Danh mục</FormLabel>
-                          <Select onValueChange={field.onChange} value={field.value || ""}>
+                          <FormLabel>Nhóm sản phẩm</FormLabel>
+                          <Select onValueChange={val => field.onChange(String(val))} value={field.value ? String(field.value) : ""}>
                             <FormControl>
-                              <SelectTrigger data-testid="select-product-category">
-                                <SelectValue placeholder="Chọn danh mục" />
+                              <SelectTrigger data-testid="select-product-group">
+                                <SelectValue placeholder="Chọn nhóm sản phẩm" />
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              {categories.length === 0 ? (
-                                <div className="px-4 py-2 text-gray-500">Không có danh mục nào</div>
+                              {productGroupOptions.length === 0 ? (
+                                <div className="px-4 py-2 text-gray-500">Không có nhóm sản phẩm nào</div>
                               ) : (
-                                categories
-                                  .filter(category => !!(category.id || category.categoryId))
-                                  .map((category) => {
-                                    const catId = category.id || category.categoryId;
-                                    return (
-                                      <SelectItem key={catId} value={String(catId)}>
-                                        {category.name}
-                                      </SelectItem>
-                                    );
-                                  })
+                                productGroupOptions.map((option) => (
+                                  <SelectItem key={option.value} value={option.value}>
+                                    {option.label}
+                                  </SelectItem>
+                                ))
                               )}
                             </SelectContent>
                           </Select>

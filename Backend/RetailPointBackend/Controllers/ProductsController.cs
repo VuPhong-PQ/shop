@@ -18,9 +18,20 @@ namespace RetailPointBackend.Controllers
         [HttpPost]
         public async Task<IActionResult> CreateProduct([FromBody] Product product)
         {
-            _context.Products.Add(product);
-            await _context.SaveChangesAsync();
-            return CreatedAtAction(nameof(GetProduct), new { id = product.ProductId }, product);
+            try
+            {
+                // Log thông tin nhận được
+                Console.WriteLine($"[CreateProduct] Nhận product: {System.Text.Json.JsonSerializer.Serialize(product)}");
+                _context.Products.Add(product);
+                await _context.SaveChangesAsync();
+                Console.WriteLine($"[CreateProduct] Đã lưu productId: {product.ProductId}");
+                return CreatedAtAction(nameof(GetProduct), new { id = product.ProductId }, product);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[CreateProduct][ERROR] {ex.Message}\n{ex.StackTrace}");
+                return StatusCode(500, new { error = ex.Message, stack = ex.StackTrace });
+            }
         }
 
         // GET: api/products
