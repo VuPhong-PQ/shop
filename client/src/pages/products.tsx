@@ -309,24 +309,6 @@ export default function Products() {
 ))}
               </SelectContent>
             </Select>
-            {/* Thêm dropdown nhóm sản phẩm vào phần lọc */}
-            <Select value={selectedGroup} onValueChange={setSelectedGroup}>
-              <SelectTrigger className="w-48" data-testid="select-group-filter">
-                <SelectValue placeholder="Tất cả nhóm sản phẩm" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Tất cả nhóm sản phẩm</SelectItem>
-                {productGroups.length === 0 ? (
-                  <SelectItem disabled value="none">Không có nhóm sản phẩm nào</SelectItem>
-                ) : (
-                  productGroups.map((group) => (
-                    <SelectItem key={group.ProductGroupId} value={String(group.ProductGroupId)}>
-                      {group.name}
-                    </SelectItem>
-                  ))
-                )}
-              </SelectContent>
-            </Select>
           </div>
 
           <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
