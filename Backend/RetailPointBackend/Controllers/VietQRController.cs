@@ -2,9 +2,10 @@ using Microsoft.AspNetCore.Mvc;
 using QRCoder;
 using System;
 using System.Drawing;
-using System.Drawing.Imaging;
 using System.IO;
-using System.Text;
+using System.Threading.Tasks;
+using System.Net.Http;
+using System.Net.Http.Json;
 
 namespace RetailPointBackend.Controllers
 {
@@ -12,10 +13,11 @@ namespace RetailPointBackend.Controllers
     [Route("api/[controller]")]
     public class VietQRController : ControllerBase
     {
-        // POST: api/VietQR/generate
+        // Endpoint: POST api/VietQR/generate
         [HttpPost("generate")]
         public async Task<IActionResult> GenerateQR([FromBody] VietQRRequest request)
         {
+            // Thông tin API key demo (có thể lấy từ config)
             var client = new HttpClient();
             client.DefaultRequestHeaders.Add("x-client-id", "487346d7-ebb2-4bf0-97a0-13ad72cff87a");
             client.DefaultRequestHeaders.Add("x-api-key", "b3a63288-6624-4a0e-abca-c3c0a43390fe");
@@ -34,8 +36,6 @@ namespace RetailPointBackend.Controllers
             var json = await response.Content.ReadAsStringAsync();
             if (!response.IsSuccessStatusCode)
             {
-                // Log lỗi chi tiết từ API VietQR
-                Console.WriteLine($"VietQR API error: {json}");
                 return BadRequest($"Không tạo được QR từ API VietQR: {json}");
             }
 
@@ -45,70 +45,26 @@ namespace RetailPointBackend.Controllers
             var base64 = result.data.qrDataURL.Replace("data:image/png;base64,", "");
             var bytes = Convert.FromBase64String(base64);
             var fileName = $"vietqr_{request.AccountNumber}_{DateTime.Now.Ticks}.png";
-            var filePath = Path.Combine("wwwroot/uploads", fileName);
+            var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads");
+            if (!Directory.Exists(uploadsFolder))
+                Directory.CreateDirectory(uploadsFolder);
+            var filePath = Path.Combine(uploadsFolder, fileName);
             await System.IO.File.WriteAllBytesAsync(filePath, bytes);
 
             return Ok(new { qrImage = $"/uploads/{fileName}" });
         }
 
-        // Sinh payload VietQR chuẩn (EMVCo)
-        private string GenerateVietQRPayload(string bankBin, string account, decimal? amount, string? description = null)
+        // Endpoint: GET api/VietQR/test-qrcode
+        [HttpGet("test-qrcode")]
+        public IActionResult GenerateTestQrCode()
         {
-            // Sinh QR Vietcombank: chỉ nhận BIN và số tài khoản, không thêm trường mô tả
-            string orgd = $"QRGD{account}01"; // ORGD + số tài khoản + 01
-            string subfield01 = $"0133{bankBin}{orgd}"; // 01: BIN + ORGD...
-            string subfield02 = "0208QRIBFTTA"; // 02: QRIBFTTA
-            string merchantAccountInfo =
-                "0010A000000727" + // 00: GUID
-                subfield01 +
-                subfield02;
-            string mai = $"38{merchantAccountInfo.Length:D2}{merchantAccountInfo}";
-            string payload =
-                "000201" +
-                "010211" +
-                mai +
-                "5303704" +
-                "5802VN" +
-                "6304";
-            string crc = GetCRC16(payload).ToUpper();
-            return payload + crc;
+            var clientId = "487346d7-ebb2-4bf0-97a0-13ad72cff87a";
+            var apiKey = "b3a63288-6624-4a0e-abca-c3c0a43390fe";
+            var qrContent = $"ClientID: {clientId} | APIKey: {apiKey}";
+            var base64 = GenerateQrBase64(qrContent);
+            return Ok(new { qrBase64 = base64 });
         }
 
-        // Loại bỏ dấu tiếng Việt, giữ lại ký tự in hoa, không ký tự đặc biệt
-        private string RemoveDiacritics(string text)
-        {
-            var normalized = text.Normalize(NormalizationForm.FormD);
-            var sb = new StringBuilder();
-            foreach (var c in normalized)
-            {
-                if (System.Globalization.CharUnicodeInfo.GetUnicodeCategory(c) != System.Globalization.UnicodeCategory.NonSpacingMark)
-                {
-                    if (char.IsLetterOrDigit(c) || char.IsWhiteSpace(c))
-                        sb.Append(c);
-                }
-            }
-            return sb.ToString().Normalize(NormalizationForm.FormC);
-        }
-
-        // CRC-CCITT (0xFFFF) cho EMVCo
-        private string GetCRC16(string input)
-        {
-            ushort crc = 0xFFFF;
-            foreach (byte b in Encoding.ASCII.GetBytes(input))
-            {
-                crc ^= (ushort)(b << 8);
-                for (int i = 0; i < 8; i++)
-                {
-                    if ((crc & 0x8000) != 0)
-                        crc = (ushort)((crc << 1) ^ 0x1021);
-                    else
-                        crc <<= 1;
-                }
-            }
-            return crc.ToString("X4");
-        }
-
-        // Sinh QR base64 từ payload
         private string GenerateQrBase64(string payload)
         {
             using (var qrGenerator = new QRCodeGenerator())
