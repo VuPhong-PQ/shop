@@ -7,6 +7,7 @@ namespace RetailPointBackend.Models
         public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
 
         public DbSet<Product> Products { get; set; }
+        public DbSet<PaymentSettings> PaymentSettings { get; set; }
     }
 
 }

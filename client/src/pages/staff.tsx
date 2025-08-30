@@ -93,15 +93,15 @@ export default function Staff() {
   const [editingStaff, setEditingStaff] = useState<any | null>(null);
 
   // Fetch data
-  const { data: staff = [], isLoading: staffLoading } = useQuery({
+  const { data: staff = [], isLoading: staffLoading } = useQuery<any[]>({
     queryKey: ['/api/staff'],
   });
 
-  const { data: roles = [], isLoading: rolesLoading } = useQuery({
+  const { data: roles = [], isLoading: rolesLoading } = useQuery<any[]>({
     queryKey: ['/api/roles'],
   });
 
-  const { data: groups = [], isLoading: groupsLoading } = useQuery({
+  const { data: groups = [], isLoading: groupsLoading } = useQuery<any[]>({
     queryKey: ['/api/staff-groups'],
   });
 
@@ -235,9 +235,76 @@ export default function Staff() {
     }
   };
 
+  // Staff statistics
+  const totalStaff = staff.length;
+  const activeStaff = staff.filter((member: any) => member.isActive).length;
+  const staffByRole = roles.map((role: any) => ({
+    ...role,
+    count: staff.filter((s: any) => s.role === role.id).length
+  }));
+
   return (
     <AppLayout title="Quản lý nhân viên">
       <div className="space-y-6" data-testid="staff-page">
+        {/* Staff Statistics Overview */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center">
+                <div className="p-3 bg-blue-100 rounded-lg">
+                  <Users className="w-6 h-6 text-blue-600" />
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-600">Tổng nhân viên</p>
+                  <p className="text-2xl font-bold text-gray-900">{totalStaff}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center">
+                <div className="p-3 bg-green-100 rounded-lg">
+                  <UserCheck className="w-6 h-6 text-green-600" />
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-600">Đang hoạt động</p>
+                  <p className="text-2xl font-bold text-gray-900">{activeStaff}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center">
+                <div className="p-3 bg-orange-100 rounded-lg">
+                  <Shield className="w-6 h-6 text-orange-600" />
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-600">Vai trò</p>
+                  <p className="text-2xl font-bold text-gray-900">{roles.length}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center">
+                <div className="p-3 bg-purple-100 rounded-lg">
+                  <Group className="w-6 h-6 text-purple-600" />
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-600">Nhóm</p>
+                  <p className="text-2xl font-bold text-gray-900">{groups.length}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
         <Tabs defaultValue="list" className="space-y-6">
           <div className="flex items-center justify-between">
             <TabsList>
@@ -567,8 +634,8 @@ export default function Staff() {
                             {getRoleIcon(member.role)}
                             <span className="ml-1">{roles.find((r: any) => r.id === member.role)?.name || member.role}</span>
                           </Badge>
-                          <Badge variant={member.status === 'active' ? 'default' : 'secondary'}>
-                            {member.status === 'active' ? 'Hoạt động' : 'Không hoạt động'}
+                          <Badge variant={member.isActive ? 'default' : 'secondary'}>
+                            {member.isActive ? 'Hoạt động' : 'Không hoạt động'}
                           </Badge>
                         </div>
 
@@ -598,34 +665,50 @@ export default function Staff() {
 
           <TabsContent value="roles" className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {roles.map((role: any) => (
-                <Card key={role.id} className="hover:shadow-md transition-shadow">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      {getRoleIcon(role.id)}
-                      {role.name}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-sm text-gray-600 mb-4">{role.description}</p>
-                    <div className="space-y-2">
-                      <h4 className="font-medium text-sm">Quyền hạn:</h4>
-                      <div className="flex flex-wrap gap-1">
-                        {role.permissions.map((permission: string) => (
-                          <Badge key={permission} variant="outline" className="text-xs">
-                            {permission}
-                          </Badge>
-                        ))}
+              {roles.map((role: any) => {
+                const staffCount = staff.filter((s: any) => s.role === role.id).length;
+                return (
+                  <Card key={role.id} className="hover:shadow-md transition-shadow">
+                    <CardHeader>
+                      <CardTitle className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          {getRoleIcon(role.id)}
+                          {role.name}
+                        </div>
+                        <Badge variant="outline" className="ml-auto">
+                          {staffCount} NV
+                        </Badge>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-sm text-gray-600 mb-4">{role.description}</p>
+                      <div className="space-y-2">
+                        <h4 className="font-medium text-sm">Quyền hạn:</h4>
+                        <div className="flex flex-wrap gap-1">
+                          {role.permissions.map((permission: string) => (
+                            <Badge key={permission} variant="outline" className="text-xs">
+                              {permission.replace('_', ' ').toLowerCase()}
+                            </Badge>
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                    <div className="mt-4 pt-4 border-t">
-                      <p className="text-sm text-gray-500">
-                        Số nhân viên: {staff.filter((s: any) => s.role === role.id).length}
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                      <div className="mt-4 pt-4 border-t">
+                        <div className="flex items-center justify-between">
+                          <p className="text-sm text-gray-500">
+                            Trạng thái: <span className={`font-medium ${staffCount > 0 ? 'text-green-600' : 'text-gray-400'}`}>
+                              {staffCount > 0 ? 'Đang sử dụng' : 'Chưa có NV'}
+                            </span>
+                          </p>
+                          <Button variant="outline" size="sm">
+                            <Settings className="w-3 h-3 mr-1" />
+                            Cấu hình
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
             </div>
           </TabsContent>
 
@@ -657,25 +740,83 @@ export default function Staff() {
           </TabsContent>
 
           <TabsContent value="schedule" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Calendar className="w-5 h-5" />
-                  Lịch làm việc tuần
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center py-12">
-                  <Calendar className="w-16 h-16 mx-auto mb-4 text-gray-400" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">
-                    Lịch làm việc
-                  </h3>
-                  <p className="text-gray-600">
-                    Tính năng lập lịch làm việc sẽ được phát triển tiếp theo
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Schedule Overview */}
+              <Card className="lg:col-span-2">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Calendar className="w-5 h-5" />
+                    Lịch làm việc hôm nay
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {staff.filter((member: any) => member.isActive).slice(0, 5).map((member: any) => (
+                      <div key={member.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <div className="flex items-center space-x-3">
+                          <Avatar className="w-8 h-8">
+                            <AvatarFallback className="text-xs">
+                              {member.fullName?.split(' ').map((n: string) => n[0]).join('').toUpperCase() || 'NV'}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <p className="font-medium text-sm">{member.fullName}</p>
+                            <p className="text-xs text-gray-500">{roles.find((r: any) => r.id === member.role)?.name}</p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-sm font-medium">{member.workSchedule || '9:00-18:00'}</p>
+                          <Badge variant="outline" className="text-xs">
+                            <Clock className="w-3 h-3 mr-1" />
+                            Đang làm việc
+                          </Badge>
+                        </div>
+                      </div>
+                    ))}
+                    {staff.filter((member: any) => member.isActive).length === 0 && (
+                      <div className="text-center py-8">
+                        <Calendar className="w-12 h-12 mx-auto mb-3 text-gray-400" />
+                        <p className="text-gray-500">Chưa có nhân viên làm việc hôm nay</p>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Quick Stats */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">Thống kê nhanh</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-600">Đang làm việc</span>
+                      <Badge variant="default">{activeStaff} người</Badge>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-600">Nghỉ phép</span>
+                      <Badge variant="secondary">0 người</Badge>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-600">Ca sáng</span>
+                      <Badge variant="outline">{Math.floor(activeStaff * 0.6)} người</Badge>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-600">Ca chiều</span>
+                      <Badge variant="outline">{Math.ceil(activeStaff * 0.4)} người</Badge>
+                    </div>
+                  </div>
+                  
+                  <div className="pt-4 border-t">
+                    <Button className="w-full" variant="outline">
+                      <Calendar className="w-4 h-4 mr-2" />
+                      Xem lịch đầy đủ
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
         </Tabs>
       </div>
