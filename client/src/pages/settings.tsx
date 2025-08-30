@@ -16,6 +16,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDes
 import { z } from "zod";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { vietqrBanks } from "@/lib/vietqrBanks";
 import { queryClient } from "@/lib/queryClient";
 import {
   Store,
@@ -288,22 +289,19 @@ export default function Settings() {
 
   const testQRMutation = useMutation({
     mutationFn: async () => {
-      const response = await apiRequest('POST', '/api/payment/test-qr');
+      const response = await apiRequest('POST', '/api/payment/test-qr', {
+        AccountNumber: paymentForm.getValues('bankAccountNumber'),
+        AccountHolder: paymentForm.getValues('bankAccountName'),
+        BankName: paymentForm.getValues('bankName')
+      });
       return response.json();
     },
     onSuccess: (data) => {
-      const message = data.isOfficial 
-        ? `QR Code chính thức VietQR được tạo thành công cho số tiền ${data.amount}`
-        : `QR Code được tạo thành công cho số tiền ${data.amount}`;
-      
       toast({
         title: "Thành công",
-        description: message,
+        description: "QR Code thử nghiệm đã được tạo thành công!",
       });
-      
-      // Open QR code in new window - handle both URL and base64 data
-      if (data.qrCodeUrl.startsWith('data:')) {
-        // Base64 data from official API
+      if (data.qrBase64 && data.qrBase64.startsWith('data:')) {
         const newWindow = window.open();
         if (newWindow) {
           newWindow.document.write(`
@@ -312,17 +310,12 @@ export default function Settings() {
               <body style="margin:0;display:flex;justify-content:center;align-items:center;min-height:100vh;background:#f5f5f5;">
                 <div style="text-align:center;background:white;padding:20px;border-radius:8px;box-shadow:0 2px 10px rgba(0,0,0,0.1);">
                   <h3 style="margin:0 0 15px 0;color:#333;">QR Code Thanh toán</h3>
-                  <img src="${data.qrCodeUrl}" style="max-width:300px;height:auto;" />
-                  <p style="margin:15px 0 0 0;color:#666;font-size:14px;">Số tiền: ${data.amount}</p>
-                  ${data.isOfficial ? '<p style="margin:5px 0 0 0;color:#059669;font-size:12px;">✓ VietQR Chính thức</p>' : ''}
+                  <img src="${data.qrBase64}" style="max-width:300px;height:auto;" />
                 </div>
               </body>
             </html>
           `);
         }
-      } else {
-        // URL from fallback service
-        window.open(data.qrCodeUrl, '_blank');
       }
     },
     onError: () => {
@@ -955,11 +948,16 @@ export default function Settings() {
                             <FormItem>
                               <FormLabel>Tên ngân hàng</FormLabel>
                               <FormControl>
-                                <Input 
-                                  {...field} 
-                                  placeholder="Tên ngân hàng"
-                                  data-testid="input-bank-name" 
-                                />
+                                <Select onValueChange={field.onChange} value={field.value}>
+                                  <SelectTrigger data-testid="input-bank-name">
+                                    <SelectValue placeholder="Chọn ngân hàng" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {vietqrBanks.map(bank => (
+                                      <SelectItem key={bank.code} value={bank.name}>{bank.name}</SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
                               </FormControl>
                               <FormMessage />
                             </FormItem>
