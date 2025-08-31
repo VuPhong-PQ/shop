@@ -25,7 +25,8 @@ namespace RetailPointBackend.Controllers
 
             _context.Orders.Add(order);
             _context.SaveChanges();
-            return Ok(order);
+            // Trả về thông tin đơn giản, tránh trả về navigation property gây vòng lặp
+            return Ok(new { order.OrderId, Status = "Success" });
         }
     }
 }

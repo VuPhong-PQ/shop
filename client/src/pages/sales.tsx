@@ -152,6 +152,7 @@ export default function Sales() {
       status: "completed",
       items: cart.map(item => ({
         productId: item.id,
+        productName: item.name, // Thêm dòng này để backend nhận đủ dữ liệu
         quantity: item.quantity,
         unitPrice: item.price,
         totalPrice: item.totalPrice.toString()
