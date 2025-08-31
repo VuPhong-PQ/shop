@@ -5,6 +5,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { AppLayout } from "@/components/layout/app-layout";
 import { Store, Printer, CreditCard, Calculator } from "lucide-react";
+import { TaxSettings } from "./tax-settings";
+import { PaymentSettings } from "./payment-settings";
 
 type StoreInfo = {
   name: string;
@@ -163,10 +165,10 @@ export default function SettingsPage() {
           </div>
         )}
         {tab === "tax" && (
-          <div className="max-w-xl mx-auto text-center text-gray-400 py-12">Chức năng đang phát triển...</div>
+          <div className="max-w-4xl mx-auto"><TaxSettings /></div>
         )}
         {tab === "payment" && (
-          <div className="max-w-xl mx-auto text-center text-gray-400 py-12">Chức năng đang phát triển...</div>
+          <div className="max-w-4xl mx-auto"><PaymentSettings /></div>
         )}
         {tab === "print" && (
           <div className="max-w-xl mx-auto text-center text-gray-400 py-12">Chức năng đang phát triển...</div>

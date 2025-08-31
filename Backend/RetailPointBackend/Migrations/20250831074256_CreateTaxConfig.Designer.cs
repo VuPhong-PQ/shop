@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using RetailPointBackend.Models;
 
@@ -11,9 +12,11 @@ using RetailPointBackend.Models;
 namespace RetailPointBackend.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250831074256_CreateTaxConfig")]
+    partial class CreateTaxConfig
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -21,44 +24,6 @@ namespace RetailPointBackend.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
-
-            modelBuilder.Entity("RetailPointBackend.Models.PaymentMethodConfig", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("DefaultMethod")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<bool>("EnableBankCard")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("EnableBankTransfer")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("EnableCash")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("EnableDrawer")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("EnableEWallet")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("EnablePartialPayment")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("EnableQRCode")
-                        .HasColumnType("bit");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("PaymentMethodConfigs");
-                });
 
             modelBuilder.Entity("RetailPointBackend.Models.PaymentSettings", b =>
                 {
