@@ -12,6 +12,10 @@ type StoreInfo = {
   taxCode?: string;
   phone?: string;
   email?: string;
+  bankAccountName?: string;
+  bankAccountNumber?: string;
+  bankName?: string;
+  bankBranch?: string;
 };
 
 export default function SettingsPage() {
@@ -32,6 +36,10 @@ export default function SettingsPage() {
     taxCode: "",
     phone: "",
     email: "",
+    bankAccountName: "",
+    bankAccountNumber: "",
+    bankName: "",
+    bankBranch: "",
   });
   useEffect(() => {
     if (storeInfo) setForm(storeInfo);
@@ -87,29 +95,62 @@ export default function SettingsPage() {
         </div>
 
         {tab === "store" && (
-          <div className="max-w-xl mx-auto">
+          <div className="max-w-4xl mx-auto">
             <Card>
-              <CardContent className="p-4">
-                <form onSubmit={handleSubmit} className="space-y-3">
-                  <div>
-                    <label className="block font-medium">Tên cửa hàng *</label>
-                    <input name="name" value={form.name} onChange={handleChange} required className="border rounded px-2 py-1 w-full" />
+              <CardContent className="p-6">
+                <form onSubmit={handleSubmit} className="space-y-8">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="block font-medium">Tên cửa hàng *</label>
+                      <input name="name" value={form.name || ""} onChange={handleChange} required className="border rounded px-2 py-1 w-full" />
+                    </div>
+                    <div>
+                      <label className="block font-medium">Mã số thuế</label>
+                      <input name="taxCode" value={form.taxCode || ""} onChange={handleChange} className="border rounded px-2 py-1 w-full" />
+                    </div>
+                    <div>
+                      <label className="block font-medium">Số điện thoại</label>
+                      <input name="phone" value={form.phone || ""} onChange={handleChange} className="border rounded px-2 py-1 w-full" />
+                    </div>
+                    <div>
+                      <label className="block font-medium">Email</label>
+                      <input name="email" value={form.email || ""} onChange={handleChange} className="border rounded px-2 py-1 w-full" />
+                    </div>
+                    <div className="md:col-span-2">
+                      <label className="block font-medium">Địa chỉ</label>
+                      <input name="address" value={form.address || ""} onChange={handleChange} className="border rounded px-2 py-1 w-full" />
+                    </div>
                   </div>
-                  <div>
-                    <label className="block font-medium">Địa chỉ</label>
-                    <input name="address" value={form.address} onChange={handleChange} className="border rounded px-2 py-1 w-full" />
+                  <div className="mt-8">
+                    <h2 className="text-lg font-semibold mb-4 flex items-center gap-2"><CreditCard className="w-5 h-5" /> Thông tin tài khoản ngân hàng</h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div>
+                        <label className="block font-medium">Tên tài khoản</label>
+                        <input name="bankAccountName" value={form.bankAccountName || ""} onChange={handleChange} className="border rounded px-2 py-1 w-full" placeholder="Tên chủ tài khoản" />
+                      </div>
+                      <div>
+                        <label className="block font-medium">Số tài khoản</label>
+                        <input name="bankAccountNumber" value={form.bankAccountNumber || ""} onChange={handleChange} className="border rounded px-2 py-1 w-full" placeholder="Nhập số tài khoản" />
+                      </div>
+                      <div>
+                        <label className="block font-medium">Tên ngân hàng</label>
+                        <input name="bankName" value={form.bankName || ""} onChange={handleChange} className="border rounded px-2 py-1 w-full" placeholder="Tên ngân hàng" />
+                      </div>
+                      <div>
+                        <label className="block font-medium">Chi nhánh</label>
+                        <input name="bankBranch" value={form.bankBranch || ""} onChange={handleChange} className="border rounded px-2 py-1 w-full" placeholder="Chi nhánh ngân hàng" />
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                    <label className="block font-medium">Mã số thuế</label>
-                    <input name="taxCode" value={form.taxCode} onChange={handleChange} className="border rounded px-2 py-1 w-full" />
-                  </div>
-                  <div>
-                    <label className="block font-medium">Số điện thoại</label>
-                    <input name="phone" value={form.phone} onChange={handleChange} className="border rounded px-2 py-1 w-full" />
-                  </div>
-                  <div>
-                    <label className="block font-medium">Email</label>
-                    <input name="email" value={form.email} onChange={handleChange} className="border rounded px-2 py-1 w-full" />
+                  <div className="flex items-center justify-between bg-gray-50 rounded-xl p-4 mt-8">
+                    <div>
+                      <div className="font-semibold">Kiểm tra QR thanh toán</div>
+                      <div className="text-gray-500 text-sm">Tạo mã QR thử nghiệm để kiểm tra cấu hình</div>
+                    </div>
+                    <Button type="button" variant="outline" className="flex items-center gap-2">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4h4v4H4V4zm6 0h4v4h-4V4zm6 0h4v4h-4V4zM4 10h4v4H4v-4zm6 0h4v4h-4v-4zm6 0h4v4h-4v-4zM4 16h4v4H4v-4zm6 0h4v4h-4v-4zm6 0h4v4h-4v-4z" /></svg>
+                      Tạo QR thử nghiệm
+                    </Button>
                   </div>
                   <div className="pt-2">
                     <Button type="submit" disabled={mutation.isPending}>

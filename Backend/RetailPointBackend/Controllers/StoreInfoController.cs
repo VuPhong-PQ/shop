@@ -35,6 +35,10 @@ namespace RetailPointBackend.Controllers
                 existing.TaxCode = model.TaxCode;
                 existing.Phone = model.Phone;
                 existing.Email = model.Email;
+                existing.BankAccountName = model.BankAccountName;
+                existing.BankAccountNumber = model.BankAccountNumber;
+                existing.BankName = model.BankName;
+                existing.BankBranch = model.BankBranch;
                 _context.StoreInfos.Update(existing);
             }
             else
