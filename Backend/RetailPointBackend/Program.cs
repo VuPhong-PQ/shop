@@ -22,6 +22,10 @@ builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 
 // Add DbContext for EF Core
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+// Đăng ký thêm RetailPointContext cho các controller cũ
 builder.Services.AddDbContext<RetailPointContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 

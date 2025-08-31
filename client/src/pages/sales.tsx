@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { AppLayout } from "@/components/layout/app-layout";
 import { Card, CardContent } from "@/components/ui/card";
@@ -34,6 +35,7 @@ const paymentMethods: PaymentMethod[] = [
 
 export default function Sales() {
   const { toast } = useToast();
+  const [, navigate] = useLocation();
   const [cart, setCart] = useState<CartItem[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
@@ -64,6 +66,7 @@ export default function Sales() {
       setSelectedCustomer(null);
       setShowPayment(false);
       queryClient.invalidateQueries({ queryKey: ['/api/dashboard/metrics'] });
+      navigate('/orders');
     },
     onError: () => {
       toast({
@@ -119,7 +122,7 @@ export default function Sales() {
 
   // Remove from cart
   const removeFromCart = (productId: string) => {
-  setCart(cart.filter(item => item.cartItemId !== productId));
+    setCart(cart.filter(item => item.cartItemId !== productId));
   };
 
   // Clear cart

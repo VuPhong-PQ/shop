@@ -1,5 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+type StoreInfo = {
+  name: string;
+  address?: string;
+  taxCode?: string;
+  phone?: string;
+  email?: string;
+};
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -26,6 +33,16 @@ export default function OrdersPage() {
     queryKey: ["/api/orders"],
     queryFn: async () => {
       const res = await apiRequest("GET", "/api/orders");
+      return res.json();
+    },
+  });
+
+  // Lấy thông tin cửa hàng
+  const { data: storeInfo } = useQuery<StoreInfo | null>({
+    queryKey: ["/api/StoreInfo"],
+    queryFn: async () => {
+      const res = await apiRequest("GET", "/api/StoreInfo");
+      if (res.status === 404) return null;
       return res.json();
     },
   });
@@ -69,6 +86,14 @@ export default function OrdersPage() {
             >
               Đóng
             </button>
+            {/* Thông tin cửa hàng in đầu bill */}
+            <div className="text-center border-b pb-2 mb-2">
+              <div className="font-bold text-lg">{storeInfo?.name || "[Tên cửa hàng]"}</div>
+              {storeInfo?.address && <div className="text-sm">Đ/c: {storeInfo.address}</div>}
+              {storeInfo?.taxCode && <div className="text-sm">MST: {storeInfo.taxCode}</div>}
+              {storeInfo?.phone && <div className="text-sm">ĐT: {storeInfo.phone}</div>}
+              {storeInfo?.email && <div className="text-sm">Email: {storeInfo.email}</div>}
+            </div>
             <h2 className="text-xl font-bold mb-2">Đơn hàng #{selectedOrder.orderId}</h2>
             <div>Khách hàng: {selectedOrder.customerName || "-"}</div>
             <div>Ngày tạo: {selectedOrder.createdAt?.slice(0, 10)}</div>

@@ -47,6 +47,7 @@ D:\laptrinh\thiekepm\RetailPoint\Backend\RetailPointBackend\bin\Debug\net9.0\Mic
 D:\laptrinh\thiekepm\RetailPoint\Backend\RetailPointBackend\bin\Debug\net9.0\Microsoft.SqlServer.Server.dll
 D:\laptrinh\thiekepm\RetailPoint\Backend\RetailPointBackend\bin\Debug\net9.0\Microsoft.Win32.SystemEvents.dll
 D:\laptrinh\thiekepm\RetailPoint\Backend\RetailPointBackend\bin\Debug\net9.0\Mono.TextTemplating.dll
+D:\laptrinh\thiekepm\RetailPoint\Backend\RetailPointBackend\bin\Debug\net9.0\QRCoder.dll
 D:\laptrinh\thiekepm\RetailPoint\Backend\RetailPointBackend\bin\Debug\net9.0\System.ClientModel.dll
 D:\laptrinh\thiekepm\RetailPoint\Backend\RetailPointBackend\bin\Debug\net9.0\System.CodeDom.dll
 D:\laptrinh\thiekepm\RetailPoint\Backend\RetailPointBackend\bin\Debug\net9.0\System.Composition.AttributedModel.dll
@@ -165,4 +166,3 @@ D:\laptrinh\thiekepm\RetailPoint\Backend\RetailPointBackend\obj\Debug\net9.0\ref
 D:\laptrinh\thiekepm\RetailPoint\Backend\RetailPointBackend\obj\Debug\net9.0\RetailPointBackend.pdb
 D:\laptrinh\thiekepm\RetailPoint\Backend\RetailPointBackend\obj\Debug\net9.0\RetailPointBackend.genruntimeconfig.cache
 D:\laptrinh\thiekepm\RetailPoint\Backend\RetailPointBackend\obj\Debug\net9.0\ref\RetailPointBackend.dll
-D:\laptrinh\thiekepm\RetailPoint\Backend\RetailPointBackend\bin\Debug\net9.0\QRCoder.dll

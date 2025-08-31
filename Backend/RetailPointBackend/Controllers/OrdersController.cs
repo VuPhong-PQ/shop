@@ -28,5 +28,26 @@ namespace RetailPointBackend.Controllers
             // Trả về thông tin đơn giản, tránh trả về navigation property gây vòng lặp
             return Ok(new { order.OrderId, Status = "Success" });
         }
+
+        [HttpGet]
+        public IActionResult GetOrders()
+        {
+            var orders = _context.Orders
+                .Select(o => new {
+                    o.OrderId,
+                    o.CustomerName,
+                    o.CreatedAt,
+                    o.TotalAmount,
+                    Items = o.Items.Select(i => new {
+                        i.ProductName,
+                        i.Quantity,
+                        i.Price,
+                        i.TotalPrice
+                    }).ToList()
+                })
+                .OrderByDescending(o => o.OrderId)
+                .ToList();
+            return Ok(orders);
+        }
     }
 }
