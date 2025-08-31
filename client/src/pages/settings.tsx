@@ -7,6 +7,7 @@ import { AppLayout } from "@/components/layout/app-layout";
 import { Store, Printer, CreditCard, Calculator } from "lucide-react";
 import { TaxSettings } from "./tax-settings";
 import { PaymentSettings } from "./payment-settings";
+import { PrintSettings } from "./print-settings";
 
 type StoreInfo = {
   name: string;
@@ -171,7 +172,7 @@ export default function SettingsPage() {
           <div className="max-w-4xl mx-auto"><PaymentSettings /></div>
         )}
         {tab === "print" && (
-          <div className="max-w-xl mx-auto text-center text-gray-400 py-12">Chức năng đang phát triển...</div>
+          <div className="max-w-6xl mx-auto"><PrintSettings /></div>
         )}
       </div>
     </AppLayout>

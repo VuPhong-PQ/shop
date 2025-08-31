@@ -22,6 +22,7 @@ namespace RetailPointBackend.Models
     public DbSet<StoreInfo> StoreInfos { get; set; }
     public DbSet<TaxConfig> TaxConfigs { get; set; }
     public DbSet<PaymentMethodConfig> PaymentMethodConfigs { get; set; }
+    public DbSet<PrintConfig> PrintConfigs { get; set; }
     }
 
 }

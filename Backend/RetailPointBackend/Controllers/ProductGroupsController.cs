@@ -17,8 +17,8 @@ namespace RetailPointBackend.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<ProductGroup>>> GetProductGroups()
         {
-            // Chỉ trả về các nhóm có IsVisible = true
-            return await _context.ProductGroups.Where(g => g.IsVisible).ToListAsync();
+            // Trả về tất cả nhóm sản phẩm
+            return await _context.ProductGroups.ToListAsync();
         }
 
         [HttpPost]
