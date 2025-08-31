@@ -2,18 +2,35 @@ import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+
 import { apiRequest } from "../lib/utils";
 
+type OrderItem = {
+  productName: string;
+  quantity: number;
+  price: number;
+  totalPrice: number;
+};
+
+type Order = {
+  orderId: number;
+  customerName?: string;
+  createdAt: string;
+  totalAmount: number;
+  items: OrderItem[];
+};
+
+
 export default function OrdersPage() {
-  const { data: orders = [], isLoading } = useQuery({
+  const { data: orders = [], isLoading } = useQuery<Order[]>({
     queryKey: ["/api/orders"],
     queryFn: async () => {
       const res = await apiRequest("GET", "/api/orders");
-      return res;
+      return res.json();
     },
   });
 
-  const [selectedOrder, setSelectedOrder] = useState(null);
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
   return (
     <div className="p-6">

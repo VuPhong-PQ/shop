@@ -1,3 +1,4 @@
+export { apiRequest } from "./queryClient";
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 
