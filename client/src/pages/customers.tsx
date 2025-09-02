@@ -65,14 +65,37 @@ export default function Customers() {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedTier, setSelectedTier] = useState<string>("all");
+  // Hàm reset bộ lọc
+  const resetFilters = () => {
+    setSearchTerm("");
+    setSelectedTier("all");
+  };
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
 
   // Fetch customers and orders
-  const { data: customers = [], isLoading } = useQuery<Customer[]>({
+  const { data: rawCustomers = [], isLoading } = useQuery<any[]>({
     queryKey: ['/api/customers'],
   });
+
+  // Debug: log dữ liệu gốc từ API
+  console.log('rawCustomers:', rawCustomers);
+  // Map dữ liệu từ API sang đúng định dạng frontend
+  const customers: Customer[] = rawCustomers.map((c) => ({
+    id: c.customerId?.toString(),
+    name: c.hoTen || "",
+    phone: c.soDienThoai || "",
+    email: c.email || "",
+    address: c.diaChi || "",
+    customerType: c.customerType || "regular", // Nếu backend chưa trả về, mặc định là regular
+    loyaltyPoints: c.loyaltyPoints || 0,
+    totalSpent: c.totalSpent || "0",
+    storeId: c.storeId || "store-1",
+    hangKhachHang: c.hangKhachHang || "Thuong",
+  }));
+  // Debug: log giá trị customers
+  console.log('Customers:', customers);
 
   const { data: orders = [] } = useQuery<Order[]>({
     queryKey: ['/api/orders'],
@@ -159,7 +182,8 @@ export default function Customers() {
     const matchesSearch = customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          customer.phone.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          (customer.email && customer.email.toLowerCase().includes(searchTerm.toLowerCase()));
-    const matchesTier = selectedTier === "all" || customer.customerType === selectedTier;
+    // Nếu không có trường customerType, luôn cho qua filter tier
+    const matchesTier = selectedTier === "all" || !customer.customerType || customer.customerType === selectedTier;
     return matchesSearch && matchesTier;
   });
 
@@ -239,6 +263,9 @@ export default function Customers() {
                 <SelectItem value="vip">VIP</SelectItem>
               </SelectContent>
             </Select>
+            <Button variant="outline" onClick={resetFilters} data-testid="button-reset-filters">
+              Xóa bộ lọc
+            </Button>
           </div>
 
           <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
