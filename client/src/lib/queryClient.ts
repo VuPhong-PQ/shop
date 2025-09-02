@@ -17,6 +17,12 @@ export async function apiRequest(
   options: RequestInit
 ): Promise<any> {
   const fullUrl = url.startsWith("http") ? url : API_BASE + url;
+  // Nếu body là FormData, xóa header Content-Type nếu có (chỉ khi headers là object)
+  if (options.body instanceof FormData && options.headers && typeof options.headers === 'object') {
+    if ('Content-Type' in options.headers) {
+      delete options.headers['Content-Type'];
+    }
+  }
   const res = await fetch(fullUrl, {
     ...options,
     credentials: "include",

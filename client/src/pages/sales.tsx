@@ -49,13 +49,21 @@ export default function Sales() {
 
   const { data: customers = [] } = useQuery<Customer[]>({
     queryKey: ['/api/customers'],
+    select: (rawCustomers: any[]) => rawCustomers.map((c) => ({
+      id: c.customerId?.toString(),
+      name: c.hoTen || '',
+      phone: c.soDienThoai || '',
+      email: c.email || '',
+      address: c.diaChi || '',
+      customerType: c.hangKhachHang || '',
+    })),
   });
 
   // Create order mutation
   const createOrderMutation = useMutation({
-    mutationFn: async (orderData: any) => {
-      const response = await apiRequest('POST', '/api/orders', orderData);
-      return response.json();
+    mutationFn: async (formData: FormData) => {
+      console.log('Gửi đơn hàng lên backend:', formData);
+      return await apiRequest('/api/orders', { method: 'POST', body: formData });
     },
     onSuccess: () => {
       toast({
@@ -140,29 +148,31 @@ export default function Sales() {
       });
       return;
     }
-
-    const orderData = {
-      orderNumber: `ORD${Date.now()}`,
-      customerId: selectedCustomer?.id || null,
-      cashierId: "550e8400-e29b-41d4-a716-446655440001", // UUID for cashier
-      storeId: "550e8400-e29b-41d4-a716-446655440002", // UUID for store
-      subtotal: subtotal.toString(),
-      taxAmount: taxAmount.toString(),
-      discountAmount: "0",
-      total: total.toString(),
-      paymentMethod: selectedPayment,
-      paymentStatus: "completed",
-      status: "completed",
-      items: cart.map(item => ({
-        productId: item.id,
-        productName: item.name, // Thêm dòng này để backend nhận đủ dữ liệu
-        quantity: item.quantity,
-        unitPrice: item.price,
-        totalPrice: item.totalPrice.toString()
-      }))
-    };
-
-    createOrderMutation.mutate(orderData);
+    // Tạo form-data đúng chuẩn cho backend
+    const formData = new FormData();
+    formData.append('orderNumber', `ORD${Date.now()}`);
+    formData.append('customerId', selectedCustomer?.id || '');
+    formData.append('cashierId', "550e8400-e29b-41d4-a716-446655440001");
+    formData.append('storeId', "550e8400-e29b-41d4-a716-446655440002");
+    formData.append('subtotal', subtotal.toString());
+    formData.append('taxAmount', taxAmount.toString());
+    formData.append('discountAmount', "0");
+    formData.append('total', total.toString());
+    formData.append('paymentMethod', selectedPayment);
+    formData.append('paymentStatus', "completed");
+    formData.append('status', "completed");
+    // Gửi từng item dưới dạng items[0].productId, items[0].productName, ...
+    cart.forEach((item, idx) => {
+      // Luôn lấy đúng productId, không để undefined
+      const productId = item.productId || item.id || "";
+      formData.append(`items[${idx}].productId`, productId);
+      formData.append(`items[${idx}].productName`, item.name || "");
+      formData.append(`items[${idx}].quantity`, item.quantity?.toString() || "1");
+      formData.append(`items[${idx}].unitPrice`, item.price?.toString() || "0");
+      formData.append(`items[${idx}].totalPrice`, item.totalPrice?.toString() || "0");
+    });
+    console.log('FormData gửi lên:', Array.from(formData.entries()));
+    createOrderMutation.mutate(formData);
   };
 
   return (

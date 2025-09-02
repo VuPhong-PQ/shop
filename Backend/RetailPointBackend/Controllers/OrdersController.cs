@@ -15,14 +15,51 @@ namespace RetailPointBackend.Controllers
         }
 
         [HttpPost]
-        public IActionResult CreateOrder([FromBody] Order order)
+        public IActionResult CreateOrder(
+            [FromForm] string? orderNumber,
+            [FromForm] int? customerId,
+            [FromForm] string? cashierId,
+            [FromForm] string? storeId,
+            [FromForm] string? subtotal,
+            [FromForm] string? taxAmount,
+            [FromForm] string? discountAmount,
+            [FromForm] string? total,
+            [FromForm] string? paymentMethod,
+            [FromForm] string? paymentStatus,
+            [FromForm] string? status)
         {
-            if (order == null || order.Items == null || !order.Items.Any())
-                return BadRequest("Order or items missing");
-
-            // Tính tổng tiền đơn hàng
-            order.TotalAmount = order.Items.Sum(item => item.Quantity * item.Price);
-
+            // Lấy danh sách sản phẩm từ form-data
+            var items = new List<OrderItem>();
+            foreach (var key in Request.Form.Keys)
+            {
+                if (key.StartsWith("items[") && key.Contains("]"))
+                {
+                    var idxStart = key.IndexOf('[') + 1;
+                    var idxEnd = key.IndexOf(']');
+                    var idx = int.Parse(key.Substring(idxStart, idxEnd - idxStart));
+                    while (items.Count <= idx) items.Add(new OrderItem());
+                    var field = key.Substring(idxEnd + 2); // .field
+                    if (field.StartsWith(".")) field = field.Substring(1); // remove leading dot
+                    var value = Request.Form[key];
+                    switch (field)
+                    {
+                        case "productId": items[idx].ProductId = int.TryParse(value, out var pid) ? pid : 0; break;
+                        case "productName": items[idx].ProductName = value; break;
+                        case "quantity": items[idx].Quantity = int.TryParse(value, out var qty) ? qty : 1; break;
+                        case "unitPrice": items[idx].Price = decimal.TryParse(value, out var pr) ? pr : 0; break;
+                        case "totalPrice": items[idx].TotalPrice = decimal.TryParse(value, out var tp) ? tp : 0; break;
+                    }
+                }
+            }
+            if (!items.Any()) return BadRequest("Order or items missing");
+            var order = new Order
+            {
+                CustomerId = customerId,
+                OrderId = 0,
+                CustomerName = null,
+                TotalAmount = decimal.TryParse(total, out var t) ? t : 0,
+                Items = items
+            };
             // Nếu có CustomerId, gán lại CustomerName từ bảng Customer
             if (order.CustomerId.HasValue)
             {
@@ -32,10 +69,8 @@ namespace RetailPointBackend.Controllers
                     order.CustomerName = customer.HoTen;
                 }
             }
-
             _context.Orders.Add(order);
             _context.SaveChanges();
-            // Trả về thông tin đơn giản, tránh trả về navigation property gây vòng lặp
             return Ok(new { order.OrderId, Status = "Success" });
         }
 
