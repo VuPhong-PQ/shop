@@ -125,10 +125,11 @@ export default function Customers() {
       form.append('soDienThoai', data.phone || '');
       form.append('email', data.email || '');
       form.append('diaChi', data.address || '');
-      let hangKhachHang = 'Thuong';
-      if (data.customerType === 'vip') hangKhachHang = 'VIP';
-      else if (data.customerType === 'premium') hangKhachHang = 'Premium';
-      form.append('hangKhachHang', hangKhachHang);
+  let hangKhachHang = 'Thuong';
+  if (data.customerType === 'vip') hangKhachHang = 'VIP';
+  else if (data.customerType === 'premium') hangKhachHang = 'Premium';
+  form.append('hangKhachHang', hangKhachHang);
+  form.append('customerType', data.customerType || 'regular');
       return apiRequest(`/api/customers/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -209,8 +210,13 @@ export default function Customers() {
   // Handle form submission
   const onSubmit = (data: CustomerFormData) => {
     console.log('Submit customer data:', data);
-    // Luôn gọi addCustomerMutation.mutate để test submit
-    addCustomerMutation.mutate(data);
+    if (editingCustomer) {
+      // Nếu đang chỉnh sửa, gọi mutation cập nhật
+      editCustomerMutation.mutate({ id: editingCustomer.id, data });
+    } else {
+      // Nếu thêm mới, gọi mutation thêm mới
+      addCustomerMutation.mutate(data);
+    }
   };
 
   // Handle edit customer
