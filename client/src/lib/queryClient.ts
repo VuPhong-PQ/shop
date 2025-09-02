@@ -2,6 +2,7 @@
 const API_BASE = "http://localhost:5271";
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
 
+
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
     const text = (await res.text()) || res.statusText;
@@ -9,21 +10,24 @@ async function throwIfResNotOk(res: Response) {
   }
 }
 
+
+// Sửa lại apiRequest để nhận (url, options)
 export async function apiRequest(
-  method: string,
   url: string,
-  data?: unknown | undefined,
-): Promise<Response> {
+  options: RequestInit
+): Promise<any> {
   const fullUrl = url.startsWith("http") ? url : API_BASE + url;
   const res = await fetch(fullUrl, {
-    method,
-    headers: data ? { "Content-Type": "application/json" } : {},
-    body: data ? JSON.stringify(data) : undefined,
+    ...options,
     credentials: "include",
   });
-
   await throwIfResNotOk(res);
-  return res;
+  // Trả về json nếu có, nếu không thì trả về text
+  const contentType = res.headers.get("content-type") || "";
+  if (contentType.includes("application/json")) {
+    return await res.json();
+  }
+  return await res.text();
 }
 
 type UnauthorizedBehavior = "returnNull" | "throw";

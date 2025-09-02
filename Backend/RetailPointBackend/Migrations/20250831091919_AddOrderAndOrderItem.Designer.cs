@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using RetailPointBackend.Models;
 
@@ -11,9 +12,11 @@ using RetailPointBackend.Models;
 namespace RetailPointBackend.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250831091919_AddOrderAndOrderItem")]
+    partial class AddOrderAndOrderItem
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -21,34 +24,6 @@ namespace RetailPointBackend.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
-
-            modelBuilder.Entity("RetailPointBackend.Models.Customer", b =>
-                {
-                    b.Property<int>("CustomerId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("CustomerId"));
-
-                    b.Property<string>("DiaChi")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Email")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("HangKhachHang")
-                        .HasColumnType("int");
-
-                    b.Property<string>("HoTen")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("SoDienThoai")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("CustomerId");
-
-                    b.ToTable("Customers");
-                });
 
             modelBuilder.Entity("RetailPointBackend.Models.Order", b =>
                 {
@@ -61,9 +36,6 @@ namespace RetailPointBackend.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<int?>("CustomerId")
-                        .HasColumnType("int");
-
                     b.Property<string>("CustomerName")
                         .HasColumnType("nvarchar(max)");
 
@@ -71,8 +43,6 @@ namespace RetailPointBackend.Migrations
                         .HasColumnType("decimal(18,2)");
 
                     b.HasKey("OrderId");
-
-                    b.HasIndex("CustomerId");
 
                     b.ToTable("Orders");
                 });
@@ -85,9 +55,6 @@ namespace RetailPointBackend.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("OrderItemId"));
 
-                    b.Property<int?>("CustomerId")
-                        .HasColumnType("int");
-
                     b.Property<int>("OrderId")
                         .HasColumnType("int");
 
@@ -98,6 +65,7 @@ namespace RetailPointBackend.Migrations
                         .HasColumnType("int");
 
                     b.Property<string>("ProductName")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("Quantity")
@@ -107,8 +75,6 @@ namespace RetailPointBackend.Migrations
                         .HasColumnType("decimal(18,2)");
 
                     b.HasKey("OrderItemId");
-
-                    b.HasIndex("CustomerId");
 
                     b.HasIndex("OrderId");
 
@@ -352,37 +318,15 @@ namespace RetailPointBackend.Migrations
                     b.ToTable("TaxConfigs");
                 });
 
-            modelBuilder.Entity("RetailPointBackend.Models.Order", b =>
-                {
-                    b.HasOne("RetailPointBackend.Models.Customer", "Customer")
-                        .WithMany("Orders")
-                        .HasForeignKey("CustomerId");
-
-                    b.Navigation("Customer");
-                });
-
             modelBuilder.Entity("RetailPointBackend.Models.OrderItem", b =>
                 {
-                    b.HasOne("RetailPointBackend.Models.Customer", "Customer")
-                        .WithMany("OrderItems")
-                        .HasForeignKey("CustomerId");
-
                     b.HasOne("RetailPointBackend.Models.Order", "Order")
                         .WithMany("Items")
                         .HasForeignKey("OrderId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("Customer");
-
                     b.Navigation("Order");
-                });
-
-            modelBuilder.Entity("RetailPointBackend.Models.Customer", b =>
-                {
-                    b.Navigation("OrderItems");
-
-                    b.Navigation("Orders");
                 });
 
             modelBuilder.Entity("RetailPointBackend.Models.Order", b =>

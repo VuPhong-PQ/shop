@@ -17,12 +17,15 @@ namespace RetailPointBackend.Models
             }
         }
 
-        public DbSet<Product> Products { get; set; }
-        public DbSet<PaymentSettings> PaymentSettings { get; set; }
+    public DbSet<Product> Products { get; set; }
+    public DbSet<PaymentSettings> PaymentSettings { get; set; }
     public DbSet<StoreInfo> StoreInfos { get; set; }
     public DbSet<TaxConfig> TaxConfigs { get; set; }
     public DbSet<PaymentMethodConfig> PaymentMethodConfigs { get; set; }
     public DbSet<PrintConfig> PrintConfigs { get; set; }
+    public DbSet<Order> Orders { get; set; }
+    public DbSet<OrderItem> OrderItems { get; set; }
+    public DbSet<Customer> Customers { get; set; }
     }
 
 }

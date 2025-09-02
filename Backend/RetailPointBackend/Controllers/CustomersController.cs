@@ -10,8 +10,8 @@ namespace RetailPointBackend.Controllers
     [Route("api/[controller]")]
     public class CustomersController : ControllerBase
     {
-        private readonly RetailPointContext _context;
-        public CustomersController(RetailPointContext context)
+        private readonly AppDbContext _context;
+        public CustomersController(AppDbContext context)
         {
             _context = context;
         }
@@ -25,8 +25,20 @@ namespace RetailPointBackend.Controllers
 
         // POST: api/customers
         [HttpPost]
-        public async Task<IActionResult> CreateCustomer([FromBody] Customer customer)
+        public async Task<IActionResult> CreateCustomer([FromForm] string hoTen, [FromForm] string soDienThoai, [FromForm] string email, [FromForm] string diaChi, [FromForm] string hangKhachHang)
         {
+            // Chuyển đổi hạng khách hàng
+            if (!Enum.TryParse<CustomerRank>(hangKhachHang, true, out var rank))
+                return BadRequest("Hạng khách hàng không hợp lệ");
+
+            var customer = new Customer
+            {
+                HoTen = hoTen,
+                SoDienThoai = soDienThoai,
+                Email = email,
+                DiaChi = diaChi,
+                HangKhachHang = rank
+            };
             _context.Customers.Add(customer);
             await _context.SaveChangesAsync();
             return Ok(customer);
@@ -34,12 +46,19 @@ namespace RetailPointBackend.Controllers
 
         // PUT: api/customers/{id}
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateCustomer(int id, [FromBody] Customer customer)
+        public async Task<IActionResult> UpdateCustomer(int id, [FromForm] string hoTen, [FromForm] string soDienThoai, [FromForm] string email, [FromForm] string diaChi, [FromForm] string hangKhachHang)
         {
-            if (id != customer.CustomerId) return BadRequest();
-            _context.Entry(customer).State = EntityState.Modified;
+            var customer = await _context.Customers.FindAsync(id);
+            if (customer == null) return NotFound();
+            if (!Enum.TryParse<CustomerRank>(hangKhachHang, true, out var rank))
+                return BadRequest("Hạng khách hàng không hợp lệ");
+            customer.HoTen = hoTen;
+            customer.SoDienThoai = soDienThoai;
+            customer.Email = email;
+            customer.DiaChi = diaChi;
+            customer.HangKhachHang = rank;
             await _context.SaveChangesAsync();
-            return NoContent();
+            return Ok(customer);
         }
 
         // DELETE: api/customers/{id}
