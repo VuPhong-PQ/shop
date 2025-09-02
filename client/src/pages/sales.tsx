@@ -73,6 +73,8 @@ export default function Sales() {
       setCart([]);
       setSelectedCustomer(null);
       setShowPayment(false);
+      // Refetch danh sách đơn hàng để hiển thị đơn mới nhất
+      queryClient.invalidateQueries({ queryKey: ['/api/orders'] });
       queryClient.invalidateQueries({ queryKey: ['/api/dashboard/metrics'] });
       navigate('/orders');
     },

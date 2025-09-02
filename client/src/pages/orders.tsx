@@ -32,8 +32,16 @@ export default function OrdersPage() {
   const { data: orders = [], isLoading } = useQuery<Order[]>({
     queryKey: ["/api/orders"],
     queryFn: async () => {
-      const res = await apiRequest("GET", "/api/orders");
-      return res.json();
+      const res = await apiRequest("/api/orders", { method: "GET" });
+      // Nếu trả về string, parse lại
+      const raw = typeof res === "string" ? JSON.parse(res) : res;
+      // Sửa lại items nếu là chuỗi JSON
+      const mapped = raw.map((order: any) => ({
+        ...order,
+        items: typeof order.items === "string" ? JSON.parse(order.items) : order.items
+      }));
+      console.log("orders:", mapped);
+      return mapped;
     },
   });
 
