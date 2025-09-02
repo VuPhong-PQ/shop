@@ -116,8 +116,12 @@ export default function Products() {
         stockQuantity: Number(productData.stockQuantity),
         minStockLevel: Number(productData.minStockLevel),
       };
-      const response = await apiRequest('POST', '/api/products', formattedData);
-      return response.json();
+      const response = await apiRequest('/api/products', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formattedData)
+      });
+      return typeof response === 'string' ? JSON.parse(response) : response;
     },
     onSuccess: () => {
       toast({

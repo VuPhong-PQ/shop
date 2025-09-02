@@ -19,9 +19,8 @@ export function TaxSettings() {
   const { data: taxConfig } = useQuery<TaxConfig | null>({
     queryKey: ["/api/TaxConfig"],
     queryFn: async () => {
-      const res = await apiRequest("GET", "/api/TaxConfig");
-      if (res.status === 404) return null;
-      return res.json();
+      const res = await apiRequest("/api/TaxConfig", { method: "GET" });
+      return typeof res === "string" ? JSON.parse(res) : res;
     },
   });
   const [form, setForm] = useState<TaxConfig>({
@@ -37,11 +36,15 @@ export function TaxSettings() {
   }, [taxConfig]);
   const mutation = useMutation({
     mutationFn: async (data: TaxConfig) => {
-      const res = await apiRequest("POST", "/api/TaxConfig", data);
-      return res.json();
+      const res = await apiRequest("/api/TaxConfig", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data)
+      });
+      return typeof res === "string" ? JSON.parse(res) : res;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(["/api/TaxConfig"]);
+  queryClient.invalidateQueries({ queryKey: ["/api/TaxConfig"] });
       alert("Đã lưu cấu hình thuế!");
     },
   });

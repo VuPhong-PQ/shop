@@ -88,14 +88,18 @@ export default function ProductGroups() {
   // Mutations
   const addProductGroupMutation = useMutation({
     mutationFn: async (groupData: ProductGroupFormData) => {
-      const response = await apiRequest('POST', '/api/productgroups', {
-        name: groupData.name,
-        description: groupData.description,
-        color: groupData.color,
-        order: groupData.sortOrder,
-        isVisible: groupData.isActive,
+      const response = await apiRequest('/api/productgroups', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: groupData.name,
+          description: groupData.description,
+          color: groupData.color,
+          order: groupData.sortOrder,
+          isVisible: groupData.isActive,
+        })
       });
-      return response.json();
+      return typeof response === 'string' ? JSON.parse(response) : response;
     },
     onSuccess: () => {
       toast({

@@ -28,9 +28,8 @@ export default function SettingsPage() {
   const { data: storeInfo } = useQuery<StoreInfo | null>({
     queryKey: ["/api/StoreInfo"],
     queryFn: async () => {
-      const res = await apiRequest("GET", "/api/StoreInfo");
-      if (res.status === 404) return null;
-      return res.json();
+      const res = await apiRequest("/api/StoreInfo", { method: "GET" });
+      return typeof res === "string" ? JSON.parse(res) : res;
     },
   });
   const [form, setForm] = useState<StoreInfo>({
@@ -49,11 +48,15 @@ export default function SettingsPage() {
   }, [storeInfo]);
   const mutation = useMutation({
     mutationFn: async (data: StoreInfo) => {
-      const res = await apiRequest("POST", "/api/StoreInfo", data);
-      return res.json();
+      const res = await apiRequest("/api/StoreInfo", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data)
+      });
+      return typeof res === "string" ? JSON.parse(res) : res;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(["/api/StoreInfo"]);
+  queryClient.invalidateQueries({ queryKey: ["/api/StoreInfo"] });
       alert("Đã lưu thông tin cửa hàng!");
     },
   });

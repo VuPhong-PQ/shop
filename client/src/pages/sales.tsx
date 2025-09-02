@@ -93,10 +93,20 @@ export default function Sales() {
     product.sku.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // Cart calculations
+  // Lấy thông tin thuế VAT từ API
+  const { data: taxConfig } = useQuery<any>({
+    queryKey: ["/api/TaxConfig"],
+    queryFn: async () => {
+      const res = await apiRequest("/api/TaxConfig", { method: "GET" });
+      return typeof res === "string" ? JSON.parse(res) : res;
+    },
+  });
+
   const subtotal = cart.reduce((sum, item) => sum + item.totalPrice, 0);
-  const taxRate = 0.1; // 10% VAT
-  const taxAmount = subtotal * taxRate;
+  // VATRate backend trả về số phần trăm (8, 10, ...) nên cần chia cho 100 khi tính toán
+  const taxRate = taxConfig?.VATRate ? Number(taxConfig.VATRate) : 10;
+  const taxLabel = taxConfig?.VATLabel || "VAT";
+  const taxAmount = subtotal * (taxRate / 100);
   const total = subtotal + taxAmount;
 
   // Add product to cart
@@ -372,7 +382,7 @@ export default function Sales() {
                     <span data-testid="subtotal">{subtotal.toLocaleString('vi-VN')}₫</span>
                   </div>
                   <div className="flex justify-between">
-                    <span>VAT (10%):</span>
+                    <span>{taxLabel} ({taxConfig?.VATRate || 10}%):</span>
                     <span data-testid="tax">{taxAmount.toLocaleString('vi-VN')}₫</span>
                   </div>
                   <Separator />
