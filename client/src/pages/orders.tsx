@@ -8,6 +8,7 @@ type StoreInfo = {
   email?: string;
 };
 import { Button } from "@/components/ui/button";
+import { useLocation } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 
 import { apiRequest } from "../lib/utils";
@@ -57,9 +58,18 @@ export default function OrdersPage() {
 
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
+  const [, navigate] = useLocation();
   return (
     <div className="p-6">
       <h1 className="text-2xl font-bold mb-4">Danh sách đơn hàng</h1>
+      <div className="mb-4">
+        <Button
+          style={{ backgroundColor: '#ef4444', color: '#fff' }}
+          onClick={() => navigate("/sales")}
+        >
+          Đóng
+        </Button>
+      </div>
       {isLoading ? (
         <div>Đang tải...</div>
       ) : (
