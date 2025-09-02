@@ -82,17 +82,31 @@ export default function Customers() {
   // Debug: log dữ liệu gốc từ API
   console.log('rawCustomers:', rawCustomers);
   // Map dữ liệu từ API sang đúng định dạng frontend
+  rawCustomers.forEach((c, i) => {
+    console.log(`Customer[${i}] hangKhachHang:`, c.hangKhachHang);
+  });
   const customers: Customer[] = rawCustomers.map((c) => ({
     id: c.customerId?.toString(),
     name: c.hoTen || "",
     phone: c.soDienThoai || "",
     email: c.email || "",
     address: c.diaChi || "",
-    customerType: c.customerType || "regular", // Nếu backend chưa trả về, mặc định là regular
+  customerType: c.hangKhachHang === 3 ? 'vip'
+    : c.hangKhachHang === 2 ? 'premium'
+    : c.hangKhachHang === 1 ? 'regular'
+    : (typeof c.hangKhachHang === 'string' ?
+        (c.hangKhachHang.toLowerCase() === 'vip' ? 'vip'
+          : c.hangKhachHang.toLowerCase() === 'premium' ? 'premium'
+          : 'regular')
+        : 'regular'),
     loyaltyPoints: c.loyaltyPoints || 0,
     totalSpent: c.totalSpent || "0",
     storeId: c.storeId || "store-1",
     hangKhachHang: c.hangKhachHang || "Thuong",
+    dateOfBirth: c.dateOfBirth ?? null,
+    isActive: c.isActive ?? true,
+    createdAt: c.createdAt ? new Date(c.createdAt) : new Date(),
+    updatedAt: c.updatedAt ? new Date(c.updatedAt) : new Date(),
   }));
   // Debug: log giá trị customers
   console.log('Customers:', customers);
@@ -125,10 +139,10 @@ export default function Customers() {
       form.append('soDienThoai', data.phone || '');
       form.append('email', data.email || '');
       form.append('diaChi', data.address || '');
-  let hangKhachHang = 'Thuong';
-  if (data.customerType === 'vip') hangKhachHang = 'VIP';
-  else if (data.customerType === 'premium') hangKhachHang = 'Premium';
-  form.append('hangKhachHang', hangKhachHang);
+  let hangKhachHang = 1;
+  if (data.customerType === 'vip') hangKhachHang = 3;
+  else if (data.customerType === 'premium') hangKhachHang = 2;
+  form.append('hangKhachHang', hangKhachHang.toString());
   form.append('customerType', data.customerType || 'regular');
       return apiRequest(`/api/customers/${id}`, {
         method: 'PUT',
@@ -199,7 +213,7 @@ export default function Customers() {
       case 'vip':
         return { label: 'VIP', color: 'bg-purple-500' };
       case 'premium':
-        return { label: 'Premium', color: 'bg-gold-500' };
+        return { label: 'Premium', color: 'bg-yellow-400 text-black' };
       case 'regular':
         return { label: 'Thường', color: 'bg-gray-500' };
       default:
