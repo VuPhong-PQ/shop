@@ -28,6 +28,8 @@ type Order = {
   items: OrderItem[];
   taxAmount?: number;
   paymentMethod?: string;
+  cashierName?: string;
+  subtotal?: number;
 };
 
 
@@ -122,7 +124,7 @@ export default function OrdersPage() {
             <div>Ngày tạo: {selectedOrder.createdAt?.slice(0, 10)}</div>
             {/* Thông tin bổ sung */}
             <div>Hình thức thanh toán: <b>{selectedOrder.paymentMethod || "-"}</b></div>
-            <div>Thuế VAT: <b>{selectedOrder.taxAmount ? Number(selectedOrder.taxAmount).toLocaleString('vi-VN') + '₫' : '0₫'}</b></div>
+            <div>Thu Ngân: <b>{selectedOrder.cashierName || "-"}</b></div>
             <div className="mt-4">
               <table className="w-full border">
                 <thead>
@@ -144,9 +146,26 @@ export default function OrdersPage() {
                   ))}
                 </tbody>
               </table>
+            {/* Tính lại tạm tính và VAT từ items */}
+            <div className="mt-2 text-right">
+              {(() => {
+                const subtotal = selectedOrder.items?.reduce((sum, item) => sum + (Number(item.totalPrice) || 0), 0) || 0;
+                const vatRate = 0.1; // Nếu cần lấy động, có thể lấy từ storeInfo hoặc taxConfig
+                const vatAmount = subtotal * vatRate;
+                return (
+                  <>
+                    <div>Tạm tính: <b>{subtotal.toLocaleString('vi-VN')}₫</b></div>
+                    <div>VAT 10%: <b>{vatAmount.toLocaleString('vi-VN')}₫</b></div>
+                  </>
+                );
+              })()}
+            </div>
             </div>
             <div className="mt-4 text-right font-bold">
               Tổng cộng: {Number(selectedOrder.totalAmount).toLocaleString('vi-VN')}₫
+            </div>
+            <div className="mt-6 text-center font-semibold text-gray-700">
+              Cảm ơn - Hẹn gặp lại
             </div>
             <div className="mt-4 flex justify-end gap-2 print:hidden">
               <Button onClick={() => window.print()} variant="outline">
