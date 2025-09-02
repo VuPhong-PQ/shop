@@ -26,6 +26,8 @@ type Order = {
   createdAt: string;
   totalAmount: number;
   items: OrderItem[];
+  taxAmount?: number;
+  paymentMethod?: string;
 };
 
 
@@ -50,9 +52,9 @@ export default function OrdersPage() {
   const { data: storeInfo } = useQuery<StoreInfo | null>({
     queryKey: ["/api/StoreInfo"],
     queryFn: async () => {
-      const res = await apiRequest("GET", "/api/StoreInfo");
+      const res = await apiRequest("/api/StoreInfo", { method: "GET" });
       if (res.status === 404) return null;
-      return res.json();
+      return typeof res === "string" ? JSON.parse(res) : res;
     },
   });
 
@@ -97,7 +99,10 @@ export default function OrdersPage() {
       {/* Modal xem & in đơn hàng */}
       {selectedOrder && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-lg relative print:w-full print:max-w-full">
+          <div
+            className="bg-white rounded-lg shadow-lg p-6 w-full max-w-lg relative print:w-full print:max-w-full"
+            style={{ width: '80mm', maxWidth: '80mm', minWidth: '80mm', fontSize: '14px' }}
+          >
             <button
               className="absolute top-2 right-2 text-gray-500 hover:text-black"
               onClick={() => setSelectedOrder(null)}
@@ -115,6 +120,9 @@ export default function OrdersPage() {
             <h2 className="text-xl font-bold mb-2">Đơn hàng #{selectedOrder.orderId}</h2>
             <div>Khách hàng: {selectedOrder.customerName || "-"}</div>
             <div>Ngày tạo: {selectedOrder.createdAt?.slice(0, 10)}</div>
+            {/* Thông tin bổ sung */}
+            <div>Hình thức thanh toán: <b>{selectedOrder.paymentMethod || "-"}</b></div>
+            <div>Thuế VAT: <b>{selectedOrder.taxAmount ? Number(selectedOrder.taxAmount).toLocaleString('vi-VN') + '₫' : '0₫'}</b></div>
             <div className="mt-4">
               <table className="w-full border">
                 <thead>
@@ -130,15 +138,15 @@ export default function OrdersPage() {
                     <tr key={idx}>
                       <td className="border px-2 py-1">{item.productName}</td>
                       <td className="border px-2 py-1 text-center">{item.quantity}</td>
-                      <td className="border px-2 py-1 text-right">{item.price}₫</td>
-                      <td className="border px-2 py-1 text-right">{item.totalPrice}₫</td>
+                      <td className="border px-2 py-1 text-right">{Number(item.price).toLocaleString('vi-VN')}₫</td>
+                      <td className="border px-2 py-1 text-right">{Number(item.totalPrice).toLocaleString('vi-VN')}₫</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
             <div className="mt-4 text-right font-bold">
-              Tổng cộng: {selectedOrder.totalAmount}₫
+              Tổng cộng: {Number(selectedOrder.totalAmount).toLocaleString('vi-VN')}₫
             </div>
             <div className="mt-4 flex justify-end gap-2 print:hidden">
               <Button onClick={() => window.print()} variant="outline">
