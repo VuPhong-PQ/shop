@@ -189,14 +189,14 @@ export default function Sales() {
 
   return (
     <AppLayout title="Bán hàng">
-      <div className="flex h-full gap-6" data-testid="sales-page">
+      <div className="flex flex-col lg:flex-row h-full gap-6" data-testid="sales-page">
         {/* Products Section */}
-        <div className="flex-1">
+        <div className="flex-1 order-1 lg:order-1">
           <Card className="h-full">
             <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-6">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4">
                 <h2 className="text-xl font-semibold">Sản phẩm</h2>
-                <div className="relative w-80">
+                <div className="relative w-full sm:w-80">
                   <Input
                     placeholder="Tìm kiếm sản phẩm..."
                     value={searchTerm}
@@ -208,7 +208,7 @@ export default function Sales() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 max-h-[calc(100vh-300px)] overflow-y-auto">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-3 xl:grid-cols-4 gap-4 max-h-[40vh] lg:max-h-[calc(100vh-300px)] overflow-y-auto">
                 {filteredProducts.map((product) => {
                   // Tính trạng thái tồn kho giống trang sản phẩm
                   let stockStatus = { label: '', color: '' };
@@ -284,9 +284,9 @@ export default function Sales() {
         </div>
 
         {/* Cart Section */}
-        <div className="w-96">
-          <Card className="h-full">
-            <CardContent className="p-6 flex flex-col h-full">
+        <div className="w-full lg:w-96 order-2 lg:order-2">
+          <Card className="h-auto lg:h-full">
+            <CardContent className="p-6 flex flex-col h-auto lg:h-full">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-semibold flex items-center">
                   <ShoppingCart className="w-5 h-5 mr-2" />
@@ -328,7 +328,7 @@ export default function Sales() {
               </div>
 
               {/* Cart Items */}
-              <div className="flex-1 overflow-y-auto space-y-3 mb-4">
+              <div className="flex-1 overflow-y-auto space-y-3 mb-4 max-h-[30vh] lg:max-h-full">
                 {cart.length === 0 ? (
                   <div className="text-center py-8 text-gray-500">
                     <ShoppingCart className="w-12 h-12 mx-auto mb-2 opacity-50" />
@@ -337,25 +337,27 @@ export default function Sales() {
                 ) : (
                   cart.map((item) => (
                     <div key={item.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg" data-testid={`cart-item-${item.id}`}>
-                      <div className="flex-1">
-                        <p className="font-medium text-sm">{item.name}</p>
-                        <p className="text-primary font-semibold">{parseInt(item.price).toLocaleString('vi-VN')}₫</p>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-sm truncate">{item.name}</p>
+                        <p className="text-primary font-semibold text-sm lg:text-base">{parseInt(item.price).toLocaleString('vi-VN')}₫</p>
                       </div>
-                      <div className="flex items-center space-x-2">
+                      <div className="flex items-center space-x-1 lg:space-x-2 ml-2">
                         <Button
                           variant="outline"
                           size="sm"
                           onClick={() => updateQuantity(item.cartItemId, item.quantity - 1)}
                           data-testid={`button-decrease-${item.id}`}
+                          className="h-8 w-8 p-0"
                         >
                           <Minus className="w-3 h-3" />
                         </Button>
-                        <span className="w-8 text-center" data-testid={`quantity-${item.id}`}>{item.quantity}</span>
+                        <span className="w-6 lg:w-8 text-center text-sm font-medium" data-testid={`quantity-${item.id}`}>{item.quantity}</span>
                         <Button
                           variant="outline"
                           size="sm"
                           onClick={() => updateQuantity(item.cartItemId, item.quantity + 1)}
                           data-testid={`button-increase-${item.id}`}
+                          className="h-8 w-8 p-0"
                         >
                           <Plus className="w-3 h-3" />
                         </Button>
@@ -364,6 +366,7 @@ export default function Sales() {
                           size="sm"
                           onClick={() => removeFromCart(item.cartItemId)}
                           data-testid={`button-remove-${item.id}`}
+                          className="h-8 w-8 p-0 text-red-500 hover:text-red-700"
                         >
                           <Trash2 className="w-3 h-3" />
                         </Button>
@@ -397,7 +400,7 @@ export default function Sales() {
               {cart.length > 0 && (
                 <div className="space-y-3">
                   <p className="font-medium">Phương thức thanh toán:</p>
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-2 lg:grid-cols-2 gap-2">
                     {paymentMethods.map((method) => {
                       const Icon = method.icon;
                       return (
@@ -406,11 +409,12 @@ export default function Sales() {
                           variant={selectedPayment === method.id ? "default" : "outline"}
                           size="sm"
                           onClick={() => setSelectedPayment(method.id)}
-                          className="h-12"
+                          className="h-12 text-xs lg:text-sm"
                           data-testid={`payment-${method.id}`}
                         >
-                          <Icon className="w-4 h-4 mr-2" />
-                          {method.name}
+                          <Icon className="w-4 h-4 mr-1 lg:mr-2" />
+                          <span className="hidden sm:inline lg:inline">{method.name}</span>
+                          <span className="sm:hidden lg:hidden">{method.name.split(' ')[0]}</span>
                         </Button>
                       );
                     })}
