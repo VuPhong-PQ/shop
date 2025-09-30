@@ -39,6 +39,7 @@ const navigation = [
 export function Sidebar() {
   const [location] = useLocation();
   const [expandedMenus, setExpandedMenus] = useState<string[]>(['Sản phẩm']);
+  const [isHovered, setIsHovered] = useState(false);
 
   const toggleMenu = (menuName: string) => {
     setExpandedMenus(prev => 
@@ -49,20 +50,40 @@ export function Sidebar() {
   };
 
   return (
-    <aside className="w-64 bg-white shadow-lg border-r border-gray-200" data-testid="sidebar">
-      <div className="p-6 border-b border-gray-200">
+    <>
+      {/* Trigger area for hover when sidebar is hidden */}
+      <div 
+        className={cn(
+          "fixed left-0 top-0 h-full w-4 z-40 transition-opacity duration-200",
+          isHovered ? "opacity-0" : "opacity-100"
+        )}
+        onMouseEnter={() => setIsHovered(true)}
+      />
+      
+      <aside 
+        className={cn(
+          "bg-white shadow-lg border-r border-gray-200 transition-all duration-300 ease-in-out fixed left-0 top-0 h-full z-50",
+          isHovered ? "w-64 translate-x-0" : "w-16 -translate-x-48"
+        )}
+        data-testid="sidebar"
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+      >
+      <div className={cn("p-6 border-b border-gray-200", !isHovered && "px-3")}>
         <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
+          <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center flex-shrink-0">
             <ScanBarcode className="text-white text-lg" />
           </div>
-          <div>
-            <h1 className="text-xl font-bold text-gray-900">PinkWish Shop</h1>
-            <p className="text-sm text-gray-500"></p>
-          </div>
+          {isHovered && (
+            <div className="transition-opacity duration-200">
+              <h1 className="text-xl font-bold text-gray-900">PinkWish Shop</h1>
+              <p className="text-sm text-gray-500"></p>
+            </div>
+          )}
         </div>
       </div>
       
-      <nav className="p-4 space-y-2">
+      <nav className={cn("p-4 space-y-2", !isHovered && "px-2")}>
         <div className="space-y-1">
           {navigation.map((item) => {
             const Icon = item.icon;
@@ -75,27 +96,29 @@ export function Sidebar() {
               return (
                 <div key={item.name}>
                   <div
-                    onClick={() => toggleMenu(item.name)}
+                    onClick={() => isHovered && toggleMenu(item.name)}
                     className={cn(
-                      "flex items-center justify-between px-4 py-3 rounded-lg font-medium transition-colors cursor-pointer",
+                      "flex items-center justify-between rounded-lg font-medium transition-colors cursor-pointer",
+                      isHovered ? "px-4 py-3" : "px-2 py-3 justify-center",
                       hasActiveSubmenu
                         ? "text-primary bg-blue-50"
                         : "text-gray-600 hover:bg-gray-50"
                     )}
                     data-testid={`nav-${item.name.toLowerCase()}`}
+                    title={!isHovered ? item.name : undefined}
                   >
-                    <div className="flex items-center space-x-3">
-                      <Icon className="w-5 h-5" />
-                      <span>{item.name}</span>
+                    <div className={cn("flex items-center", isHovered ? "space-x-3" : "justify-center")}>
+                      <Icon className="w-5 h-5 flex-shrink-0" />
+                      {isHovered && <span>{item.name}</span>}
                     </div>
-                    {isExpanded ? (
+                    {isHovered && (isExpanded ? (
                       <ChevronDown className="w-4 h-4" />
                     ) : (
                       <ChevronRight className="w-4 h-4" />
-                    )}
+                    ))}
                   </div>
                   
-                  {isExpanded && (
+                  {isHovered && isExpanded && (
                     <div className="ml-6 mt-1 space-y-1">
                       {item.submenu.map((subitem) => {
                         const isActive = location === subitem.href;
@@ -131,15 +154,17 @@ export function Sidebar() {
               <Link key={item.name} href={item.href}>
                 <div
                   className={cn(
-                    "flex items-center space-x-3 px-4 py-3 rounded-lg font-medium transition-colors cursor-pointer",
+                    "flex items-center rounded-lg font-medium transition-colors cursor-pointer",
+                    isHovered ? "space-x-3 px-4 py-3" : "px-2 py-3 justify-center",
                     isActive
                       ? "text-primary bg-blue-50"
                       : "text-gray-600 hover:bg-gray-50"
                   )}
                   data-testid={`nav-${item.href.slice(1) || 'dashboard'}`}
+                  title={!isHovered ? item.name : undefined}
                 >
-                  <Icon className="w-5 h-5" />
-                  <span>{item.name}</span>
+                  <Icon className="w-5 h-5 flex-shrink-0" />
+                  {isHovered && <span>{item.name}</span>}
                 </div>
               </Link>
             );
@@ -147,30 +172,33 @@ export function Sidebar() {
         </div>
       </nav>
       
-      <div className="absolute bottom-0 w-64 p-4 border-t border-gray-200 bg-white">
-        <div className="flex items-center space-x-3">
-          <img 
-            src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=150&h=150" 
-            alt="User profile" 
-            className="w-10 h-10 rounded-full object-cover"
-            data-testid="user-avatar"
-          />
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-gray-900 truncate" data-testid="user-name">
-              Ruby
-            </p>
-            <p className="text-xs text-gray-500 truncate" data-testid="user-role">
-              Quản lý
-            </p>
+      {isHovered && (
+        <div className="absolute bottom-0 w-64 p-4 border-t border-gray-200 bg-white">
+          <div className="flex items-center space-x-3">
+            <img 
+              src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=150&h=150" 
+              alt="User profile" 
+              className="w-10 h-10 rounded-full object-cover"
+              data-testid="user-avatar"
+            />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-gray-900 truncate" data-testid="user-name">
+                Ruby
+              </p>
+              <p className="text-xs text-gray-500 truncate" data-testid="user-role">
+                Quản lý
+              </p>
+            </div>
+            <button 
+              className="text-gray-400 hover:text-gray-600"
+              data-testid="button-logout"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
           </div>
-          <button 
-            className="text-gray-400 hover:text-gray-600"
-            data-testid="button-logout"
-          >
-            <LogOut className="w-4 h-4" />
-          </button>
         </div>
-      </div>
+      )}
     </aside>
+    </>
   );
 }
