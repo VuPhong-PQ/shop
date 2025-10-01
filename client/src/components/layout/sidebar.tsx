@@ -14,7 +14,8 @@ import {
   ChevronDown,
   ChevronRight,
   Folder,
-  Tag
+  Tag,
+  ClipboardList
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -30,6 +31,7 @@ const navigation = [
     ]
   },
   { name: 'Khách hàng', href: '/customers', icon: Users },
+  { name: 'Quản lý đơn hàng', href: '/order-management', icon: ClipboardList },
   { name: 'Kho hàng', href: '/inventory', icon: Warehouse },
   { name: 'Báo cáo', href: '/reports', icon: BarChart3 },
   { name: 'Nhân viên', href: '/staff', icon: UserCheck },

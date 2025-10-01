@@ -111,9 +111,46 @@ export default function PrintOrder() {
 
   return (
     <>
-      {/* Print styles */}
+      {/* Screen styles for better table display */}
+      <style>{`
+        .print-table {
+          border: 1px solid #ddd;
+          border-radius: 8px;
+          overflow: hidden;
+          margin: 16px 0;
+          margin-left: -20px;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .table-header {
+          background: linear-gradient(to bottom, #f8f9fa, #e9ecef);
+          font-weight: 600;
+          border-bottom: 2px solid #dee2e6;
+        }
+        .table-row:hover {
+          background-color: #f8f9fa;
+        }
+        .col-product, .col-qty, .col-price, .col-total {
+          border-right: 1px solid #dee2e6;
+        }
+        .col-total {
+          border-right: none;
+        }
+      `}</style>
+      
+      {/* Print styles for A4 page */}
       <style>{`
         @media print {
+          @page {
+            size: A4;
+            margin: 15mm;
+          }
+          body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            font-size: 12px;
+            line-height: 1.3;
+          }
           body * {
             visibility: hidden;
           }
@@ -125,31 +162,120 @@ export default function PrintOrder() {
             left: 0;
             top: 0;
             width: 100%;
+            max-width: 210mm;
+            padding: 15mm;
+            background: white;
+            box-sizing: border-box;
           }
           .no-print {
             display: none !important;
           }
           .print-header {
             text-align: center;
-            margin-bottom: 20px;
+            margin-bottom: 6px;
+            border-bottom: 1px dashed #000;
+            padding-bottom: 6px;
           }
-          .print-table {
+          .print-header h2 {
+            font-size: 14px;
+            font-weight: bold;
+            margin: 0 0 3px 0;
+            letter-spacing: 0.5px;
+          }
+          .print-header p {
+            font-size: 9px;
+            margin: 1px 0;
+            color: #000;
+            line-height: 1.2;
+          }
+          .order-info {
+            margin: 6px 0;
+            font-size: 10px;
+            line-height: 1.4;
+            border-bottom: 1px dashed #666;
+            padding-bottom: 4px;
+          }
+          .order-info p {
+            margin: 1px 0;
+            word-wrap: break-word;
+          }
+          .products-table {
+            margin: 8px 0;
             width: 100%;
             border-collapse: collapse;
-            margin: 20px 0;
-          }
-          .print-table th, .print-table td {
+            font-size: 11px;
             border: 1px solid #ddd;
-            padding: 8px;
+          }
+          .products-table th {
+            background-color: #f8f9fa;
+            padding: 8px 6px;
+            text-align: left;
+            font-weight: bold;
+            border: 1px solid #ddd;
+            font-size: 11px;
+          }
+          .products-table th:nth-child(1) {
+            width: 40%;
+          }
+          .products-table th:nth-child(2) {
+            width: 15%;
+            text-align: center;
+          }
+          .products-table th:nth-child(3) {
+            width: 22.5%;
+            text-align: right;
+          }
+          .products-table th:nth-child(4) {
+            width: 22.5%;
+            text-align: right;
+          }
+          .products-table td {
+            padding: 6px;
+            border: 1px solid #ddd;
+            font-size: 11px;
+          }
+          .products-table td:nth-child(1) {
             text-align: left;
           }
-          .print-table th {
-            background-color: #f2f2f2;
+          .products-table td:nth-child(2) {
+            text-align: center;
+          }
+          .products-table td:nth-child(3) {
+            text-align: right;
+          }
+          .products-table td:nth-child(4) {
+            text-align: right;
+          }
+          .print-total {
+            border-top: 1px dashed #000;
+            padding-top: 6px;
+            margin-top: 6px;
+          }
+          .total-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 1px 0;
+            font-size: 10px;
           }
           .print-footer {
-            margin-top: 30px;
+            margin-top: 8px;
             text-align: center;
-            color: #666;
+            font-size: 9px;
+            border-top: 1px dashed #000;
+            padding-top: 6px;
+          }
+          .print-footer p {
+            margin: 1px 0;
+          }
+        }
+        
+        /* Screen styles for preview */
+        @media screen {
+          .print-area {
+            max-width: 80mm;
+            margin: 0 auto;
+            background: white;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
           }
         }
       `}</style>
@@ -180,97 +306,59 @@ export default function PrintOrder() {
           </div>
         </div>
 
-        {/* Print area */}
+        {/* Print area - A4 page */}
         <div className="print-area max-w-4xl mx-auto p-8">
-          <Card>
-            <CardContent className="p-8">
-              {/* Store header */}
-              <div className="print-header text-center mb-8">
-                <h2 className="text-2xl font-bold">Pinkwish Shop</h2>
-                <p className="text-gray-600">Địa chỉ: Phú quốc - An giang</p>
-                <p className="text-gray-600">MST: 0123456789 | ĐT: 0907999841</p>
-                <p className="text-gray-600">Email: pwshop@gmail.com</p>
-              </div>
+          <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-2xl relative print:w-full print:max-w-full" style={{fontSize: '14px'}}>
+            
+            {/* Store header */}
+            <div className="text-center border-b pb-2 mb-2">
+              <div className="font-bold text-lg">Pinkwish Shop</div>
+              <div className="text-sm">Đ/c: Phú quốc - An giang</div>
+              <div className="text-sm">MST: 0123456789</div>
+              <div className="text-sm">ĐT: 0907999841</div>
+              <div className="text-sm">Email: pwshop@gmail.com</div>
+            </div>
 
-              {/* Order info */}
-              <div className="mb-6">
-                <h3 className="text-xl font-bold mb-4">Đơn hàng #{orderDetail.orderId}</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <p><strong>Khách hàng:</strong> {orderDetail.customerName || orderDetail.customer?.hoTen || 'Khách vãng lai'}</p>
-                    {orderDetail.customer?.soDienThoai && (
-                      <p><strong>Số điện thoại:</strong> {orderDetail.customer.soDienThoai}</p>
-                    )}
-                    <p><strong>Ngày tạo:</strong> {new Date(orderDetail.createdAt).toLocaleString('vi-VN')}</p>
-                  </div>
-                  <div>
-                    <p><strong>Số đơn hàng:</strong> {orderDetail.orderNumber || 'N/A'}</p>
-                    <p><strong>Phương thức thanh toán:</strong> {formatPaymentMethod(orderDetail.paymentMethod)}</p>
-                    <p><strong>Trạng thái thanh toán:</strong> {formatPaymentStatus(orderDetail.paymentStatus)}</p>
-                  </div>
-                </div>
-              </div>
+            {/* Order info */}
+            <h2 className="text-xl font-bold mb-2">Đơn hàng #{orderDetail.orderId}</h2>
+            <div>Khách hàng: {orderDetail.customerName || orderDetail.customer?.hoTen || '-'}</div>
+            <div>Ngày tạo: {new Date(orderDetail.createdAt).toLocaleDateString('vi-VN')}</div>
+            <div>Hình thức thanh toán: <b>{formatPaymentMethod(orderDetail.paymentMethod)}</b></div>
+            <div>Thu Ngân: <b>Admin</b></div>
 
-              {/* Items table */}
-              <div className="mb-6">
-                <h4 className="font-semibold mb-3">Chi tiết sản phẩm</h4>
-                <table className="print-table w-full border-collapse border border-gray-300">
-                  <thead>
-                    <tr className="bg-gray-50">
-                      <th className="border border-gray-300 px-4 py-2 text-left">Sản phẩm</th>
-                      <th className="border border-gray-300 px-4 py-2 text-center">Số lượng</th>
-                      <th className="border border-gray-300 px-4 py-2 text-right">Đơn giá</th>
-                      <th className="border border-gray-300 px-4 py-2 text-right">Thành tiền</th>
+            {/* Products table */}
+            <div className="mt-4" style={{marginLeft: '-8px'}}>
+              <table className="w-full border">
+                <thead>
+                  <tr>
+                    <th className="border px-2 py-1">Sản phẩm</th>
+                    <th className="border px-2 py-1">SL</th>
+                    <th className="border px-2 py-1">Đơn giá</th>
+                    <th className="border px-2 py-1">Thành tiền</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {orderDetail.items.map((item, index) => (
+                    <tr key={index}>
+                      <td className="border px-2 py-1">{item.productName}</td>
+                      <td className="border px-2 py-1 text-center">{item.quantity}</td>
+                      <td className="border px-2 py-1 text-right">{(item.totalPrice / item.quantity).toLocaleString('vi-VN')}₫</td>
+                      <td className="border px-2 py-1 text-right">{item.totalPrice.toLocaleString('vi-VN')}₫</td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    {orderDetail.items.map((item, index) => (
-                      <tr key={index}>
-                        <td className="border border-gray-300 px-4 py-2">{item.productName}</td>
-                        <td className="border border-gray-300 px-4 py-2 text-center">{item.quantity}</td>
-                        <td className="border border-gray-300 px-4 py-2 text-right">{item.price.toLocaleString('vi-VN')}đ</td>
-                        <td className="border border-gray-300 px-4 py-2 text-right font-medium">{item.totalPrice.toLocaleString('vi-VN')}đ</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                  ))}
+                </tbody>
+              </table>
+              
+              <div className="mt-2 text-right">
+                <div>Tạm tính: <b>{orderDetail.subTotal.toLocaleString('vi-VN')}₫</b></div>
+                <div>VAT 10%: <b>{orderDetail.taxAmount.toLocaleString('vi-VN')}₫</b></div>
               </div>
+            </div>
 
-              {/* Totals */}
-              <div className="flex justify-end">
-                <div className="w-full md:w-1/2">
-                  {orderDetail.subTotal > 0 && (
-                    <div className="flex justify-between py-1">
-                      <span>Tạm tính:</span>
-                      <span className="font-medium">{orderDetail.subTotal.toLocaleString('vi-VN')}đ</span>
-                    </div>
-                  )}
-                  {orderDetail.discountAmount > 0 && (
-                    <div className="flex justify-between py-1 text-red-600">
-                      <span>Giảm giá:</span>
-                      <span className="font-medium">-{orderDetail.discountAmount.toLocaleString('vi-VN')}đ</span>
-                    </div>
-                  )}
-                  {orderDetail.taxAmount > 0 && (
-                    <div className="flex justify-between py-1">
-                      <span>Thuế VAT:</span>
-                      <span className="font-medium">{orderDetail.taxAmount.toLocaleString('vi-VN')}đ</span>
-                    </div>
-                  )}
-                  <div className="flex justify-between py-2 border-t-2 text-lg font-bold">
-                    <span>Tổng cộng:</span>
-                    <span className="text-blue-600">{orderDetail.totalAmount.toLocaleString('vi-VN')}đ</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Footer */}
-              <div className="print-footer mt-8 text-center text-sm text-gray-600">
-                <p>Cảm ơn quý khách đã mua hàng!</p>
-                <p>Chúc quý khách một ngày tốt lành!</p>
-              </div>
-            </CardContent>
-          </Card>
+            <div className="mt-4 text-right font-bold">Tổng cộng: {orderDetail.totalAmount.toLocaleString('vi-VN')}₫</div>
+            <div className="mt-6 text-center font-semibold text-gray-700">Cảm ơn - Hẹn gặp lại</div>
+            
+          </div>
         </div>
       </div>
     </>
