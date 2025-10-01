@@ -11,6 +11,19 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useLocation } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
+import { Trash2, RotateCcw, AlertTriangle } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 import { apiRequest } from "../lib/utils";
 
@@ -37,7 +50,8 @@ type Order = {
 
 
 export default function OrdersPage() {
-  const { data: orders = [], isLoading } = useQuery<Order[]>({
+  const { toast } = useToast();
+  const { data: orders = [], isLoading, refetch } = useQuery<Order[]>({
     queryKey: ["/api/orders"],
     queryFn: async () => {
       const res = await apiRequest("/api/orders", { method: "GET" });
@@ -133,6 +147,45 @@ export default function OrdersPage() {
 
   const [, navigate] = useLocation();
 
+  // Xóa đơn hàng
+  const handleDeleteOrder = async (orderId: number) => {
+    try {
+      await apiRequest(`/api/orders/${orderId}`, { method: "DELETE" });
+      toast({
+        title: "Thành công",
+        description: "Đã xóa đơn hàng thành công"
+      });
+      refetch(); // Refresh danh sách
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Lỗi",
+        description: "Không thể xóa đơn hàng"
+      });
+    }
+  };
+
+  // Mở lại đơn hàng để tiếp tục thanh toán
+  const handleReopenOrder = (order: Order) => {
+    // Lưu thông tin đơn hàng vào localStorage để sales page có thể đọc
+    const orderData = {
+      orderId: order.orderId,
+      items: order.items,
+      customerName: order.customerName,
+      totalAmount: order.totalAmount,
+      paymentMethod: order.paymentMethod
+    };
+    localStorage.setItem('reopenOrder', JSON.stringify(orderData));
+    
+    toast({
+      title: "Đã mở lại đơn hàng",
+      description: `Đơn hàng #${order.orderId} đã được chuyển đến trang bán hàng để tiếp tục thanh toán`
+    });
+    
+    // Chuyển đến trang sales
+    navigate('/sales');
+  };
+
   // Tính toán thống kê trạng thái
   const getOrderStats = () => {
     const total = orders.length;
@@ -226,6 +279,45 @@ export default function OrdersPage() {
                     <div className="flex flex-wrap gap-2 mt-3">
                       {getPaymentStatusBadge(order.paymentStatus)}
                       {getOrderStatusBadge(order.status)}
+                    </div>
+                    
+                    {/* Nút hành động */}
+                    <div className="flex gap-2 mt-3">
+                      {order.paymentStatus === 'pending' && (
+                        <button
+                          onClick={() => handleReopenOrder(order)}
+                          className="inline-flex items-center px-3 py-1.5 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 transition-colors"
+                        >
+                          <RotateCcw className="w-4 h-4 mr-1" />
+                          Mở lại
+                        </button>
+                      )}
+                      
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <button className="inline-flex items-center px-3 py-1.5 bg-red-600 text-white text-sm rounded-md hover:bg-red-700 transition-colors">
+                            <Trash2 className="w-4 h-4 mr-1" />
+                            Xóa
+                          </button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Xác nhận xóa đơn hàng</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Bạn có chắc chắn muốn xóa đơn hàng #{order.orderId}? Hành động này không thể hoàn tác.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Hủy</AlertDialogCancel>
+                            <AlertDialogAction 
+                              onClick={() => handleDeleteOrder(order.orderId)}
+                              className="bg-red-600 hover:bg-red-700"
+                            >
+                              Xóa
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     </div>
                   </div>
                   

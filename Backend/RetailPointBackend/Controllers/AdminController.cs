@@ -112,5 +112,40 @@ namespace RetailPointBackend.Controllers
                 return StatusCode(500, new { message = "Lỗi khi lấy thống kê", error = ex.Message });
             }
         }
+
+        // API để kiểm tra gaps trong order sequence
+        [HttpGet("check-sequence-gaps")]
+        public IActionResult CheckSequenceGaps()
+        {
+            try
+            {
+                var orderIds = _context.Orders.Select(o => o.OrderId).OrderBy(id => id).ToList();
+                var gaps = new List<int>();
+                
+                if (orderIds.Any())
+                {
+                    for (int i = orderIds.First(); i <= orderIds.Last(); i++)
+                    {
+                        if (!orderIds.Contains(i))
+                        {
+                            gaps.Add(i);
+                        }
+                    }
+                }
+
+                return Ok(new
+                {
+                    totalOrders = orderIds.Count,
+                    minOrderId = orderIds.FirstOrDefault(),
+                    maxOrderId = orderIds.LastOrDefault(),
+                    missingOrderIds = gaps,
+                    hasGaps = gaps.Any()
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Lỗi khi kiểm tra sequence", error = ex.Message });
+            }
+        }
     }
 }
