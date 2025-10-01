@@ -43,6 +43,7 @@ export default function Sales() {
   const [selectedPayment, setSelectedPayment] = useState<string>("cash");
   const [showPayment, setShowPayment] = useState(false);
   const [pendingOrderToReopen, setPendingOrderToReopen] = useState<any>(null);
+  const [currentReopenedOrder, setCurrentReopenedOrder] = useState<any>(null);
 
   // Check for order to reopen from localStorage
   useEffect(() => {
@@ -65,6 +66,9 @@ export default function Sales() {
   // Function to load pending order into cart
   const loadOrderIntoCart = (orderDetail: any) => {
     console.log('Loading order into cart:', orderDetail); // Debug log
+    
+    // Store the current reopened order info
+    setCurrentReopenedOrder(orderDetail);
     
     const cartItems: CartItem[] = orderDetail.items.map((item: any, index: number) => ({
       productId: item.productId || 0,
@@ -148,6 +152,35 @@ export default function Sales() {
     }
   });
 
+  // Complete order mutation (for reopened orders)
+  const completeOrderMutation = useMutation({
+    mutationFn: async ({ orderId, formData }: { orderId: number, formData: FormData }) => {
+      console.log('Cập nhật đơn hàng:', orderId, formData);
+      return await apiRequest(`/api/orders/${orderId}/complete`, { method: 'PUT', body: formData });
+    },
+    onSuccess: () => {
+      toast({
+        title: "Thành công",
+        description: "Đơn hàng đã được thanh toán thành công",
+      });
+      setCart([]);
+      setSelectedCustomer(null);
+      setShowPayment(false);
+      setCurrentReopenedOrder(null); // Clear reopened order
+      // Refetch danh sách đơn hàng để hiển thị đơn mới nhất
+      queryClient.invalidateQueries({ queryKey: ['/api/orders'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/dashboard/metrics'] });
+      navigate('/orders');
+    },
+    onError: () => {
+      toast({
+        title: "Lỗi",
+        description: "Không thể thanh toán đơn hàng. Vui lòng thử lại.",
+        variant: "destructive",
+      });
+    }
+  });
+
   // Filter products based on search with Vietnamese diacritics support
   const filteredProducts = products.filter(product => {
     const searchNormalized = normalizeSearchText(searchTerm);
@@ -177,6 +210,12 @@ export default function Sales() {
   // Add product to cart
   const addToCart = (product: Product) => {
     console.log('Adding product to cart:', product);
+    
+    // Clear reopened order if user manually adds products
+    if (currentReopenedOrder) {
+      setCurrentReopenedOrder(null);
+    }
+    
     // Luôn thêm một dòng mới, không gộp số lượng
     const newItem: CartItem = {
       ...product,
@@ -213,6 +252,7 @@ export default function Sales() {
   // Clear cart
   const clearCart = () => {
     setCart([]);
+    setCurrentReopenedOrder(null); // Also clear reopened order
   };
 
   // Process payment
@@ -225,10 +265,34 @@ export default function Sales() {
       });
       return;
     }
+
+    // Kiểm tra xem có đang mở lại đơn hàng không
+    if (currentReopenedOrder) {
+      // Nếu đang mở lại đơn hàng, cập nhật đơn hàng hiện tại
+      completeReopenedOrder();
+    } else {
+      // Nếu không, tạo đơn hàng mới như bình thường
+      createNewOrder();
+    }
+  };
+
+  // Complete reopened order (update existing order)
+  const completeReopenedOrder = () => {
+    const formData = new FormData();
+    formData.append('paymentMethod', selectedPayment);
+    formData.append('paymentStatus', 'paid');
+    formData.append('status', 'completed');
+
+    // Sử dụng mutation để cập nhật đơn hàng
+    completeOrderMutation.mutate({ orderId: currentReopenedOrder.orderId, formData });
+  };
+
+  // Create new order
+  const createNewOrder = () => {
     // Tạo form-data đúng chuẩn cho backend
     const formData = new FormData();
     formData.append('orderNumber', `ORD${Date.now()}`);
-    formData.append('customerId', selectedCustomer?.id || '');
+    formData.append('customerId', selectedCustomer?.id || '0');
     formData.append('cashierId', "550e8400-e29b-41d4-a716-446655440001");
     formData.append('storeId', "550e8400-e29b-41d4-a716-446655440002");
     formData.append('subtotal', subtotal.toString());
@@ -265,7 +329,7 @@ export default function Sales() {
     // Tạo form-data cho đơn hàng chờ thanh toán
     const formData = new FormData();
     formData.append('orderNumber', `PENDING${Date.now()}`);
-    formData.append('customerId', selectedCustomer?.id || '');
+    formData.append('customerId', selectedCustomer?.id || '0');
     formData.append('cashierId', "550e8400-e29b-41d4-a716-446655440001");
     formData.append('storeId', "550e8400-e29b-41d4-a716-446655440002");
     formData.append('subtotal', subtotal.toString());
@@ -406,6 +470,36 @@ export default function Sales() {
                   </Button>
                 )}
               </div>
+
+              {/* Thông báo đơn hàng được mở lại */}
+              {currentReopenedOrder && (
+                <div className="mb-4 p-3 bg-orange-50 border border-orange-200 rounded-lg">
+                  <div className="flex items-center gap-2 text-orange-800">
+                    <AlertTriangle className="h-4 w-4" />
+                    <span className="text-sm font-medium">
+                      Đang thanh toán đơn hàng #{currentReopenedOrder.orderId}
+                    </span>
+                  </div>
+                  <p className="text-xs text-orange-600 mt-1">
+                    Bấm "Thanh toán" để hoàn tất đơn hàng này
+                  </p>
+                </div>
+              )}
+
+              {/* Reopened Order Notification */}
+              {currentReopenedOrder && (
+                <div className="mb-4 p-3 bg-orange-50 border border-orange-200 rounded-lg">
+                  <div className="flex items-center gap-2 text-orange-700">
+                    <AlertTriangle className="w-4 h-4" />
+                    <span className="text-sm font-medium">
+                      Đang thanh toán đơn hàng #{currentReopenedOrder.orderId}
+                    </span>
+                  </div>
+                  <p className="text-xs text-orange-600 mt-1">
+                    Bấm "Thanh toán" để hoàn thành đơn hàng này
+                  </p>
+                </div>
+              )}
 
               {/* Customer Selection */}
               <div className="mb-4">

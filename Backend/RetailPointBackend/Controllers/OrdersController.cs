@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using RetailPointBackend.Models;
+using RetailPointBackend.Services;
 using System.Linq;
 using System.Text.Json;
 
@@ -11,11 +12,13 @@ namespace RetailPointBackend.Controllers
     {
         private readonly RetailPointContext _context;
         private readonly AppDbContext _notificationContext;
+        private readonly INotificationService _notificationService;
         
-        public OrdersController(RetailPointContext context, AppDbContext notificationContext)
+        public OrdersController(RetailPointContext context, AppDbContext notificationContext, INotificationService notificationService)
         {
             _context = context;
             _notificationContext = notificationContext;
+            _notificationService = notificationService;
         }
 
         [HttpPost]
@@ -56,9 +59,13 @@ namespace RetailPointBackend.Controllers
                 }
             }
             if (!items.Any()) return BadRequest("Order or items missing");
+            
+            // Nếu customerId = 0 thì set thành null (khách vãng lai)
+            int? actualCustomerId = customerId.HasValue && customerId.Value > 0 ? customerId : null;
+            
             var order = new Order
             {
-                CustomerId = customerId,
+                CustomerId = actualCustomerId,
                 OrderId = 0,
                 CustomerName = null,
                 TotalAmount = decimal.TryParse(total, out var t) ? t : 0,
@@ -74,7 +81,7 @@ namespace RetailPointBackend.Controllers
                 Items = items
             };
             // Nếu có CustomerId, gán lại CustomerName từ bảng Customer
-            if (order.CustomerId.HasValue)
+            if (order.CustomerId.HasValue && order.CustomerId > 0)
             {
                 var customer = _context.Customers.FirstOrDefault(c => c.CustomerId == order.CustomerId);
                 if (customer != null)
@@ -186,6 +193,37 @@ namespace RetailPointBackend.Controllers
                 .FirstOrDefault();
             if (order == null) return NotFound();
             return Ok(order);
+        }
+
+        // Cập nhật đơn hàng từ pending thành completed
+        [HttpPut("{id}/complete")]
+        public async Task<IActionResult> CompleteOrder(int id,
+            [FromForm] string? paymentMethod,
+            [FromForm] string? paymentStatus,
+            [FromForm] string? status)
+        {
+            var order = _context.Orders.FirstOrDefault(o => o.OrderId == id);
+            if (order == null) return NotFound("Không tìm thấy đơn hàng");
+            
+            // Cập nhật thông tin thanh toán
+            order.PaymentMethod = paymentMethod ?? order.PaymentMethod;
+            order.PaymentStatus = paymentStatus ?? "paid";
+            order.Status = status ?? "completed";
+            order.OrderNumber = $"ORD{DateTimeOffset.Now.ToUnixTimeSeconds()}";
+            
+            try
+            {
+                _context.SaveChanges();
+                
+                // Tạo thông báo thanh toán thành công
+                await _notificationService.CreatePaymentSuccessNotificationAsync(order.OrderId, order.TotalAmount, order.PaymentMethod ?? "cash");
+                
+                return Ok(new { message = "Đơn hàng đã được cập nhật thành công", orderId = order.OrderId });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Lỗi khi cập nhật đơn hàng", error = ex.Message });
+            }
         }
 
         // Cập nhật đơn hàng
