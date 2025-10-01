@@ -462,7 +462,16 @@ export default function Sales() {
           <Card className="h-full">
             <CardContent className="p-6">
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4">
-                <h2 className="text-xl font-semibold">Sản phẩm</h2>
+                <div className="flex items-center gap-4">
+                  <h2 className="text-xl font-semibold">Sản phẩm</h2>
+                  <Button
+                    variant="outline"
+                    onClick={() => navigate('/orders')}
+                    className="text-sm"
+                  >
+                    Xem lịch sử hóa đơn
+                  </Button>
+                </div>
                 <div className="relative w-full sm:w-80">
                   <Input
                     placeholder="Tìm kiếm sản phẩm (có thể gõ không dấu)..."

@@ -16,8 +16,8 @@ namespace RetailPointBackend.Models
         public decimal TaxAmount { get; set; } = 0;
         public decimal DiscountAmount { get; set; } = 0;
         public string? PaymentMethod { get; set; } = "cash"; // cash, card, qr, ewallet
-        public string? PaymentStatus { get; set; } = "paid"; // paid, pending, failed
-        public string? Status { get; set; } = "completed"; // completed, pending, cancelled
+        public string? PaymentStatus { get; set; } = "pending"; // paid, pending, failed - default pending
+        public string? Status { get; set; } = "pending"; // completed, pending, cancelled - default pending
         public string? OrderNumber { get; set; }
         public string? CashierId { get; set; }
         public string? StoreId { get; set; }

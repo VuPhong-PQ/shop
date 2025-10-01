@@ -1,11 +1,22 @@
 export interface DashboardMetrics {
   todayRevenue: string;
   todayGrowth: string;
+  monthRevenue: string;
+  monthGrowth: string;
   ordersCount: number;
   ordersGrowth: string;
   newCustomers: number;
   customersGrowth: string;
   lowStockItems: number;
+  ordersByStatus: {
+    total: number;
+    paid: number;
+    pending: number;
+    failed: number;
+    completed: number;
+    processing: number;
+    cancelled: number;
+  };
 }
 
 export interface RevenueChartData {

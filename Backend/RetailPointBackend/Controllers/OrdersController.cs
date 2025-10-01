@@ -73,8 +73,8 @@ namespace RetailPointBackend.Controllers
                 TaxAmount = decimal.TryParse(taxAmount, out var ta) ? ta : 0,
                 DiscountAmount = decimal.TryParse(discountAmount, out var da) ? da : 0,
                 PaymentMethod = paymentMethod ?? "cash",
-                PaymentStatus = paymentStatus ?? "paid",
-                Status = status ?? "completed",
+                PaymentStatus = paymentStatus ?? "pending", // Default là pending thay vì paid
+                Status = status ?? "pending", // Default là pending thay vì completed
                 OrderNumber = orderNumber,
                 CashierId = cashierId,
                 StoreId = storeId,
@@ -140,6 +140,9 @@ namespace RetailPointBackend.Controllers
                     o.CustomerName,
                     o.CreatedAt,
                     o.TotalAmount,
+                    o.PaymentStatus,
+                    o.Status,
+                    o.PaymentMethod,
                     Items = o.Items.Select(i => new {
                         i.ProductName,
                         i.Quantity,

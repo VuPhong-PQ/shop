@@ -8,6 +8,7 @@ type StoreInfo = {
   email?: string;
 };
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { useLocation } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -28,6 +29,8 @@ type Order = {
   items: OrderItem[];
   taxAmount?: number;
   paymentMethod?: string;
+  paymentStatus?: string;
+  status?: string;
   cashierName?: string;
   subtotal?: number;
 };
@@ -63,10 +66,138 @@ export default function OrdersPage() {
 
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
+  // Helper functions để format trạng thái
+  const formatPaymentStatus = (status?: string) => {
+    switch (status) {
+      case 'paid': return 'Đã thanh toán';
+      case 'pending': return 'Chờ thanh toán';
+      case 'failed': return 'Thanh toán thất bại';
+      default: return 'Đã thanh toán';
+    }
+  };
+
+  const formatOrderStatus = (status?: string) => {
+    switch (status) {
+      case 'completed': return 'Hoàn thành';
+      case 'pending': return 'Đang xử lý';
+      case 'cancelled': return 'Đã hủy';
+      default: return 'Hoàn thành';
+    }
+  };
+
+  const getPaymentStatusBadge = (status?: string) => {
+    switch (status) {
+      case 'paid':
+        return <Badge className="bg-green-100 text-green-800 border-green-200">{formatPaymentStatus(status)}</Badge>;
+      case 'pending':
+        return <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200">{formatPaymentStatus(status)}</Badge>;
+      case 'failed':
+        return <Badge className="bg-red-100 text-red-800 border-red-200">{formatPaymentStatus(status)}</Badge>;
+      default:
+        return <Badge className="bg-green-100 text-green-800 border-green-200">{formatPaymentStatus(status)}</Badge>;
+    }
+  };
+
+  const getOrderStatusBadge = (status?: string) => {
+    switch (status) {
+      case 'completed':
+        return <Badge className="bg-blue-100 text-blue-800 border-blue-200">{formatOrderStatus(status)}</Badge>;
+      case 'pending':
+        return <Badge className="bg-orange-100 text-orange-800 border-orange-200">{formatOrderStatus(status)}</Badge>;
+      case 'cancelled':
+        return <Badge className="bg-gray-100 text-gray-800 border-gray-200">{formatOrderStatus(status)}</Badge>;
+      default:
+        return <Badge className="bg-blue-100 text-blue-800 border-blue-200">{formatOrderStatus(status)}</Badge>;
+    }
+  };
+
+  const getCardBorderClass = (paymentStatus?: string, orderStatus?: string) => {
+    // Ưu tiên hiển thị trạng thái thanh toán
+    if (paymentStatus === 'pending') {
+      return 'border-l-4 border-l-yellow-400 bg-yellow-50';
+    }
+    if (paymentStatus === 'failed') {
+      return 'border-l-4 border-l-red-400 bg-red-50';
+    }
+    if (orderStatus === 'pending') {
+      return 'border-l-4 border-l-orange-400 bg-orange-50';
+    }
+    if (orderStatus === 'cancelled') {
+      return 'border-l-4 border-l-gray-400 bg-gray-50';
+    }
+    if (paymentStatus === 'paid' && orderStatus === 'completed') {
+      return 'border-l-4 border-l-green-400 bg-green-50';
+    }
+    return '';
+  };
+
   const [, navigate] = useLocation();
+
+  // Tính toán thống kê trạng thái
+  const getOrderStats = () => {
+    const total = orders.length;
+    const paid = orders.filter(o => o.paymentStatus === 'paid').length;
+    const pending = orders.filter(o => o.paymentStatus === 'pending').length;
+    const failed = orders.filter(o => o.paymentStatus === 'failed').length;
+    const completed = orders.filter(o => o.status === 'completed').length;
+    const processing = orders.filter(o => o.status === 'pending').length;
+    const cancelled = orders.filter(o => o.status === 'cancelled').length;
+    
+    return { total, paid, pending, failed, completed, processing, cancelled };
+  };
+
+  const stats = getOrderStats();
+
   return (
     <div className="p-6">
       <h1 className="text-2xl font-bold mb-4">Danh sách đơn hàng</h1>
+      
+      {/* Thống kê trạng thái */}
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4 mb-6">
+        <Card className="text-center">
+          <CardContent className="p-3">
+            <div className="text-2xl font-bold text-blue-600">{stats.total}</div>
+            <div className="text-sm text-gray-600">Tổng đơn</div>
+          </CardContent>
+        </Card>
+        <Card className="text-center">
+          <CardContent className="p-3">
+            <div className="text-2xl font-bold text-green-600">{stats.paid}</div>
+            <div className="text-sm text-gray-600">Đã thanh toán</div>
+          </CardContent>
+        </Card>
+        <Card className="text-center">
+          <CardContent className="p-3">
+            <div className="text-2xl font-bold text-yellow-600">{stats.pending}</div>
+            <div className="text-sm text-gray-600">Chờ thanh toán</div>
+          </CardContent>
+        </Card>
+        <Card className="text-center">
+          <CardContent className="p-3">
+            <div className="text-2xl font-bold text-red-600">{stats.failed}</div>
+            <div className="text-sm text-gray-600">Thanh toán thất bại</div>
+          </CardContent>
+        </Card>
+        <Card className="text-center">
+          <CardContent className="p-3">
+            <div className="text-2xl font-bold text-blue-600">{stats.completed}</div>
+            <div className="text-sm text-gray-600">Hoàn thành</div>
+          </CardContent>
+        </Card>
+        <Card className="text-center">
+          <CardContent className="p-3">
+            <div className="text-2xl font-bold text-orange-600">{stats.processing}</div>
+            <div className="text-sm text-gray-600">Đang xử lý</div>
+          </CardContent>
+        </Card>
+        <Card className="text-center">
+          <CardContent className="p-3">
+            <div className="text-2xl font-bold text-gray-600">{stats.cancelled}</div>
+            <div className="text-sm text-gray-600">Đã hủy</div>
+          </CardContent>
+        </Card>
+      </div>
+      
       <div className="mb-4">
         <Button
           style={{ backgroundColor: '#ef4444', color: '#fff' }}
@@ -80,18 +211,29 @@ export default function OrdersPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {orders.map((order) => (
-            <Card key={order.orderId}>
+            <Card key={order.orderId} className={getCardBorderClass(order.paymentStatus, order.status)}>
               <CardContent className="p-4">
-                <div className="flex justify-between items-center">
-                  <div>
-                    <div className="font-semibold">Mã đơn: {order.orderId}</div>
-                    <div>Khách hàng: {order.customerName || "-"}</div>
-                    <div>Ngày tạo: {order.createdAt?.slice(0, 10)}</div>
-                    <div>Tổng tiền: {order.totalAmount}₫</div>
+                <div className="flex justify-between items-start">
+                  <div className="flex-1">
+                    <div className="font-semibold text-lg mb-2">Mã đơn: #{order.orderId}</div>
+                    <div className="space-y-1 text-sm">
+                      <div>Khách hàng: <span className="font-medium">{order.customerName || "Khách lẻ"}</span></div>
+                      <div>Ngày tạo: <span className="font-medium">{order.createdAt?.slice(0, 10)}</span></div>
+                      <div>Tổng tiền: <span className="font-bold text-blue-600">{Number(order.totalAmount).toLocaleString('vi-VN')}₫</span></div>
+                    </div>
+                    
+                    {/* Trạng thái */}
+                    <div className="flex flex-wrap gap-2 mt-3">
+                      {getPaymentStatusBadge(order.paymentStatus)}
+                      {getOrderStatusBadge(order.status)}
+                    </div>
                   </div>
-                  <Button onClick={() => setSelectedOrder(order)} size="sm">
-                    Xem & In
-                  </Button>
+                  
+                  <div className="ml-4">
+                    <Button onClick={() => setSelectedOrder(order)} size="sm" className="mb-2">
+                      Xem & In
+                    </Button>
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -121,11 +263,18 @@ export default function OrdersPage() {
               {storeInfo?.email && <div className="text-sm">Email: {storeInfo.email}</div>}
             </div>
             <h2 className="text-xl font-bold mb-2">Đơn hàng #{selectedOrder.orderId}</h2>
-            <div>Khách hàng: {selectedOrder.customerName || "-"}</div>
+            <div>Khách hàng: {selectedOrder.customerName || "Khách lẻ"}</div>
             <div>Ngày tạo: {selectedOrder.createdAt?.slice(0, 10)}</div>
+            
+            {/* Trạng thái đơn hàng */}
+            <div className="flex gap-2 my-2">
+              {getPaymentStatusBadge(selectedOrder.paymentStatus)}
+              {getOrderStatusBadge(selectedOrder.status)}
+            </div>
+            
             {/* Thông tin bổ sung */}
-            <div>Hình thức thanh toán: <b>{selectedOrder.paymentMethod || "-"}</b></div>
-            <div>Thu Ngân: <b>{selectedOrder.cashierName || "-"}</b></div>
+            <div>Hình thức thanh toán: <b>{selectedOrder.paymentMethod || "Tiền mặt"}</b></div>
+            <div>Thu Ngân: <b>{selectedOrder.cashierName || "Admin"}</b></div>
             <div className="mt-4">
               <table className="w-full border">
                 <thead>

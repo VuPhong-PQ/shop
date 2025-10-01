@@ -17,6 +17,14 @@ export default function Dashboard() {
   // Dashboard data queries
   const { data: metrics } = useQuery<DashboardMetrics>({
     queryKey: ['/api/dashboard/metrics'],
+    queryFn: async () => {
+      // Gọi trực tiếp backend API thay vì qua server proxy
+      const response = await fetch('http://localhost:5271/api/dashboard/metrics');
+      if (!response.ok) {
+        throw new Error('Failed to fetch dashboard metrics');
+      }
+      return response.json();
+    },
   });
 
   const { data: revenueData } = useQuery<RevenueChartData[]>({
@@ -29,6 +37,14 @@ export default function Dashboard() {
 
   const { data: recentOrders } = useQuery<RecentOrder[]>({
     queryKey: ['/api/dashboard/recent-orders'],
+    queryFn: async () => {
+      // Gọi trực tiếp backend API
+      const response = await fetch('http://localhost:5271/api/dashboard/recent-orders');
+      if (!response.ok) {
+        throw new Error('Failed to fetch recent orders');
+      }
+      return response.json();
+    },
   });
 
   const { data: lowStockItems } = useQuery<LowStockItem[]>({
