@@ -36,7 +36,7 @@ const paymentMethods: PaymentMethod[] = [
 ];
 
 export default function Sales() {
-  const [, navigate] = useLocation();
+  const [location, navigate] = useLocation();
   const [cart, setCart] = useState<CartItem[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
@@ -44,10 +44,25 @@ export default function Sales() {
   const [showPayment, setShowPayment] = useState(false);
   const [pendingOrderToReopen, setPendingOrderToReopen] = useState<any>(null);
   const [currentReopenedOrder, setCurrentReopenedOrder] = useState<any>(null);
+  const [checkLocalStorage, setCheckLocalStorage] = useState(0); // Counter to trigger localStorage check
   
   // Initialize hooks
   const { toast } = useToast();
   const { playNotificationSound } = useNotificationSound();
+
+  // Check localStorage when location changes (when navigating to this page)
+  useEffect(() => {
+    if (location === '/sales') {
+      console.log('Navigated to sales page, checking localStorage...'); // Debug log
+      setCheckLocalStorage(prev => prev + 1);
+    }
+  }, [location]);
+
+  // Also check localStorage immediately when component mounts
+  useEffect(() => {
+    console.log('Sales component mounted, checking localStorage immediately...'); // Debug log
+    setCheckLocalStorage(prev => prev + 1);
+  }, []);
 
   // Check for order to reopen from localStorage
   useEffect(() => {
@@ -65,6 +80,37 @@ export default function Sales() {
         localStorage.removeItem('reopenOrder');
       }
     }
+  }, [checkLocalStorage]); // Add checkLocalStorage as dependency
+
+  // Listen for focus events to check localStorage when user returns to tab
+  useEffect(() => {
+    const handleFocus = () => {
+      console.log('Window focused, checking localStorage...'); // Debug log
+      setCheckLocalStorage(prev => prev + 1); // Trigger localStorage check
+    };
+
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        console.log('Tab became visible, checking localStorage...'); // Debug log
+        setCheckLocalStorage(prev => prev + 1); // Trigger localStorage check
+      }
+    };
+
+    // Listen for custom event from reopen order actions
+    const handleReopenOrderSet = () => {
+      console.log('Reopen order event received, checking localStorage...'); // Debug log
+      setCheckLocalStorage(prev => prev + 1); // Trigger localStorage check
+    };
+
+    window.addEventListener('focus', handleFocus);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('reopenOrderSet', handleReopenOrderSet);
+
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('reopenOrderSet', handleReopenOrderSet);
+    };
   }, []);
 
   // Function to load pending order into cart
@@ -105,10 +151,11 @@ export default function Sales() {
       setSelectedPayment(orderDetail.paymentMethod);
     }
     
-    toast({
-      title: "Đã tải lại đơn hàng",
-      description: `Đơn hàng #${orderDetail.orderId} đã được tải vào giỏ hàng`,
-    });
+    // Không cần thông báo ở đây nữa vì đã có thông báo khi bấm "Mở lại đơn hàng"
+    // toast({
+    //   title: "Đã tải lại đơn hàng",
+    //   description: `Đơn hàng #${orderDetail.orderId} đã được tải vào giỏ hàng`,
+    // });
   };
 
   // Fetch products and customers

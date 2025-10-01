@@ -3,6 +3,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import type { NotificationItem } from "@/lib/types";
 import { useNotifications } from "@/hooks/use-notifications";
+import { useNotificationSound } from "@/hooks/use-notification-sound";
+import { useToast } from "@/hooks/use-toast";
 import { OrderDetailModal } from "./order-detail-modal";
 import { useState } from "react";
 import { useLocation } from "wouter";
@@ -14,6 +16,8 @@ interface NotificationModalProps {
 
 export function NotificationModal({ show, onClose }: NotificationModalProps) {
   const { notifications, markAsRead, markAllAsRead, deleteNotification, handleNotificationClick, isLoading } = useNotifications();
+  const { playNotificationSound } = useNotificationSound();
+  const { toast } = useToast();
   const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
   const [showOrderDetail, setShowOrderDetail] = useState(false);
   const [, navigate] = useLocation();
@@ -30,8 +34,21 @@ export function NotificationModal({ show, onClose }: NotificationModalProps) {
   };
 
   const handleReopenOrder = (orderDetail: any) => {
+    // Thông báo ngay lập tức
+    toast({
+      title: "Đang mở lại đơn hàng! 🔄",
+      description: `Đơn hàng #${orderDetail.orderId} của ${orderDetail.customerName || orderDetail.customer?.hoTen || 'khách vãng lai'} đã được tải vào giỏ hàng`,
+    });
+    
+    // Phát âm thanh thông báo
+    playNotificationSound();
+    
     // Store order data in localStorage temporarily
     localStorage.setItem('reopenOrder', JSON.stringify(orderDetail));
+    
+    // Dispatch custom event to notify sales page to check localStorage
+    window.dispatchEvent(new CustomEvent('reopenOrderSet'));
+    
     // Navigate to sales page
     navigate('/sales');
     onClose(); // Close notification modal

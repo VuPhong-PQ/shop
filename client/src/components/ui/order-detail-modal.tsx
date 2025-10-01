@@ -6,6 +6,8 @@ import { Badge } from "@/components/ui/badge";
 import { useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useLocation } from "wouter";
+import { useToast } from "@/hooks/use-toast";
+import { useNotificationSound } from "@/hooks/use-notification-sound";
 
 interface OrderDetailModalProps {
   orderId: number | null;
@@ -49,6 +51,8 @@ interface OrderDetail {
 export function OrderDetailModal({ orderId, show, onClose, onReopenOrder }: OrderDetailModalProps) {
   const [isPrinting, setIsPrinting] = useState(false);
   const [, navigate] = useLocation();
+  const { toast } = useToast();
+  const { playNotificationSound } = useNotificationSound();
 
   // Fetch order details
   const { data: orderDetail, isLoading } = useQuery<OrderDetail>({
@@ -91,7 +95,24 @@ export function OrderDetailModal({ orderId, show, onClose, onReopenOrder }: Orde
   // Handle reopen order for pending orders
   const handleReopenOrder = () => {
     if (orderDetail && onReopenOrder) {
-      onReopenOrder(orderDetail);
+      // Thông báo ngay lập tức
+      toast({
+        title: "Đang mở lại đơn hàng! 🔄",
+        description: `Đơn hàng #${orderDetail.orderId} của ${orderDetail.customerName || orderDetail.customer?.hoTen || 'khách vãng lai'} đã được tải vào giỏ hàng`,
+      });
+      
+      // Phát âm thanh thông báo
+      playNotificationSound();
+      
+      // Store order data in localStorage temporarily (same as notification modal)
+      localStorage.setItem('reopenOrder', JSON.stringify(orderDetail));
+      
+      // Dispatch custom event to notify sales page to check localStorage
+      window.dispatchEvent(new CustomEvent('reopenOrderSet'));
+      
+      // Navigate to sales page
+      navigate('/sales');
+      
       onClose(); // Close modal after reopening order
     }
   };
