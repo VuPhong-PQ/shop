@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
+import { normalizeSearchText } from "@/lib/utils";
 import { Package, Search, AlertTriangle, TrendingUp, TrendingDown, Plus, Minus, FileText, BarChart3 } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -119,10 +120,14 @@ export default function Inventory() {
     }
   });
 
-  // Filter products
+  // Filter products with Vietnamese diacritics support
   const filteredProducts = products.filter(product => {
-    const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         product.sku.toLowerCase().includes(searchTerm.toLowerCase());
+    const searchNormalized = normalizeSearchText(searchTerm);
+    const productNameNormalized = normalizeSearchText(product.name || '');
+    const productSkuNormalized = normalizeSearchText(product.sku || '');
+    
+    const matchesSearch = productNameNormalized.includes(searchNormalized) ||
+                         productSkuNormalized.includes(searchNormalized);
     
     let matchesStock = true;
     if (stockFilter === "low") {
@@ -232,7 +237,7 @@ export default function Inventory() {
               <div className="flex items-center space-x-4">
                 <div className="relative w-80">
                   <Input
-                    placeholder="Tìm kiếm sản phẩm..."
+                    placeholder="Tìm kiếm sản phẩm (có thể gõ không dấu)..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="pl-10"

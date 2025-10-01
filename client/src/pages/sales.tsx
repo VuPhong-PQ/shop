@@ -11,7 +11,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Search, Plus, Minus, Trash2, ShoppingCart, CreditCard, Banknote, QrCode, Smartphone, AlertTriangle } from "lucide-react";
-import type { Product, Customer } from "@shared/schema";
+import { cn, normalizeSearchText } from "@/lib/utils";
+import type { Product, Customer } from "@/types/backend-types";
 
 interface CartItem extends Product {
   quantity: number;
@@ -87,11 +88,15 @@ export default function Sales() {
     }
   });
 
-  // Filter products based on search
-  const filteredProducts = products.filter(product =>
-    product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    product.sku.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Filter products based on search with Vietnamese diacritics support
+  const filteredProducts = products.filter(product => {
+    const searchNormalized = normalizeSearchText(searchTerm);
+    const productNameNormalized = normalizeSearchText(product.name || '');
+    const productBarcodeNormalized = normalizeSearchText(product.barcode || '');
+    
+    return productNameNormalized.includes(searchNormalized) ||
+           productBarcodeNormalized.includes(searchNormalized);
+  });
 
   // Lấy thông tin thuế VAT từ API
   const { data: taxConfig } = useQuery<any>({
@@ -117,7 +122,7 @@ export default function Sales() {
       ...product,
       cartItemId: `${Date.now()}-${Math.random()}`,
       quantity: 1,
-      totalPrice: parseFloat(product.price)
+      totalPrice: Number(product.price)
     };
     setCart([...cart, newItem]);
     console.log('Cart after adding:', [...cart, newItem]);
@@ -134,7 +139,7 @@ export default function Sales() {
         ? { 
             ...item, 
             quantity: newQuantity, 
-            totalPrice: parseFloat(item.price) * newQuantity 
+            totalPrice: Number(item.price) * newQuantity 
           }
         : item
     ));
@@ -176,7 +181,7 @@ export default function Sales() {
     // Gửi từng item dưới dạng items[0].productId, items[0].productName, ...
     cart.forEach((item, idx) => {
       // Luôn lấy đúng productId, không để undefined
-      const productId = item.productId || item.id || "";
+      const productId = item.productId || "";
       formData.append(`items[${idx}].productId`, productId);
       formData.append(`items[${idx}].productName`, item.name || "");
       formData.append(`items[${idx}].quantity`, item.quantity?.toString() || "1");
@@ -198,7 +203,7 @@ export default function Sales() {
                 <h2 className="text-xl font-semibold">Sản phẩm</h2>
                 <div className="relative w-full sm:w-80">
                   <Input
-                    placeholder="Tìm kiếm sản phẩm..."
+                    placeholder="Tìm kiếm sản phẩm (có thể gõ không dấu)..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="pl-10"
@@ -212,14 +217,17 @@ export default function Sales() {
                 {filteredProducts.map((product) => {
                   // Tính trạng thái tồn kho giống trang sản phẩm
                   let stockStatus = { label: '', color: '' };
-                  if (product.stockQuantity === 0) {
+                  const stockQty = product.stockQuantity || 0;
+                  const minStock = product.minStockLevel || 0;
+                  
+                  if (stockQty === 0) {
                     stockStatus = { label: 'Hết hàng', color: 'bg-red-500' };
-                  } else if (product.stockQuantity <= product.minStockLevel) {
+                  } else if (stockQty <= minStock) {
                     stockStatus = { label: 'Sắp hết', color: 'bg-orange-500' };
                   } else {
                     stockStatus = { label: 'Còn hàng', color: 'bg-green-500' };
                   }
-                  const key = product.productId || product.id;
+                  const key = product.productId;
                   return (
                     <div
                       key={key}
@@ -238,9 +246,7 @@ export default function Sales() {
                                 src={
                                   product.imageUrl && product.imageUrl !== ""
                                     ? (product.imageUrl.startsWith("http") ? product.imageUrl : `http://localhost:5271${product.imageUrl}`)
-                                    : (product.image && product.image !== ""
-                                      ? (product.image.startsWith("http") ? product.image : `http://localhost:5271${product.image}`)
-                                      : "https://images.unsplash.com/photo-1559056199-641a0ac8b55e?w=200&h=150&fit=crop")
+                                    : "https://images.unsplash.com/photo-1559056199-641a0ac8b55e?w=200&h=150&fit=crop"
                                 }
                                 alt={product.name}
                                 className="max-w-full max-h-full object-contain"
@@ -252,15 +258,15 @@ export default function Sales() {
                               >
                                 {stockStatus.label}
                               </Badge>
-                              {product.stockQuantity <= product.minStockLevel && (
+                              {stockQty <= minStock && (
                                 <AlertTriangle className="absolute top-2 left-2 w-5 h-5 text-orange-500" />
                               )}
                             </div>
                           </div>
-                          <h3 className="font-medium text-sm mb-1 line-clamp-2">{product.name}</h3>
-                          <p className="text-lg font-bold text-primary">{parseInt(product.price).toLocaleString('vi-VN')}₫</p>
-                          <p className="text-xs text-gray-500">Tồn: {product.stockQuantity} {product.unit}</p>
-                          <p className="text-xs text-gray-500">Tối thiểu: {product.minStockLevel}</p>
+                          <h3 className="font-medium text-sm mb-1 line-clamp-2">{product.name || 'Tên sản phẩm'}</h3>
+                          <p className="text-lg font-bold text-primary">{Number(product.price || 0).toLocaleString('vi-VN')}₫</p>
+                          <p className="text-xs text-gray-500">Tồn: {product.stockQuantity || 0} {product.unit || ''}</p>
+                          <p className="text-xs text-gray-500">Tối thiểu: {product.minStockLevel || 0}</p>
                           <Button
                             className="w-full mt-2"
                             size="sm"
@@ -309,7 +315,7 @@ export default function Sales() {
                 <Select 
                   value={selectedCustomer?.id || ""} 
                   onValueChange={(value) => {
-                    const customer = customers.find(c => c.id === value);
+                    const customer = Array.isArray(customers) ? customers.find((c: any) => c.id === value) : null;
                     setSelectedCustomer(customer || null);
                   }}
                 >
@@ -318,7 +324,7 @@ export default function Sales() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="walk-in">Khách vãng lai</SelectItem>
-                    {customers.map((customer) => (
+                    {Array.isArray(customers) && customers.map((customer: any) => (
                       <SelectItem key={customer.id} value={customer.id}>
                         {customer.name} - {customer.phone}
                       </SelectItem>
@@ -336,7 +342,7 @@ export default function Sales() {
                   </div>
                 ) : (
                   cart.map((item) => (
-                    <div key={item.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg" data-testid={`cart-item-${item.id}`}>
+                    <div key={item.productId} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg" data-testid={`cart-item-${item.productId}`}>
                       <div className="flex-1 min-w-0">
                         <p className="font-medium text-sm truncate">{item.name}</p>
                         <p className="text-primary font-semibold text-sm lg:text-base">{parseInt(item.price).toLocaleString('vi-VN')}₫</p>

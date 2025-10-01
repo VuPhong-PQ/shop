@@ -22,6 +22,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
+import { cn, normalizeSearchText } from "@/lib/utils";
 import { Plus, Search, Edit, Trash2, Package, AlertTriangle } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -209,12 +210,16 @@ export default function Products() {
     }
   });
 
-  // Filter products
+  // Filter products with Vietnamese diacritics support
   const filteredProducts = products.filter(product => {
-  const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase());
-  const matchesCategory = selectedCategory === "all" || String(product.productGroupId) === String(selectedCategory);
-  const matchesGroup = selectedGroup === "all" || String(product.productGroupId) === String(selectedGroup);
-  return matchesSearch && matchesCategory && matchesGroup;
+    const searchNormalized = normalizeSearchText(searchTerm);
+    const productNameNormalized = normalizeSearchText(product.name || '');
+    
+    const matchesSearch = productNameNormalized.includes(searchNormalized);
+    const matchesCategory = selectedCategory === "all" || String(product.productGroupId) === String(selectedCategory);
+    const matchesGroup = selectedGroup === "all" || String(product.productGroupId) === String(selectedGroup);
+    
+    return matchesSearch && matchesCategory && matchesGroup;
   });
 
   // Debug filtered products
@@ -292,7 +297,7 @@ export default function Products() {
           <div className="flex items-center space-x-4">
             <div className="relative w-80">
               <Input
-                placeholder="Tìm kiếm sản phẩm..."
+                placeholder="Tìm kiếm sản phẩm (có thể gõ không dấu)..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10"

@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
+import { normalizeSearchText } from "@/lib/utils";
 import { Plus, Search, Edit, Trash2, Users, Phone, Mail, MapPin, ShoppingBag, Calendar, Star } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -191,12 +192,18 @@ export default function Customers() {
     }
   });
 
-  // Filter customers
+  // Filter customers with Vietnamese diacritics support
   const filteredCustomers = customers.filter(customer => {
     if (!customer || !customer.name || !customer.phone) return false;
-    const matchesSearch = customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         customer.phone.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         (customer.email && customer.email.toLowerCase().includes(searchTerm.toLowerCase()));
+    
+    const searchNormalized = normalizeSearchText(searchTerm);
+    const customerNameNormalized = normalizeSearchText(customer.name || '');
+    const customerPhoneNormalized = normalizeSearchText(customer.phone || '');
+    const customerEmailNormalized = normalizeSearchText(customer.email || '');
+    
+    const matchesSearch = customerNameNormalized.includes(searchNormalized) ||
+                         customerPhoneNormalized.includes(searchNormalized) ||
+                         customerEmailNormalized.includes(searchNormalized);
     // Nếu không có trường customerType, luôn cho qua filter tier
     const matchesTier = selectedTier === "all" || !customer.customerType || customer.customerType === selectedTier;
     return matchesSearch && matchesTier;
@@ -264,7 +271,7 @@ export default function Customers() {
           <div className="flex items-center space-x-4">
             <div className="relative w-80">
               <Input
-                placeholder="Tìm kiếm khách hàng..."
+                placeholder="Tìm kiếm khách hàng (có thể gõ không dấu)..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10"

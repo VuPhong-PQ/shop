@@ -15,6 +15,7 @@ import { z } from "zod";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { queryClient } from "@/lib/queryClient";
+import { normalizeSearchText } from "@/lib/utils";
 import {
   Folder,
   FolderPlus,
@@ -170,10 +171,14 @@ export default function ProductGroups() {
     }
   });
 
-  // Filter categories
+  // Filter categories with Vietnamese diacritics support
   const filteredGroups = productGroups.filter((group: any) => {
-    return group.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-           group.description?.toLowerCase().includes(searchTerm.toLowerCase());
+    const searchNormalized = normalizeSearchText(searchTerm);
+    const groupNameNormalized = normalizeSearchText(group.name || '');
+    const groupDescNormalized = normalizeSearchText(group.description || '');
+    
+    return groupNameNormalized.includes(searchNormalized) ||
+           groupDescNormalized.includes(searchNormalized);
   });
 
   const onSubmit = (data: ProductGroupFormData) => {
@@ -373,7 +378,7 @@ export default function ProductGroups() {
             <div className="relative">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
-                placeholder="Tìm nhóm sản phẩm..."
+                placeholder="Tìm nhóm sản phẩm (có thể gõ không dấu)..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-9"
