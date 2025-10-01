@@ -2,42 +2,30 @@ import { X, Info, AlertTriangle, CheckCircle } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import type { NotificationItem } from "@/lib/types";
+import { useNotifications } from "@/hooks/use-notifications";
+import { OrderDetailModal } from "./order-detail-modal";
+import { useState } from "react";
 
 interface NotificationModalProps {
   show: boolean;
   onClose: () => void;
 }
 
-// Mock notifications for demo
-const mockNotifications: NotificationItem[] = [
-  {
-    id: "1",
-    type: "info",
-    title: "Đơn hàng mới",
-    message: "Khách hàng Nguyễn Văn A vừa đặt đơn hàng #156",
-    time: "2 phút trước",
-    read: false
-  },
-  {
-    id: "2",
-    type: "warning",
-    title: "Cảnh báo tồn kho",
-    message: "Hạt cà phê Espresso sắp hết hàng",
-    time: "15 phút trước",
-    read: false
-  },
-  {
-    id: "3",
-    type: "success",
-    title: "Thanh toán thành công",
-    message: "Đơn hàng #155 đã được thanh toán",
-    time: "30 phút trước",
-    read: true
-  }
-];
-
 export function NotificationModal({ show, onClose }: NotificationModalProps) {
+  const { notifications, markAsRead, markAllAsRead, deleteNotification, handleNotificationClick, isLoading } = useNotifications();
+  const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
+  const [showOrderDetail, setShowOrderDetail] = useState(false);
+  
   if (!show) return null;
+
+  const handleNotificationItemClick = (notification: NotificationItem) => {
+    const clickData = handleNotificationClick(notification);
+    
+    if (clickData && clickData.type === 1 && clickData.orderId) { // NewOrder type = 1
+      setSelectedOrderId(clickData.orderId);
+      setShowOrderDetail(true);
+    }
+  };
 
   const getIcon = (type: NotificationItem['type']) => {
     switch (type) {
@@ -91,25 +79,42 @@ export function NotificationModal({ show, onClose }: NotificationModalProps) {
             <h3 className="font-semibold text-gray-900" data-testid="notification-title">
               Thông báo
             </h3>
-            <Button
-              variant="ghost" 
-              size="sm"
-              onClick={onClose}
-              data-testid="button-close-notifications"
-            >
-              <X className="h-4 w-4" />
-            </Button>
+            <div className="flex items-center space-x-2">
+              {notifications.length > 0 && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => markAllAsRead()}
+                  disabled={isLoading}
+                  className="text-xs"
+                >
+                  Đánh dấu tất cả đã đọc
+                </Button>
+              )}
+              <Button
+                variant="ghost" 
+                size="sm"
+                onClick={onClose}
+                data-testid="button-close-notifications"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
         </div>
         <div className="p-4 space-y-3">
-          {mockNotifications.map((notification, index) => {
+          {notifications.map((notification, index) => {
             const Icon = getIcon(notification.type);
+            const isClickable = notification.type === 'info' && notification.title === 'Đơn hàng mới';
             
             return (
               <div 
                 key={notification.id} 
-                className={`flex items-start space-x-3 p-3 rounded-lg ${getBackgroundStyle(notification.type)}`}
+                className={`flex items-start space-x-3 p-3 rounded-lg ${getBackgroundStyle(notification.type)} ${
+                  isClickable ? 'cursor-pointer hover:bg-opacity-80 transition-colors' : ''
+                }`}
                 data-testid={`notification-${index}`}
+                onClick={isClickable ? () => handleNotificationItemClick(notification) : undefined}
               >
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center ${getIconStyle(notification.type)}`}>
                   <Icon className="h-4 w-4" />
@@ -117,6 +122,7 @@ export function NotificationModal({ show, onClose }: NotificationModalProps) {
                 <div className="flex-1">
                   <p className="font-medium text-gray-900" data-testid={`notification-title-${index}`}>
                     {notification.title}
+                    {isClickable && <span className="text-xs text-blue-600 ml-2">(Click để xem chi tiết)</span>}
                   </p>
                   <p className="text-sm text-gray-600" data-testid={`notification-message-${index}`}>
                     {notification.message}
@@ -125,10 +131,29 @@ export function NotificationModal({ show, onClose }: NotificationModalProps) {
                     {notification.time}
                   </p>
                 </div>
+                {!notification.read && (
+                  <div className="w-2 h-2 bg-blue-500 rounded-full mt-2"></div>
+                )}
               </div>
             );
           })}
+          
+          {notifications.length === 0 && (
+            <div className="text-center py-8 text-gray-500">
+              Không có thông báo nào
+            </div>
+          )}
         </div>
+        
+        {/* Order Detail Modal */}
+        <OrderDetailModal
+          orderId={selectedOrderId}
+          show={showOrderDetail}
+          onClose={() => {
+            setShowOrderDetail(false);
+            setSelectedOrderId(null);
+          }}
+        />
       </div>
     </>
   );

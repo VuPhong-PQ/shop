@@ -5,13 +5,25 @@ namespace RetailPointBackend.Models
 {
     public class Order
     {
-    public int OrderId { get; set; }
-    public DateTime CreatedAt { get; set; } = DateTime.Now;
-    public string? CustomerName { get; set; }
-    public decimal TotalAmount { get; set; }
-    public int? CustomerId { get; set; }
-    public Customer? Customer { get; set; }
-    public List<OrderItem> Items { get; set; } = new List<OrderItem>();
+        public int OrderId { get; set; }
+        public DateTime CreatedAt { get; set; } = DateTime.Now;
+        public string? CustomerName { get; set; }
+        public decimal TotalAmount { get; set; }
+        public int? CustomerId { get; set; }
+        
+        // Thêm các trường mới cho thông tin chi tiết
+        public decimal SubTotal { get; set; } = 0;
+        public decimal TaxAmount { get; set; } = 0;
+        public decimal DiscountAmount { get; set; } = 0;
+        public string? PaymentMethod { get; set; } = "cash"; // cash, card, qr, ewallet
+        public string? PaymentStatus { get; set; } = "paid"; // paid, pending, failed
+        public string? Status { get; set; } = "completed"; // completed, pending, cancelled
+        public string? OrderNumber { get; set; }
+        public string? CashierId { get; set; }
+        public string? StoreId { get; set; }
+        public string? Notes { get; set; }
+        
+        public Customer? Customer { get; set; }
+        public List<OrderItem> Items { get; set; } = new List<OrderItem>();
     }
-
 }

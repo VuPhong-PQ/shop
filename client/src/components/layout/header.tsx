@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
-import { Search, Bell, Plus } from "lucide-react";
+import { useLocation } from "wouter";
+import { Bell, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { useNotifications } from "@/hooks/use-notifications";
 
 interface HeaderProps {
   title: string;
@@ -11,6 +12,8 @@ interface HeaderProps {
 
 export function Header({ title, onToggleNotifications, isWebSocketConnected }: HeaderProps) {
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [, navigate] = useLocation();
+  const { unreadCount } = useNotifications();
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -47,28 +50,24 @@ export function Header({ title, onToggleNotifications, isWebSocketConnected }: H
         </div>
         
         <div className="flex items-center space-x-4">
-          <div className="relative">
-            <Input
-              type="text"
-              placeholder="Tìm kiếm sản phẩm, đơn hàng..."
-              className="w-80 pl-10"
-              data-testid="input-search"
-            />
-            <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-          </div>
-          
           <button
             className="relative p-2 text-gray-600 hover:bg-gray-100 rounded-lg"
             onClick={onToggleNotifications}
             data-testid="button-notifications"
           >
             <Bell className="h-5 w-5" />
-            <span className="absolute -top-1 -right-1 bg-error text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-              3
-            </span>
+            {unreadCount > 0 && (
+              <span className="absolute -top-1 -right-1 bg-error text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                {unreadCount > 99 ? '99+' : unreadCount}
+              </span>
+            )}
           </button>
           
-          <Button className="bg-primary hover:bg-blue-700" data-testid="button-quick-sale">
+          <Button 
+            className="bg-primary hover:bg-blue-700" 
+            data-testid="button-quick-sale"
+            onClick={() => navigate('/sales')}
+          >
             <Plus className="w-4 h-4 mr-2" />
             Bán hàng nhanh
           </Button>

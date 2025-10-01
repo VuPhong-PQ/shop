@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using RetailPointBackend.Models;
 using System.Linq;
+using System.Text.Json;
 
 namespace RetailPointBackend.Controllers
 {
@@ -9,9 +10,12 @@ namespace RetailPointBackend.Controllers
     public class OrdersController : ControllerBase
     {
         private readonly RetailPointContext _context;
-        public OrdersController(RetailPointContext context)
+        private readonly AppDbContext _notificationContext;
+        
+        public OrdersController(RetailPointContext context, AppDbContext notificationContext)
         {
             _context = context;
+            _notificationContext = notificationContext;
         }
 
         [HttpPost]
@@ -58,6 +62,15 @@ namespace RetailPointBackend.Controllers
                 OrderId = 0,
                 CustomerName = null,
                 TotalAmount = decimal.TryParse(total, out var t) ? t : 0,
+                SubTotal = decimal.TryParse(subtotal, out var st) ? st : 0,
+                TaxAmount = decimal.TryParse(taxAmount, out var ta) ? ta : 0,
+                DiscountAmount = decimal.TryParse(discountAmount, out var da) ? da : 0,
+                PaymentMethod = paymentMethod ?? "cash",
+                PaymentStatus = paymentStatus ?? "paid",
+                Status = status ?? "completed",
+                OrderNumber = orderNumber,
+                CashierId = cashierId,
+                StoreId = storeId,
                 Items = items
             };
             // Nếu có CustomerId, gán lại CustomerName từ bảng Customer
@@ -71,6 +84,34 @@ namespace RetailPointBackend.Controllers
             }
             _context.Orders.Add(order);
             _context.SaveChanges();
+            
+            // Tạo thông báo đơn hàng mới
+            try
+            {
+                var notification = new Notification
+                {
+                    Type = NotificationType.NewOrder,
+                    Title = "Đơn hàng mới",
+                    Message = $"Khách hàng {order.CustomerName ?? "Vãng lai"} vừa đặt đơn hàng #{order.OrderId}",
+                    OrderId = order.OrderId,
+                    Metadata = JsonSerializer.Serialize(new
+                    {
+                        CustomerName = order.CustomerName ?? "Vãng lai",
+                        TotalAmount = order.TotalAmount,
+                        FormattedTotal = order.TotalAmount.ToString("N0") + "đ",
+                        ItemCount = items.Count
+                    })
+                };
+                
+                _notificationContext.Notifications.Add(notification);
+                _notificationContext.SaveChanges();
+            }
+            catch (Exception ex)
+            {
+                // Log error but don't fail the order creation
+                Console.WriteLine($"Failed to create notification: {ex.Message}");
+            }
+            
             return Ok(new { order.OrderId, Status = "Success" });
         }
 
@@ -124,6 +165,16 @@ namespace RetailPointBackend.Controllers
                     o.CustomerName,
                     o.CreatedAt,
                     o.TotalAmount,
+                    o.SubTotal,
+                    o.TaxAmount,
+                    o.DiscountAmount,
+                    o.PaymentMethod,
+                    o.PaymentStatus,
+                    o.Status,
+                    o.OrderNumber,
+                    o.CashierId,
+                    o.StoreId,
+                    o.Notes,
                     Items = o.Items.Select(i => new {
                         i.ProductName,
                         i.Quantity,

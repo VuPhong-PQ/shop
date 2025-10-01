@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using RetailPointBackend.Models;
+using RetailPointBackend.Services;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -28,6 +29,9 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 // Đăng ký thêm RetailPointContext cho các controller cũ
 builder.Services.AddDbContext<RetailPointContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+// Đăng ký NotificationService
+builder.Services.AddScoped<INotificationService, NotificationService>();
 
 
 var app = builder.Build();

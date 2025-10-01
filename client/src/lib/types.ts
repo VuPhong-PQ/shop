@@ -47,3 +47,17 @@ export interface NotificationItem {
   time: string;
   read: boolean;
 }
+
+export interface BackendNotification {
+  notificationId: number;
+  type: number; // NotificationType enum từ backend
+  title: string;
+  message?: string;
+  status: number; // NotificationStatus enum từ backend
+  createdAt: string;
+  readAt?: string;
+  orderId?: number;
+  productId?: number;
+  customerId?: number;
+  metadata?: any;
+}
