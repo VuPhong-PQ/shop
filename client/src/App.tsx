@@ -14,6 +14,7 @@ import Reports from "@/pages/reports";
 import Staff from "@/pages/staff";
 import Settings from "@/pages/settings";
 import OrdersPage from "@/pages/orders";
+import PrintOrder from "@/pages/print-order";
 
 function Router() {
   return (
@@ -28,6 +29,7 @@ function Router() {
       <Route path="/staff" component={Staff} />
       <Route path="/settings" component={Settings} />
       <Route path="/orders" component={OrdersPage} />
+      <Route path="/print-order/:orderId" component={PrintOrder} />
       <Route component={NotFound} />
     </Switch>
   );

@@ -176,6 +176,7 @@ namespace RetailPointBackend.Controllers
                     o.StoreId,
                     o.Notes,
                     Items = o.Items.Select(i => new {
+                        i.ProductId,
                         i.ProductName,
                         i.Quantity,
                         i.Price,

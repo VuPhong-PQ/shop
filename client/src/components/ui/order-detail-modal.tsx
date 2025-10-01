@@ -5,11 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
+import { useLocation } from "wouter";
 
 interface OrderDetailModalProps {
   orderId: number | null;
   show: boolean;
   onClose: () => void;
+  onReopenOrder?: (orderDetail: OrderDetail) => void;
 }
 
 interface OrderDetail {
@@ -36,6 +38,7 @@ interface OrderDetail {
     diaChi?: string;
   };
   items: {
+    productId: number;
     productName: string;
     quantity: number;
     price: number;
@@ -43,8 +46,9 @@ interface OrderDetail {
   }[];
 }
 
-export function OrderDetailModal({ orderId, show, onClose }: OrderDetailModalProps) {
+export function OrderDetailModal({ orderId, show, onClose, onReopenOrder }: OrderDetailModalProps) {
   const [isPrinting, setIsPrinting] = useState(false);
+  const [, navigate] = useLocation();
 
   // Fetch order details
   const { data: orderDetail, isLoading } = useQuery<OrderDetail>({
@@ -84,128 +88,55 @@ export function OrderDetailModal({ orderId, show, onClose }: OrderDetailModalPro
     }
   };
 
-  // Print function
-  const handlePrint = () => {
-    if (!orderDetail) return;
-    
-    setIsPrinting(true);
-    
-    // Create print content
-    const printContent = `
-      <html>
-        <head>
-          <title>Đơn hàng #${orderDetail.orderId}</title>
-          <style>
-            body { font-family: Arial, sans-serif; margin: 20px; }
-            .header { text-align: center; margin-bottom: 20px; }
-            .info { margin: 10px 0; }
-            .items-table { width: 100%; border-collapse: collapse; margin: 20px 0; }
-            .items-table th, .items-table td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-            .items-table th { background-color: #f2f2f2; }
-            .total { text-align: right; font-weight: bold; margin-top: 20px; }
-            .footer { margin-top: 30px; text-align: center; color: #666; }
-          </style>
-        </head>
-        <body>
-          <div class="header">
-            <h2>Pinkwish Shop</h2>
-            <p>Địa chỉ: Phú quốc - An giang</p>
-            <p>MST: 0123456789 | ĐT: 0907999841</p>
-            <p>Email: pwshop@gmail.com</p>
-          </div>
-          
-          <h3>Đơn hàng #${orderDetail.orderId}</h3>
-          
-          <div class="info">
-            <p><strong>Khách hàng:</strong> ${orderDetail.customerName || orderDetail.customer?.hoTen || 'Khách vãng lai'}</p>
-            ${orderDetail.customer?.soDienThoai ? `<p><strong>Số điện thoại:</strong> ${orderDetail.customer.soDienThoai}</p>` : ''}
-            <p><strong>Ngày tạo:</strong> ${new Date(orderDetail.createdAt).toLocaleString('vi-VN')}</p>
-            <p><strong>Phương thức thanh toán:</strong> ${formatPaymentMethod(orderDetail.paymentMethod)}</p>
-            <p><strong>Trạng thái thanh toán:</strong> ${formatPaymentStatus(orderDetail.paymentStatus)}</p>
-          </div>
-          
-          <table class="items-table">
-            <thead>
-              <tr>
-                <th>Sản phẩm</th>
-                <th>Số lượng</th>
-                <th>Đơn giá</th>
-                <th>Thành tiền</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${orderDetail.items.map(item => `
-                <tr>
-                  <td>${item.productName}</td>
-                  <td>${item.quantity}</td>
-                  <td>${item.price.toLocaleString('vi-VN')}đ</td>
-                  <td>${item.totalPrice.toLocaleString('vi-VN')}đ</td>
-                </tr>
-              `).join('')}
-            </tbody>
-          </table>
-          
-          <div class="total">
-            ${orderDetail.discountAmount > 0 ? `<p>Tạm tính: <strong>${orderDetail.subTotal.toLocaleString('vi-VN')}đ</strong></p>` : ''}
-            ${orderDetail.discountAmount > 0 ? `<p>Giảm giá: <strong>-${orderDetail.discountAmount.toLocaleString('vi-VN')}đ</strong></p>` : ''}
-            ${orderDetail.taxAmount > 0 ? `<p>Thuế VAT: <strong>${orderDetail.taxAmount.toLocaleString('vi-VN')}đ</strong></p>` : ''}
-            <p>Tổng tiền: <strong>${orderDetail.totalAmount.toLocaleString('vi-VN')}đ</strong></p>
-          </div>
-          
-          <div class="footer">
-            <p>Cảm ơn bạn đã mua hàng!</p>
-            <p>Hẹn gặp lại!</p>
-          </div>
-        </body>
-      </html>
-    `;
-
-    // Open print window
-    const printWindow = window.open('', '_blank');
-    if (printWindow) {
-      printWindow.document.write(printContent);
-      printWindow.document.close();
-      printWindow.focus();
-      printWindow.print();
-      printWindow.close();
+  // Handle reopen order for pending orders
+  const handleReopenOrder = () => {
+    if (orderDetail && onReopenOrder) {
+      onReopenOrder(orderDetail);
+      onClose(); // Close modal after reopening order
     }
-    
-    setIsPrinting(false);
+  };
+
+  // Handle print - navigate to print page
+  const handlePrint = () => {
+    if (orderDetail) {
+      navigate(`/print-order/${orderDetail.orderId}`);
+    }
   };
 
   if (!show || !orderId) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+      <Card className="w-full max-w-4xl max-h-[90vh] overflow-y-auto">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
           <CardTitle className="text-xl font-bold">
             Chi tiết đơn hàng #{orderId}
           </CardTitle>
-          <Button
-            variant="ghost"
-            size="sm"
+          <Button 
+            variant="ghost" 
+            size="icon" 
             onClick={onClose}
-            className="h-8 w-8 p-0"
+            className="h-6 w-6"
           >
             <X className="h-4 w-4" />
           </Button>
         </CardHeader>
 
-        <CardContent className="space-y-6">
+        <CardContent>
           {isLoading ? (
-            <div className="flex items-center justify-center py-8">
-              <div className="text-gray-500">Đang tải...</div>
+            <div className="text-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+              <p className="mt-2 text-gray-500">Đang tải...</p>
             </div>
           ) : orderDetail ? (
             <>
-              {/* Customer Info */}
-              <div className="space-y-3">
-                <h3 className="font-semibold flex items-center gap-2">
-                  <User className="h-4 w-4" />
+              {/* Customer Information */}
+              <div className="mb-6">
+                <h3 className="flex items-center gap-2 text-lg font-semibold mb-3">
+                  <User className="h-5 w-5" />
                   Thông tin khách hàng
                 </h3>
-                <div className="bg-gray-50 p-4 rounded-lg space-y-2">
+                <div className="bg-gray-50 p-4 rounded-lg">
                   <p><strong>Tên:</strong> {orderDetail.customerName || orderDetail.customer?.hoTen || 'Khách vãng lai'}</p>
                   {orderDetail.customer?.soDienThoai && (
                     <p><strong>Số điện thoại:</strong> {orderDetail.customer.soDienThoai}</p>
@@ -219,34 +150,39 @@ export function OrderDetailModal({ orderId, show, onClose }: OrderDetailModalPro
                 </div>
               </div>
 
-              {/* Order Info */}
-              <div className="space-y-3">
-                <h3 className="font-semibold flex items-center gap-2">
-                  <Calendar className="h-4 w-4" />
+              {/* Order Information */}
+              <div className="mb-6">
+                <h3 className="flex items-center gap-2 text-lg font-semibold mb-3">
+                  <Receipt className="h-5 w-5" />
                   Thông tin đơn hàng
                 </h3>
-                <div className="bg-gray-50 p-4 rounded-lg space-y-2">
-                  <p><strong>Mã đơn:</strong> #{orderDetail.orderId}</p>
-                  {orderDetail.orderNumber && <p><strong>Số đơn hàng:</strong> {orderDetail.orderNumber}</p>}
-                  <p><strong>Ngày tạo:</strong> {new Date(orderDetail.createdAt).toLocaleString('vi-VN')}</p>
-                  <p><strong>Trạng thái:</strong> <Badge variant="default">{formatOrderStatus(orderDetail.status)}</Badge></p>
-                  <p><strong>Phương thức thanh toán:</strong> {formatPaymentMethod(orderDetail.paymentMethod)}</p>
-                  <p><strong>Trạng thái thanh toán:</strong> 
-                    <Badge 
-                      variant={orderDetail.paymentStatus === 'paid' ? 'default' : orderDetail.paymentStatus === 'pending' ? 'secondary' : 'destructive'}
-                      className="ml-2"
-                    >
-                      {formatPaymentStatus(orderDetail.paymentStatus)}
-                    </Badge>
-                  </p>
-                  {orderDetail.cashierId && <p><strong>Thu ngân:</strong> {orderDetail.cashierId}</p>}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <p><strong>Mã đơn:</strong> #{orderDetail.orderId}</p>
+                    <p><strong>Số đơn hàng:</strong> {orderDetail.orderNumber || 'PENDING' + Date.now()}</p>
+                    <p><strong>Ngày tạo:</strong> {new Date(orderDetail.createdAt).toLocaleString('vi-VN')}</p>
+                  </div>
+                  <div className="space-y-2">
+                    <p><strong>Trạng thái:</strong> 
+                      <Badge variant={orderDetail.status === 'completed' ? 'default' : orderDetail.status === 'pending' ? 'secondary' : 'destructive'} className="ml-2">
+                        {formatOrderStatus(orderDetail.status)}
+                      </Badge>
+                    </p>
+                    <p><strong>Phương thức thanh toán:</strong> {formatPaymentMethod(orderDetail.paymentMethod)}</p>
+                    <p><strong>Trạng thái thanh toán:</strong> 
+                      <Badge variant={orderDetail.paymentStatus === 'paid' ? 'default' : 'secondary'} className="ml-2">
+                        {formatPaymentStatus(orderDetail.paymentStatus)}
+                      </Badge>
+                    </p>
+                    <p><strong>Thu ngân:</strong> {orderDetail.cashierId || '550e8400-e29b-41d4-a716-446655440001'}</p>
+                  </div>
                 </div>
               </div>
 
-              {/* Order Items */}
-              <div className="space-y-3">
-                <h3 className="font-semibold flex items-center gap-2">
-                  <Receipt className="h-4 w-4" />
+              {/* Products */}
+              <div className="mb-6">
+                <h3 className="flex items-center gap-2 text-lg font-semibold mb-3">
+                  <Receipt className="h-5 w-5" />
                   Chi tiết sản phẩm
                 </h3>
                 <div className="border rounded-lg overflow-hidden">
@@ -309,6 +245,18 @@ export function OrderDetailModal({ orderId, show, onClose }: OrderDetailModalPro
                 <Button variant="outline" onClick={onClose}>
                   Đóng
                 </Button>
+                
+                {/* Show "Mở lại đơn hàng" button for pending orders */}
+                {orderDetail.paymentStatus === 'pending' && onReopenOrder && (
+                  <Button 
+                    onClick={handleReopenOrder}
+                    className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600"
+                  >
+                    <Receipt className="h-4 w-4" />
+                    Mở lại đơn hàng
+                  </Button>
+                )}
+                
                 <Button 
                   onClick={handlePrint} 
                   disabled={isPrinting}

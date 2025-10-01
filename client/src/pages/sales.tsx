@@ -42,6 +42,66 @@ export default function Sales() {
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [selectedPayment, setSelectedPayment] = useState<string>("cash");
   const [showPayment, setShowPayment] = useState(false);
+  const [pendingOrderToReopen, setPendingOrderToReopen] = useState<any>(null);
+
+  // Check for order to reopen from localStorage
+  useEffect(() => {
+    const reopenOrderData = localStorage.getItem('reopenOrder');
+    console.log('Checking for reopen order data:', reopenOrderData); // Debug log
+    if (reopenOrderData) {
+      try {
+        const orderDetail = JSON.parse(reopenOrderData);
+        console.log('Parsed order detail:', orderDetail); // Debug log
+        loadOrderIntoCart(orderDetail);
+        // Clear the data after loading
+        localStorage.removeItem('reopenOrder');
+      } catch (error) {
+        console.error('Error parsing reopen order data:', error);
+        localStorage.removeItem('reopenOrder');
+      }
+    }
+  }, []);
+
+  // Function to load pending order into cart
+  const loadOrderIntoCart = (orderDetail: any) => {
+    console.log('Loading order into cart:', orderDetail); // Debug log
+    
+    const cartItems: CartItem[] = orderDetail.items.map((item: any, index: number) => ({
+      productId: item.productId || 0,
+      name: item.productName,
+      barcode: null,
+      categoryId: null,
+      productGroupId: null,
+      price: item.price,
+      costPrice: null,
+      stockQuantity: 100, // Default value
+      minStockLevel: 0,
+      unit: null,
+      imageUrl: null,
+      description: '',
+      quantity: item.quantity,
+      totalPrice: item.totalPrice,
+      cartItemId: `cart-${Date.now()}-${index}`,
+    }));
+    
+    console.log('Cart items created:', cartItems); // Debug log
+    setCart(cartItems);
+    
+    // Set customer if available
+    if (orderDetail.customer) {
+      setSelectedCustomer(orderDetail.customer);
+    }
+    
+    // Set payment method if available
+    if (orderDetail.paymentMethod) {
+      setSelectedPayment(orderDetail.paymentMethod);
+    }
+    
+    toast({
+      title: "Đã tải lại đơn hàng",
+      description: `Đơn hàng #${orderDetail.orderId} đã được tải vào giỏ hàng`,
+    });
+  };
 
   // Fetch products and customers
   const { data: products = [] } = useQuery<Product[]>({
@@ -176,12 +236,12 @@ export default function Sales() {
     formData.append('discountAmount', "0");
     formData.append('total', total.toString());
     formData.append('paymentMethod', selectedPayment);
-    formData.append('paymentStatus', "completed");
+    formData.append('paymentStatus', "paid");
     formData.append('status', "completed");
     // Gửi từng item dưới dạng items[0].productId, items[0].productName, ...
     cart.forEach((item, idx) => {
       // Luôn lấy đúng productId, không để undefined
-      const productId = item.productId || "";
+      const productId = item.productId?.toString() || "";
       formData.append(`items[${idx}].productId`, productId);
       formData.append(`items[${idx}].productName`, item.name || "");
       formData.append(`items[${idx}].quantity`, item.quantity?.toString() || "1");
@@ -189,6 +249,43 @@ export default function Sales() {
       formData.append(`items[${idx}].totalPrice`, item.totalPrice?.toString() || "0");
     });
     console.log('FormData gửi lên:', Array.from(formData.entries()));
+    createOrderMutation.mutate(formData);
+  };
+
+  // Save order for later payment
+  const saveOrderForLater = () => {
+    if (cart.length === 0) {
+      toast({
+        title: "Giỏ hàng trống",
+        description: "Vui lòng thêm sản phẩm vào giỏ hàng",
+        variant: "destructive",
+      });
+      return;
+    }
+    // Tạo form-data cho đơn hàng chờ thanh toán
+    const formData = new FormData();
+    formData.append('orderNumber', `PENDING${Date.now()}`);
+    formData.append('customerId', selectedCustomer?.id || '');
+    formData.append('cashierId', "550e8400-e29b-41d4-a716-446655440001");
+    formData.append('storeId', "550e8400-e29b-41d4-a716-446655440002");
+    formData.append('subtotal', subtotal.toString());
+    formData.append('taxAmount', taxAmount.toString());
+    formData.append('discountAmount', "0");
+    formData.append('total', total.toString());
+    formData.append('paymentMethod', selectedPayment);
+    formData.append('paymentStatus', "pending");
+    formData.append('status', "pending");
+    // Gửi từng item
+    cart.forEach((item, idx) => {
+      const productId = item.productId?.toString() || "";
+      formData.append(`items[${idx}].productId`, productId);
+      formData.append(`items[${idx}].productName`, item.name || "");
+      formData.append(`items[${idx}].quantity`, item.quantity?.toString() || "1");
+      formData.append(`items[${idx}].unitPrice`, item.price?.toString() || "0");
+      formData.append(`items[${idx}].totalPrice`, item.totalPrice?.toString() || "0");
+    });
+    
+    console.log('FormData đơn hàng chờ:', Array.from(formData.entries()));
     createOrderMutation.mutate(formData);
   };
 
@@ -437,6 +534,16 @@ export default function Sales() {
                   data-testid="button-process-payment"
                 >
                   {createOrderMutation.isPending ? "Đang xử lý..." : "Thanh toán"}
+                </Button>
+                
+                <Button
+                  variant="outline"
+                  className="w-full h-10 text-sm"
+                  onClick={saveOrderForLater}
+                  disabled={cart.length === 0 || createOrderMutation.isPending}
+                  data-testid="button-save-for-later"
+                >
+                  Thanh toán sau
                 </Button>
               </div>
             </CardContent>

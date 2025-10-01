@@ -5,6 +5,7 @@ import type { NotificationItem } from "@/lib/types";
 import { useNotifications } from "@/hooks/use-notifications";
 import { OrderDetailModal } from "./order-detail-modal";
 import { useState } from "react";
+import { useLocation } from "wouter";
 
 interface NotificationModalProps {
   show: boolean;
@@ -15,6 +16,7 @@ export function NotificationModal({ show, onClose }: NotificationModalProps) {
   const { notifications, markAsRead, markAllAsRead, deleteNotification, handleNotificationClick, isLoading } = useNotifications();
   const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
   const [showOrderDetail, setShowOrderDetail] = useState(false);
+  const [, navigate] = useLocation();
   
   if (!show) return null;
 
@@ -25,6 +27,14 @@ export function NotificationModal({ show, onClose }: NotificationModalProps) {
       setSelectedOrderId(clickData.orderId);
       setShowOrderDetail(true);
     }
+  };
+
+  const handleReopenOrder = (orderDetail: any) => {
+    // Store order data in localStorage temporarily
+    localStorage.setItem('reopenOrder', JSON.stringify(orderDetail));
+    // Navigate to sales page
+    navigate('/sales');
+    onClose(); // Close notification modal
   };
 
   const getIcon = (type: NotificationItem['type']) => {
@@ -153,6 +163,7 @@ export function NotificationModal({ show, onClose }: NotificationModalProps) {
             setShowOrderDetail(false);
             setSelectedOrderId(null);
           }}
+          onReopenOrder={handleReopenOrder}
         />
       </div>
     </>
