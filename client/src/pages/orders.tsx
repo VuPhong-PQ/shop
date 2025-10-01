@@ -48,6 +48,7 @@ export default function OrdersPage() {
       console.log("orders:", mapped);
       return mapped;
     },
+    refetchInterval: 5000, // Auto-refresh every 5 seconds for real-time updates
   });
 
   // Lấy thông tin cửa hàng

@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { useNotificationSound } from "@/hooks/use-notification-sound";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Search, Plus, Minus, Trash2, ShoppingCart, CreditCard, Banknote, QrCode, Smartphone, AlertTriangle } from "lucide-react";
 import { cn, normalizeSearchText } from "@/lib/utils";
@@ -35,7 +36,6 @@ const paymentMethods: PaymentMethod[] = [
 ];
 
 export default function Sales() {
-  const { toast } = useToast();
   const [, navigate] = useLocation();
   const [cart, setCart] = useState<CartItem[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -44,6 +44,10 @@ export default function Sales() {
   const [showPayment, setShowPayment] = useState(false);
   const [pendingOrderToReopen, setPendingOrderToReopen] = useState<any>(null);
   const [currentReopenedOrder, setCurrentReopenedOrder] = useState<any>(null);
+  
+  // Initialize hooks
+  const { toast } = useToast();
+  const { playNotificationSound } = useNotificationSound();
 
   // Check for order to reopen from localStorage
   useEffect(() => {
@@ -138,15 +142,55 @@ export default function Sales() {
       setCart([]);
       setSelectedCustomer(null);
       setShowPayment(false);
-      // Refetch danh sách đơn hàng để hiển thị đơn mới nhất
+      // Refetch tất cả dữ liệu liên quan
       queryClient.invalidateQueries({ queryKey: ['/api/orders'] });
       queryClient.invalidateQueries({ queryKey: ['/api/dashboard/metrics'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/notifications'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/notifications/count'] });
       navigate('/orders');
     },
     onError: () => {
       toast({
         title: "Lỗi",
         description: "Không thể tạo đơn hàng. Vui lòng thử lại.",
+        variant: "destructive",
+      });
+    }
+  });
+
+  // Save order for later mutation (for pending orders)
+  const saveOrderForLaterMutation = useMutation({
+    mutationFn: async (formData: FormData) => {
+      console.log('Gửi đơn hàng chờ thanh toán lên backend:', formData);
+      return await apiRequest('/api/orders', { method: 'POST', body: formData });
+    },
+    onSuccess: () => {
+      // Thông báo ngay lập tức
+      toast({
+        title: "Đã lưu đơn hàng chờ thanh toán! 🔔",
+        description: `Đơn hàng của ${selectedCustomer?.name || "khách vãng lai"} đã được lưu để thanh toán sau`,
+      });
+      
+      // Phát âm thanh thông báo
+      playNotificationSound();
+      
+      // Clear cart và navigate
+      setCart([]);
+      setSelectedCustomer(null);
+      setShowPayment(false);
+      
+      // Refetch danh sách đơn hàng và notifications
+      queryClient.invalidateQueries({ queryKey: ['/api/orders'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/dashboard/metrics'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/notifications'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/notifications/count'] });
+      
+      navigate('/orders');
+    },
+    onError: () => {
+      toast({
+        title: "Lỗi",
+        description: "Không thể lưu đơn hàng. Vui lòng thử lại.",
         variant: "destructive",
       });
     }
@@ -159,17 +203,27 @@ export default function Sales() {
       return await apiRequest(`/api/orders/${orderId}/complete`, { method: 'PUT', body: formData });
     },
     onSuccess: () => {
+      // Thông báo ngay lập tức với âm thanh
       toast({
-        title: "Thành công",
-        description: "Đơn hàng đã được thanh toán thành công",
+        title: "Thanh toán thành công! 🎉",
+        description: `Đơn hàng #${currentReopenedOrder?.orderId} của ${selectedCustomer?.name || currentReopenedOrder?.customerName || "khách vãng lai"} đã được thanh toán`,
       });
+      
+      // Phát âm thanh thông báo
+      playNotificationSound();
+      
+      // Clear state
       setCart([]);
       setSelectedCustomer(null);
       setShowPayment(false);
       setCurrentReopenedOrder(null); // Clear reopened order
-      // Refetch danh sách đơn hàng để hiển thị đơn mới nhất
+      
+      // Refetch tất cả dữ liệu liên quan
       queryClient.invalidateQueries({ queryKey: ['/api/orders'] });
       queryClient.invalidateQueries({ queryKey: ['/api/dashboard/metrics'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/notifications'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/notifications/count'] });
+      
       navigate('/orders');
     },
     onError: () => {
@@ -350,7 +404,7 @@ export default function Sales() {
     });
     
     console.log('FormData đơn hàng chờ:', Array.from(formData.entries()));
-    createOrderMutation.mutate(formData);
+    saveOrderForLaterMutation.mutate(formData);
   };
 
   return (
@@ -634,10 +688,10 @@ export default function Sales() {
                   variant="outline"
                   className="w-full h-10 text-sm"
                   onClick={saveOrderForLater}
-                  disabled={cart.length === 0 || createOrderMutation.isPending}
+                  disabled={cart.length === 0 || saveOrderForLaterMutation.isPending || createOrderMutation.isPending}
                   data-testid="button-save-for-later"
                 >
-                  Thanh toán sau
+                  {saveOrderForLaterMutation.isPending ? "Đang lưu..." : "Thanh toán sau"}
                 </Button>
               </div>
             </CardContent>
