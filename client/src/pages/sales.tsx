@@ -50,6 +50,12 @@ export default function Sales() {
   const { toast } = useToast();
   const { playNotificationSound } = useNotificationSound();
 
+  // Utility function để dispatch event và debug
+  const dispatchReportsUpdate = (source: string) => {
+    console.log(`Dispatching newOrderCreated event from ${source}...`);
+    window.dispatchEvent(new CustomEvent('newOrderCreated'));
+  };
+
   // Check localStorage when location changes (when navigating to this page)
   useEffect(() => {
     if (location === '/sales') {
@@ -194,6 +200,10 @@ export default function Sales() {
       queryClient.invalidateQueries({ queryKey: ['/api/dashboard/metrics'] });
       queryClient.invalidateQueries({ queryKey: ['/api/notifications'] });
       queryClient.invalidateQueries({ queryKey: ['/api/notifications/count'] });
+      
+      // Dispatch event để cập nhật reports real-time
+      window.dispatchEvent(new CustomEvent('newOrderCreated'));
+      
       navigate('/orders');
     },
     onError: () => {
@@ -231,6 +241,9 @@ export default function Sales() {
       queryClient.invalidateQueries({ queryKey: ['/api/dashboard/metrics'] });
       queryClient.invalidateQueries({ queryKey: ['/api/notifications'] });
       queryClient.invalidateQueries({ queryKey: ['/api/notifications/count'] });
+      
+      // Dispatch event để cập nhật reports real-time
+      window.dispatchEvent(new CustomEvent('newOrderCreated'));
       
       navigate('/orders');
     },
@@ -270,6 +283,9 @@ export default function Sales() {
       queryClient.invalidateQueries({ queryKey: ['/api/dashboard/metrics'] });
       queryClient.invalidateQueries({ queryKey: ['/api/notifications'] });
       queryClient.invalidateQueries({ queryKey: ['/api/notifications/count'] });
+      
+      // Dispatch event để cập nhật reports real-time
+      window.dispatchEvent(new CustomEvent('newOrderCreated'));
       
       navigate('/orders');
     },
@@ -332,6 +348,16 @@ export default function Sales() {
   const addToCart = (product: Product) => {
     console.log('Adding product to cart:', product);
     
+    // Kiểm tra tồn kho trước khi thêm vào giỏ hàng
+    if (product.stockQuantity <= 0) {
+      toast({
+        title: "Hết hàng",
+        description: "Vui lòng nhập thêm hàng sau đó quay lại bán",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     // Clear reopened order if user manually adds products
     if (currentReopenedOrder) {
       setCurrentReopenedOrder(null);
@@ -354,6 +380,18 @@ export default function Sales() {
       removeFromCart(productId);
       return;
     }
+    
+    // Tìm sản phẩm trong giỏ hàng để kiểm tra tồn kho
+    const cartItem = cart.find(item => item.cartItemId === productId);
+    if (cartItem && newQuantity > cartItem.stockQuantity) {
+      toast({
+        title: "Không đủ hàng",
+        description: `Chỉ còn ${cartItem.stockQuantity} sản phẩm trong kho`,
+        variant: "destructive",
+      });
+      return;
+    }
+    
     setCart(cart.map(item => 
       item.cartItemId === productId 
         ? { 
@@ -519,13 +557,20 @@ export default function Sales() {
                     stockStatus = { label: 'Còn hàng', color: 'bg-green-500' };
                   }
                   const key = product.productId;
+                  const isOutOfStock = stockQty <= 0;
+                  
                   return (
                     <div
                       key={key}
-                      className="cursor-pointer hover:shadow-md transition-shadow"
+                      className={cn(
+                        "cursor-pointer hover:shadow-md transition-shadow",
+                        isOutOfStock && "opacity-60 cursor-not-allowed"
+                      )}
                       onClick={() => {
-                        console.log('Product clicked:', product);
-                        addToCart(product);
+                        if (!isOutOfStock) {
+                          console.log('Product clicked:', product);
+                          addToCart(product);
+                        }
                       }}
                       data-testid={`product-card-${key}`}
                     >
@@ -561,14 +606,17 @@ export default function Sales() {
                           <Button
                             className="w-full mt-2"
                             size="sm"
+                            disabled={isOutOfStock}
                             onClick={(e) => {
                               e.stopPropagation();
-                              console.log('Button clicked for product:', product);
-                              addToCart(product);
+                              if (!isOutOfStock) {
+                                console.log('Button clicked for product:', product);
+                                addToCart(product);
+                              }
                             }}
                           >
                             <Plus className="w-4 h-4 mr-1" />
-                            Thêm vào hóa đơn
+                            {isOutOfStock ? "Hết hàng" : "Thêm vào hóa đơn"}
                           </Button>
                         </CardContent>
                       </Card>

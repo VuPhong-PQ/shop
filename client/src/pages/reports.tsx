@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useState, useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { AppLayout } from "@/components/layout/app-layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -34,17 +34,56 @@ import {
   Filter,
   BarChart3,
   PieChart as PieChartIcon,
-  LineChart as LineChartIcon
+  LineChart as LineChartIcon,
+  RefreshCw
 } from "lucide-react";
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
 
 export default function Reports() {
+  const queryClient = useQueryClient();
   const [dateRange, setDateRange] = useState({
     startDate: "2025-10-01",
     endDate: "2025-10-02"
   });
   const [reportType, setReportType] = useState("summary");
+
+  // Auto refresh khi window focus (người dùng quay lại tab)
+  useEffect(() => {
+    const handleFocus = () => {
+      console.log('Window focused, refreshing reports...'); // Debug log
+      // Invalidate tất cả report queries để refresh data
+      queryClient.invalidateQueries({ queryKey: ['/api/reports/sales-summary'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/reports/product-performance'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/reports/customer-analytics'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/reports/profit-analysis'] });
+    };
+
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        handleFocus();
+      }
+    };
+
+    // Listen for custom event từ sales page khi có order mới
+    const handleNewOrder = () => {
+      console.log('New order event received, refreshing reports...'); // Debug log
+      queryClient.invalidateQueries({ queryKey: ['/api/reports/sales-summary'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/reports/product-performance'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/reports/customer-analytics'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/reports/profit-analysis'] });
+    };
+
+    window.addEventListener('focus', handleFocus);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('newOrderCreated', handleNewOrder);
+
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('newOrderCreated', handleNewOrder);
+    };
+  }, [queryClient]);
 
   // Fetch report data
   const { data: salesSummary, isLoading: salesLoading } = useQuery({
@@ -57,6 +96,7 @@ export default function Reports() {
       return response.json();
     },
     enabled: !!dateRange.startDate && !!dateRange.endDate,
+    refetchInterval: 30000, // Refetch mỗi 30 giây
   });
 
   const { data: productPerformance, isLoading: productLoading } = useQuery({
@@ -69,6 +109,7 @@ export default function Reports() {
       return response.json();
     },
     enabled: !!dateRange.startDate && !!dateRange.endDate,
+    refetchInterval: 30000, // Refetch mỗi 30 giây
   });
 
   const { data: customerAnalytics, isLoading: customerLoading } = useQuery({
@@ -81,6 +122,7 @@ export default function Reports() {
       return response.json();
     },
     enabled: !!dateRange.startDate && !!dateRange.endDate,
+    refetchInterval: 30000, // Refetch mỗi 30 giây
   });
 
   const { data: profitAnalysis, isLoading: profitLoading } = useQuery({
@@ -93,6 +135,7 @@ export default function Reports() {
       return response.json();
     },
     enabled: !!dateRange.startDate && !!dateRange.endDate,
+    refetchInterval: 30000, // Refetch mỗi 30 giây
   });
 
   const isLoading = salesLoading || productLoading || customerLoading || profitLoading;
@@ -160,8 +203,22 @@ export default function Reports() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="flex items-end">
-                <Button className="w-full" data-testid="button-export">
+              <div className="flex items-end gap-2">
+                <Button 
+                  variant="outline" 
+                  onClick={() => {
+                    console.log('Manual refresh button clicked'); // Debug log
+                    queryClient.invalidateQueries({ queryKey: ['/api/reports/sales-summary'] });
+                    queryClient.invalidateQueries({ queryKey: ['/api/reports/product-performance'] });
+                    queryClient.invalidateQueries({ queryKey: ['/api/reports/customer-analytics'] });
+                    queryClient.invalidateQueries({ queryKey: ['/api/reports/profit-analysis'] });
+                  }}
+                  className="flex-1"
+                >
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  Refresh
+                </Button>
+                <Button className="flex-1" data-testid="button-export">
                   <Download className="w-4 h-4 mr-2" />
                   Xuất báo cáo
                 </Button>
