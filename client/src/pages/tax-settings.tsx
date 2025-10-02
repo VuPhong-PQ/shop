@@ -36,15 +36,12 @@ export function TaxSettings() {
   }, [taxConfig]);
   const mutation = useMutation({
     mutationFn: async (data: TaxConfig) => {
-      console.log("Sending tax config data:", data); // Debug log
       const res = await apiRequest("/api/TaxConfig", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data)
       });
-      const result = typeof res === "string" ? JSON.parse(res) : res;
-      console.log("Tax config save response:", result); // Debug log
-      return result;
+      return typeof res === "string" ? JSON.parse(res) : res;
     },
     onSuccess: () => {
   queryClient.invalidateQueries({ queryKey: ["/api/TaxConfig"] });

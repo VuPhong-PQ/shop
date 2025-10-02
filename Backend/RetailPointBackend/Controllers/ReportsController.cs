@@ -230,51 +230,55 @@ namespace RetailPointBackend.Controllers
                 // Lấy cấu hình thuế
                 var taxConfig = await _context.TaxConfigs.FirstOrDefaultAsync() ?? new TaxConfig();
 
-                // Tính tổng doanh thu (bao gồm thuế)
+                // Tính tổng doanh thu (bao gồm thuế) - đây là TotalAmount trong Orders
                 var totalRevenueIncludingTax = orders.Sum(o => o.TotalAmount);
 
-                // Tính thuế VAT
+                // Tính thuế VAT và doanh thu chưa thuế
                 decimal totalTax = 0;
                 decimal totalRevenueExcludingTax = totalRevenueIncludingTax;
 
-                if (taxConfig.EnableVAT && taxConfig.VATIncludedInPrice)
+                if (taxConfig.EnableVAT)
                 {
-                    // Nếu thuế đã bao gồm trong giá: Tax = Revenue / (1 + VATRate) * VATRate
-                    totalTax = totalRevenueIncludingTax / (1 + taxConfig.VATRate / 100) * (taxConfig.VATRate / 100);
+                    // Tính tổng tax amount từ orders (vì sales page đã tính sẵn)
+                    totalTax = orders.Sum(o => o.TaxAmount);
+                    
+                    // Doanh thu chưa thuế = Tổng tiền - Thuế
                     totalRevenueExcludingTax = totalRevenueIncludingTax - totalTax;
-                }
-                else if (taxConfig.EnableVAT && !taxConfig.VATIncludedInPrice)
-                {
-                    // Nếu thuế tính thêm: Revenue đã không bao gồm thuế
-                    totalRevenueExcludingTax = totalRevenueIncludingTax;
-                    totalTax = totalRevenueExcludingTax * (taxConfig.VATRate / 100);
                 }
 
                 var totalRevenue = totalRevenueExcludingTax;
 
                 // Tính chi phí hàng bán thực tế dựa trên CostPrice
                 decimal costOfGoodsSold = 0;
+                decimal totalLoss = 0; // Tổng số tiền lỗ
+                
                 foreach (var order in orders)
                 {
                     foreach (var item in order.Items)
                     {
                         var product = products.FirstOrDefault(p => p.ProductId == item.ProductId);
                         var costPrice = product?.CostPrice ?? (item.Price * 0.6m); // Fallback 60% nếu không có CostPrice
-                        costOfGoodsSold += item.Quantity * costPrice;
+                        var itemCost = item.Quantity * costPrice;
+                        var itemRevenue = item.Quantity * item.Price;
+                        
+                        costOfGoodsSold += itemCost;
+                        
+                        // Tính lỗ (nếu giá bán thấp hơn giá vốn)
+                        if (item.Price < costPrice)
+                        {
+                            totalLoss += item.Quantity * (costPrice - item.Price);
+                        }
                     }
                 }
 
-                // Lợi nhuận gộp = Doanh thu - Chi phí hàng bán thực tế
-                var grossProfit = totalRevenue - costOfGoodsSold;
+                // Lợi nhuận trước thuế = Doanh thu (chưa thuế) - Chi phí hàng bán
+                var profitBeforeTax = totalRevenue - costOfGoodsSold;
 
-                // Chi phí hoạt động = 20% doanh thu (có thể cập nhật sau)
-                var operatingExpenses = totalRevenue * 0.2m;
+                // Lợi nhuận sau thuế = Lợi nhuận trước thuế - Thuế VAT
+                var profitAfterTax = profitBeforeTax - totalTax;
 
-                // Lợi nhuận ròng = Lợi nhuận gộp - Chi phí hoạt động
-                var netProfit = grossProfit - operatingExpenses;
-
-                // Tỷ suất lợi nhuận
-                var profitMargin = totalRevenue > 0 ? (netProfit / totalRevenue * 100) : 0;
+                // Tỷ suất lợi nhuận = Lợi nhuận sau thuế / Doanh thu (chưa thuế) * 100
+                var profitMargin = totalRevenue > 0 ? (profitAfterTax / totalRevenue * 100) : 0;
 
                 // Top sản phẩm có lợi nhuận cao từ OrderItems với thông tin chi tiết
                 var orderItems = await _context.OrderItems
@@ -352,12 +356,15 @@ namespace RetailPointBackend.Controllers
                     totalTax = totalTax.ToString("N0") + "₫",
                     vatRate = taxConfig.EnableVAT ? taxConfig.VATRate.ToString("F1") + "%" : "0%",
                     
-                    // Lợi nhuận
-                    grossProfit = grossProfit.ToString("N0") + "₫",
+                    // Lợi nhuận đơn giản
                     costOfGoodsSold = costOfGoodsSold.ToString("N0") + "₫",
-                    operatingExpenses = operatingExpenses.ToString("N0") + "₫",
-                    totalProfit = netProfit.ToString("N0") + "₫",
+                    profitBeforeTax = profitBeforeTax.ToString("N0") + "₫",
+                    profitAfterTax = profitAfterTax.ToString("N0") + "₫",
                     profitMargin = profitMargin.ToString("F1") + "%",
+                    totalLoss = totalLoss.ToString("N0") + "₫",
+                    
+                    // Giữ lại cho tương thích
+                    totalProfit = profitAfterTax.ToString("N0") + "₫",
                     profitableProducts = profitableProducts,
                     topProfitableProducts = profitableProducts, // Alias cho frontend
                     monthlyTrend = monthlyTrend

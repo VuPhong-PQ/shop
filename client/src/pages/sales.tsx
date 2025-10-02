@@ -297,16 +297,11 @@ export default function Sales() {
     queryKey: ["/api/TaxConfig"],
     queryFn: async () => {
       const res = await apiRequest("/api/TaxConfig", { method: "GET" });
-      const data = typeof res === "string" ? JSON.parse(res) : res;
-      console.log("TaxConfig API response:", data); // Debug log
-      return data;
+      return typeof res === "string" ? JSON.parse(res) : res;
     },
   });
 
   const subtotal = cart.reduce((sum, item) => sum + item.totalPrice, 0);
-  
-  // Debug: log toàn bộ taxConfig để xem structure
-  console.log("Full taxConfig object:", taxConfig);
   
   // Kiểm tra xem thuế VAT có được bật hay không - hỗ trợ cả PascalCase và camelCase
   const isVATEnabled = Boolean(
@@ -329,18 +324,9 @@ export default function Sales() {
     "VAT"
   );
   
-  console.log("Tax calculation values:", { 
-    isVATEnabled, 
-    taxRate, 
-    taxLabel,
-    subtotal 
-  });
-  
   // Chỉ tính thuế nếu VAT được bật
   const taxAmount = isVATEnabled ? subtotal * (taxRate / 100) : 0;
   const total = subtotal + taxAmount;
-  
-  console.log("Final tax calculation:", { taxAmount, total });
 
   // Add product to cart
   const addToCart = (product: Product) => {

@@ -429,28 +429,42 @@ export default function Reports() {
                         </div>
                       </div>
                       
+                      {/* Chi phí */}
+                      <div className="bg-gray-50 p-3 rounded-lg space-y-2">
+                        <h4 className="font-medium text-gray-800">Chi phí</h4>
+                        <div className="flex justify-between text-sm">
+                          <span>Chi phí hàng bán:</span>
+                          <span className="font-medium">{profitAnalysis?.costOfGoodsSold}</span>
+                        </div>
+                      </div>
+                      
                       {/* Lợi nhuận */}
-                      <div className="flex justify-between">
-                        <span>Lợi nhuận gộp:</span>
-                        <span className="font-medium text-green-600">{profitAnalysis?.grossProfit}</span>
+                      <div className="bg-green-50 p-3 rounded-lg space-y-2">
+                        <h4 className="font-medium text-green-800">Lợi nhuận</h4>
+                        <div className="flex justify-between text-sm">
+                          <span>Lợi nhuận trước thuế:</span>
+                          <span className="font-medium text-green-600">{profitAnalysis?.profitBeforeTax}</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span>Lợi nhuận sau thuế:</span>
+                          <span className="font-medium text-green-600">{profitAnalysis?.profitAfterTax}</span>
+                        </div>
+                        <div className="flex justify-between text-sm border-t pt-2">
+                          <span>Tỷ suất lợi nhuận:</span>
+                          <Badge className="bg-green-100 text-green-800">{profitAnalysis?.profitMargin}</Badge>
+                        </div>
                       </div>
-                      <div className="flex justify-between">
-                        <span>Chi phí hàng bán:</span>
-                        <span className="font-medium">{profitAnalysis?.costOfGoodsSold}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Chi phí hoạt động:</span>
-                        <span className="font-medium text-red-600">{profitAnalysis?.operatingExpenses}</span>
-                      </div>
-                      <hr />
-                      <div className="flex justify-between text-lg">
-                        <span className="font-semibold">Lợi nhuận ròng (sau thuế):</span>
-                        <span className="font-bold text-green-600">{profitAnalysis?.totalProfit}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Tỷ suất lợi nhuận:</span>
-                        <Badge className="bg-green-100 text-green-800">{profitAnalysis?.profitMargin}</Badge>
-                      </div>
+                      
+                      {/* Lỗ (nếu có) */}
+                      {profitAnalysis?.totalLoss && profitAnalysis.totalLoss !== "0₫" && (
+                        <div className="bg-red-50 p-3 rounded-lg">
+                          <h4 className="font-medium text-red-800">Cảnh báo</h4>
+                          <div className="flex justify-between text-sm">
+                            <span>Tổng lỗ (bán giá thấp hơn giá vốn):</span>
+                            <span className="font-medium text-red-600">{profitAnalysis?.totalLoss}</span>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
