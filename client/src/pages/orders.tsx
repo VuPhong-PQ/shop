@@ -174,7 +174,7 @@ export default function OrdersPage() {
       await apiRequest(`/api/orders/${orderId}`, { 
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: "cancelled" })
+        body: JSON.stringify({ Status: "cancelled" }) // Uppercase S để match với model
       });
       toast({
         title: "Thành công",

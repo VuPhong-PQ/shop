@@ -235,12 +235,19 @@ namespace RetailPointBackend.Controllers
         {
             var order = _context.Orders.FirstOrDefault(o => o.OrderId == id);
             if (order == null) return NotFound();
-            order.CustomerId = updatedOrder.CustomerId;
-            order.CustomerName = updatedOrder.CustomerName;
-            order.TotalAmount = updatedOrder.TotalAmount;
-            // Nếu muốn cập nhật luôn Items thì cần xử lý thêm ở đây
+            
+            // Cập nhật các field được gửi lên
+            if (updatedOrder.CustomerId.HasValue) order.CustomerId = updatedOrder.CustomerId;
+            if (!string.IsNullOrEmpty(updatedOrder.CustomerName)) order.CustomerName = updatedOrder.CustomerName;
+            if (updatedOrder.TotalAmount > 0) order.TotalAmount = updatedOrder.TotalAmount;
+            if (!string.IsNullOrEmpty(updatedOrder.Status)) order.Status = updatedOrder.Status;
+            if (!string.IsNullOrEmpty(updatedOrder.PaymentStatus)) order.PaymentStatus = updatedOrder.PaymentStatus;
+            if (!string.IsNullOrEmpty(updatedOrder.PaymentMethod)) order.PaymentMethod = updatedOrder.PaymentMethod;
+            
+            Console.WriteLine($"Updating order {id}: Status = {updatedOrder.Status}");
             _context.SaveChanges();
-            return Ok(new { order.OrderId, Status = "Updated" });
+            
+            return Ok(new { order.OrderId, Status = "Updated", NewStatus = order.Status });
         }
 
         // Xóa đơn hàng
