@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useLocation } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
-import { Trash2, RotateCcw, AlertTriangle } from "lucide-react";
+import { Trash2, RotateCcw, AlertTriangle, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
   AlertDialog,
@@ -156,11 +156,36 @@ export default function OrdersPage() {
         description: "Đã xóa đơn hàng thành công"
       });
       refetch(); // Refresh danh sách
-    } catch (error) {
+    } catch (error: any) {
+      console.log("Delete error:", error);
+      
+      // Hiển thị lỗi chi tiết cho user
+      toast({
+        variant: "destructive",
+        title: "Tạm thời không thể xóa đơn hàng",
+        description: "Hệ thống đang có vấn đề với việc xóa đơn hàng. Vui lòng liên hệ admin để xóa thủ công hoặc đánh dấu đơn hàng là 'Đã hủy'."
+      });
+    }
+  };
+
+  // Đánh dấu hủy đơn hàng
+  const handleCancelOrder = async (orderId: number) => {
+    try {
+      await apiRequest(`/api/orders/${orderId}`, { 
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "cancelled" })
+      });
+      toast({
+        title: "Thành công",
+        description: "Đã đánh dấu đơn hàng là đã hủy"
+      });
+      refetch(); // Refresh danh sách
+    } catch (error: any) {
       toast({
         variant: "destructive",
         title: "Lỗi",
-        description: "Không thể xóa đơn hàng"
+        description: "Không thể cập nhật trạng thái đơn hàng"
       });
     }
   };
@@ -271,7 +296,8 @@ export default function OrdersPage() {
                     <div className="font-semibold text-lg mb-2">Mã đơn: #{order.orderId}</div>
                     <div className="space-y-1 text-sm">
                       <div>Khách hàng: <span className="font-medium">{order.customerName || "Khách lẻ"}</span></div>
-                      <div>Ngày tạo: <span className="font-medium">{order.createdAt?.slice(0, 10)}</span></div>
+                      <div>Ngày tạo: <span className="font-medium">{new Date(order.createdAt).toLocaleDateString('vi-VN')}</span></div>
+                      <div>Giờ tạo: <span className="font-medium">{new Date(order.createdAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</span></div>
                       <div>Tổng tiền: <span className="font-bold text-blue-600">{Number(order.totalAmount).toLocaleString('vi-VN')}₫</span></div>
                     </div>
                     
@@ -293,6 +319,34 @@ export default function OrdersPage() {
                         </button>
                       )}
                       
+                      {order.status !== 'cancelled' && (
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <button className="inline-flex items-center px-3 py-1.5 bg-orange-600 text-white text-sm rounded-md hover:bg-orange-700 transition-colors">
+                              <X className="w-4 h-4 mr-1" />
+                              Đánh dấu hủy
+                            </button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Xác nhận hủy đơn hàng</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Bạn có chắc chắn muốn đánh dấu đơn hàng #{order.orderId} là đã hủy? Đơn hàng sẽ được giữ lại trong hệ thống với trạng thái "Đã hủy".
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Không</AlertDialogCancel>
+                              <AlertDialogAction 
+                                onClick={() => handleCancelOrder(order.orderId)}
+                                className="bg-orange-600 hover:bg-orange-700"
+                              >
+                                Đánh dấu hủy
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      )}
+                      
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
                           <button className="inline-flex items-center px-3 py-1.5 bg-red-600 text-white text-sm rounded-md hover:bg-red-700 transition-colors">
@@ -305,6 +359,8 @@ export default function OrdersPage() {
                             <AlertDialogTitle>Xác nhận xóa đơn hàng</AlertDialogTitle>
                             <AlertDialogDescription>
                               Bạn có chắc chắn muốn xóa đơn hàng #{order.orderId}? Hành động này không thể hoàn tác.
+                              <br /><br />
+                              <strong>Lưu ý:</strong> Hiện tại có vấn đề kỹ thuật với việc xóa đơn hàng. Khuyến nghị sử dụng "Đánh dấu hủy" thay thế.
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
@@ -313,7 +369,7 @@ export default function OrdersPage() {
                               onClick={() => handleDeleteOrder(order.orderId)}
                               className="bg-red-600 hover:bg-red-700"
                             >
-                              Xóa
+                              Thử xóa
                             </AlertDialogAction>
                           </AlertDialogFooter>
                         </AlertDialogContent>
@@ -356,7 +412,8 @@ export default function OrdersPage() {
             </div>
             <h2 className="text-xl font-bold mb-2">Đơn hàng #{selectedOrder.orderId}</h2>
             <div>Khách hàng: {selectedOrder.customerName || "Khách lẻ"}</div>
-            <div>Ngày tạo: {selectedOrder.createdAt?.slice(0, 10)}</div>
+            <div>Ngày tạo: {new Date(selectedOrder.createdAt).toLocaleDateString('vi-VN')}</div>
+            <div>Giờ tạo: {new Date(selectedOrder.createdAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</div>
             
             {/* Trạng thái đơn hàng */}
             <div className="flex gap-2 my-2">

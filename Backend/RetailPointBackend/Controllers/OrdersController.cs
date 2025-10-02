@@ -247,11 +247,45 @@ namespace RetailPointBackend.Controllers
         [HttpDelete("{id}")]
         public IActionResult DeleteOrder(int id)
         {
-            var order = _context.Orders.FirstOrDefault(o => o.OrderId == id);
-            if (order == null) return NotFound();
-            _context.Orders.Remove(order);
-            _context.SaveChanges();
-            return Ok(new { Status = "Deleted" });
+            try
+        {
+                Console.WriteLine($"Attempting to delete order {id}");
+                
+                // Tìm order trước
+                var order = _context.Orders.Find(id);
+                if (order == null) 
+                {
+                    Console.WriteLine($"Order {id} not found");
+                    return NotFound(new { message = $"Đơn hàng #{id} không tồn tại" });
+                }
+                
+                Console.WriteLine($"Found order {id}, deleting associated order items manually");
+                
+                // Xóa OrderItems trước một cách manual
+                var orderItems = _context.OrderItems.Where(oi => oi.OrderId == id).ToList();
+                Console.WriteLine($"Found {orderItems.Count} order items to delete");
+                
+                if (orderItems.Any())
+                {
+                    _context.OrderItems.RemoveRange(orderItems);
+                }
+                
+                // Sau đó xóa Order
+                _context.Orders.Remove(order);
+                _context.SaveChanges();
+                
+                Console.WriteLine($"Successfully deleted order {id}");
+                return Ok(new { Status = "Deleted", OrderId = id, Message = $"Đã xóa đơn hàng #{id}" });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error deleting order {id}: {ex.Message}");
+                return StatusCode(500, new { 
+                    message = "Lỗi khi xóa đơn hàng", 
+                    error = ex.Message, 
+                    orderId = id 
+                });
+            }
         }
     }
 }

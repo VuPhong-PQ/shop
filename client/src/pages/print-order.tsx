@@ -323,6 +323,7 @@ export default function PrintOrder() {
             <h2 className="text-xl font-bold mb-2">Đơn hàng #{orderDetail.orderId}</h2>
             <div>Khách hàng: {orderDetail.customerName || orderDetail.customer?.hoTen || '-'}</div>
             <div>Ngày tạo: {new Date(orderDetail.createdAt).toLocaleDateString('vi-VN')}</div>
+            <div>Giờ tạo: {new Date(orderDetail.createdAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</div>
             <div>Hình thức thanh toán: <b>{formatPaymentMethod(orderDetail.paymentMethod)}</b></div>
             <div>Thu Ngân: <b>Admin</b></div>
 
