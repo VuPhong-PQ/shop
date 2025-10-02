@@ -248,7 +248,7 @@ namespace RetailPointBackend.Controllers
         public IActionResult DeleteOrder(int id)
         {
             try
-        {
+            {
                 Console.WriteLine($"Attempting to delete order {id}");
                 
                 // Tìm order trước
@@ -259,9 +259,19 @@ namespace RetailPointBackend.Controllers
                     return NotFound(new { message = $"Đơn hàng #{id} không tồn tại" });
                 }
                 
-                Console.WriteLine($"Found order {id}, deleting associated order items manually");
+                Console.WriteLine($"Found order {id}, deleting in correct order...");
                 
-                // Xóa OrderItems trước một cách manual
+                // Bước 1: Xóa Notifications liên quan đến order này trước
+                var notifications = _notificationContext.Notifications.Where(n => n.OrderId == id).ToList();
+                Console.WriteLine($"Found {notifications.Count} notifications to delete");
+                
+                if (notifications.Any())
+                {
+                    _notificationContext.Notifications.RemoveRange(notifications);
+                    _notificationContext.SaveChanges();
+                }
+                
+                // Bước 2: Xóa OrderItems
                 var orderItems = _context.OrderItems.Where(oi => oi.OrderId == id).ToList();
                 Console.WriteLine($"Found {orderItems.Count} order items to delete");
                 
@@ -270,7 +280,7 @@ namespace RetailPointBackend.Controllers
                     _context.OrderItems.RemoveRange(orderItems);
                 }
                 
-                // Sau đó xóa Order
+                // Bước 3: Cuối cùng xóa Order
                 _context.Orders.Remove(order);
                 _context.SaveChanges();
                 
@@ -280,6 +290,7 @@ namespace RetailPointBackend.Controllers
             catch (Exception ex)
             {
                 Console.WriteLine($"Error deleting order {id}: {ex.Message}");
+                Console.WriteLine($"Stack trace: {ex.StackTrace}");
                 return StatusCode(500, new { 
                     message = "Lỗi khi xóa đơn hàng", 
                     error = ex.Message, 
