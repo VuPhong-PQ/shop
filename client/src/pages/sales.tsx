@@ -297,16 +297,50 @@ export default function Sales() {
     queryKey: ["/api/TaxConfig"],
     queryFn: async () => {
       const res = await apiRequest("/api/TaxConfig", { method: "GET" });
-      return typeof res === "string" ? JSON.parse(res) : res;
+      const data = typeof res === "string" ? JSON.parse(res) : res;
+      console.log("TaxConfig API response:", data); // Debug log
+      return data;
     },
   });
 
   const subtotal = cart.reduce((sum, item) => sum + item.totalPrice, 0);
-  // VATRate backend trả về số phần trăm (8, 10, ...) nên cần chia cho 100 khi tính toán
-  const taxRate = taxConfig?.VATRate ? Number(taxConfig.VATRate) : 10;
-  const taxLabel = taxConfig?.VATLabel || "VAT";
-  const taxAmount = subtotal * (taxRate / 100);
+  
+  // Debug: log toàn bộ taxConfig để xem structure
+  console.log("Full taxConfig object:", taxConfig);
+  
+  // Kiểm tra xem thuế VAT có được bật hay không - hỗ trợ cả PascalCase và camelCase
+  const isVATEnabled = Boolean(
+    taxConfig?.EnableVAT || 
+    taxConfig?.enableVAT || 
+    false
+  );
+  
+  // Lấy tax rate - hỗ trợ cả hai format
+  const taxRate = Number(
+    taxConfig?.VATRate || 
+    taxConfig?.vatRate || 
+    10
+  );
+  
+  // Lấy tax label - hỗ trợ cả hai format  
+  const taxLabel = String(
+    taxConfig?.VATLabel || 
+    taxConfig?.vatLabel || 
+    "VAT"
+  );
+  
+  console.log("Tax calculation values:", { 
+    isVATEnabled, 
+    taxRate, 
+    taxLabel,
+    subtotal 
+  });
+  
+  // Chỉ tính thuế nếu VAT được bật
+  const taxAmount = isVATEnabled ? subtotal * (taxRate / 100) : 0;
   const total = subtotal + taxAmount;
+  
+  console.log("Final tax calculation:", { taxAmount, total });
 
   // Add product to cart
   const addToCart = (product: Product) => {
@@ -699,10 +733,13 @@ export default function Sales() {
                     <span>Tạm tính:</span>
                     <span data-testid="subtotal">{subtotal.toLocaleString('vi-VN')}₫</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span>{taxLabel} ({taxConfig?.VATRate || 10}%):</span>
-                    <span data-testid="tax">{taxAmount.toLocaleString('vi-VN')}₫</span>
-                  </div>
+                  {/* Chỉ hiển thị thuế khi được bật */}
+                  {isVATEnabled && (
+                    <div className="flex justify-between">
+                      <span>{taxLabel} ({taxRate}%):</span>
+                      <span data-testid="tax">{taxAmount.toLocaleString('vi-VN')}₫</span>
+                    </div>
+                  )}
                   <Separator />
                   <div className="flex justify-between text-lg font-bold">
                     <span>Tổng cộng:</span>
