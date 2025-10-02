@@ -16,7 +16,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { z } from "zod";
-import type { Product } from "@shared/schema";
+import type { Product } from "@/types/backend-types";
 
 const stockAdjustmentSchema = z.object({
   productId: z.string().min(1, "Vui lòng chọn sản phẩm"),
@@ -48,10 +48,25 @@ export default function Inventory() {
   const [stockFilter, setStockFilter] = useState<string>("all");
   const [isAdjustmentDialogOpen, setIsAdjustmentDialogOpen] = useState(false);
 
+  // Reset form when dialog opens
+  const handleDialogOpenChange = (open: boolean) => {
+    if (open) {
+      form.reset();
+    }
+    setIsAdjustmentDialogOpen(open);
+  };
+
   // Fetch products
   const { data: products = [], isLoading } = useQuery<Product[]>({
     queryKey: ['/api/products'],
   });
+
+  // Debug: Log products data
+  console.log('Products data:', products);
+  if (products.length > 0) {
+    console.log('First product structure:', products[0]);
+    console.log('Product ID field:', products[0].productId);
+  }
 
   // Mock stock movements - in real app this would come from API
   const stockMovements: StockMovement[] = [
@@ -96,10 +111,33 @@ export default function Inventory() {
   // Stock adjustment mutation
   const adjustStockMutation = useMutation({
     mutationFn: async (data: StockAdjustmentData) => {
-      // In real app, this would update product stock
-      return apiRequest('/api/inventory/adjust', {
+      // Calculate new quantity based on type
+      const product = products.find(p => p.productId.toString() === data.productId);
+      if (!product) {
+        throw new Error('Sản phẩm không tồn tại');
+      }
+
+      let newQuantity = product.stockQuantity;
+      if (data.type === 'stock_in') {
+        newQuantity += data.quantity;
+      } else if (data.type === 'stock_out') {
+        newQuantity -= data.quantity;
+        if (newQuantity < 0) newQuantity = 0;
+      } else if (data.type === 'adjustment') {
+        newQuantity = data.quantity;
+      }
+
+      const requestBody = {
+        newQuantity: newQuantity,
+        reason: data.reason + (data.notes ? ` (${data.notes})` : '')
+      };
+
+      return apiRequest(`/api/products/${data.productId}/adjust-stock`, {
         method: 'POST',
-        body: JSON.stringify(data),
+        body: JSON.stringify(requestBody),
+        headers: {
+          'Content-Type': 'application/json'
+        }
       });
     },
     onSuccess: () => {
@@ -124,10 +162,10 @@ export default function Inventory() {
   const filteredProducts = products.filter(product => {
     const searchNormalized = normalizeSearchText(searchTerm);
     const productNameNormalized = normalizeSearchText(product.name || '');
-    const productSkuNormalized = normalizeSearchText(product.sku || '');
+    const productBarcodeNormalized = normalizeSearchText(product.barcode || '');
     
     const matchesSearch = productNameNormalized.includes(searchNormalized) ||
-                         productSkuNormalized.includes(searchNormalized);
+                         productBarcodeNormalized.includes(searchNormalized);
     
     let matchesStock = true;
     if (stockFilter === "low") {
@@ -156,10 +194,11 @@ export default function Inventory() {
   const totalProducts = products.length;
   const lowStockProducts = products.filter(p => p.stockQuantity <= p.minStockLevel).length;
   const outOfStockProducts = products.filter(p => p.stockQuantity === 0).length;
-  const totalValue = products.reduce((sum, p) => sum + (parseFloat(p.price) * p.stockQuantity), 0);
+  const totalValue = products.reduce((sum, p) => sum + (Number(p.price) * p.stockQuantity), 0);
 
   // Handle form submission
   const onSubmit = (data: StockAdjustmentData) => {
+    console.log('Form submitted with data:', data);
     adjustStockMutation.mutate(data);
   };
 
@@ -258,14 +297,16 @@ export default function Inventory() {
                 </Select>
               </div>
 
-              <Dialog open={isAdjustmentDialogOpen} onOpenChange={setIsAdjustmentDialogOpen}>
+              <Dialog open={isAdjustmentDialogOpen} onOpenChange={handleDialogOpenChange}>
                 <DialogTrigger asChild>
-                  <Button data-testid="button-adjust-stock">
+                  <Button data-testid="button-adjust-stock" onClick={() => {
+                    console.log('Dialog opening, products available:', products.length);
+                  }}>
                     <Package className="w-4 h-4 mr-2" />
                     Điều chỉnh tồn kho
                   </Button>
                 </DialogTrigger>
-                <DialogContent>
+                <DialogContent className="max-w-md">
                   <DialogHeader>
                     <DialogTitle>Điều chỉnh tồn kho</DialogTitle>
                   </DialogHeader>
@@ -278,21 +319,41 @@ export default function Inventory() {
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel>Sản phẩm *</FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value}>
+                            <Select onValueChange={(value) => {
+                              console.log('Product selected:', value);
+                              field.onChange(value);
+                            }} value={field.value}>
                               <FormControl>
-                                <SelectTrigger data-testid="select-adjustment-product">
+                                <SelectTrigger data-testid="select-adjustment-product" className="w-full">
                                   <SelectValue placeholder="Chọn sản phẩm" />
                                 </SelectTrigger>
                               </FormControl>
-                              <SelectContent>
-                                {products.map((product) => (
-                                  <SelectItem key={product.id} value={product.id}>
-                                    {product.name} (Tồn: {product.stockQuantity})
-                                  </SelectItem>
-                                ))}
+                              <SelectContent className="z-50" position="popper">
+                                {products.length === 0 ? (
+                                  <SelectItem value="loading" disabled>Đang tải...</SelectItem>
+                                ) : (
+                                  products.map((product, index) => {
+                                    console.log(`Product ${index}:`, product.productId, product.name);
+                                    return (
+                                      <SelectItem key={product.productId} value={String(product.productId)}>
+                                        {product.name} (Hiện tại: {product.stockQuantity})
+                                      </SelectItem>
+                                    );
+                                  })
+                                )}
                               </SelectContent>
                             </Select>
                             <FormMessage />
+                            {field.value && (
+                              <div className="text-sm text-gray-600 mt-1">
+                                {(() => {
+                                  const selectedProduct = products.find(p => p.productId.toString() === field.value);
+                                  return selectedProduct ? (
+                                    <span>Tồn kho hiện tại: <strong>{selectedProduct.stockQuantity}</strong> {selectedProduct.unit || 'sản phẩm'}</span>
+                                  ) : null;
+                                })()}
+                              </div>
+                            )}
                           </FormItem>
                         )}
                       />
@@ -303,16 +364,19 @@ export default function Inventory() {
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel>Loại điều chỉnh *</FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value}>
+                            <Select onValueChange={(value) => {
+                              console.log('Type selected:', value);
+                              field.onChange(value);
+                            }} value={field.value}>
                               <FormControl>
-                                <SelectTrigger data-testid="select-adjustment-type">
-                                  <SelectValue />
+                                <SelectTrigger data-testid="select-adjustment-type" className="w-full">
+                                  <SelectValue placeholder="Kiểm kê điều chỉnh" />
                                 </SelectTrigger>
                               </FormControl>
-                              <SelectContent>
-                                <SelectItem value="stock_in">Nhập kho</SelectItem>
-                                <SelectItem value="stock_out">Xuất kho</SelectItem>
-                                <SelectItem value="adjustment">Kiểm kê điều chỉnh</SelectItem>
+                              <SelectContent className="z-50" position="popper">
+                                <SelectItem value="stock_in">Nhập kho (cộng thêm)</SelectItem>
+                                <SelectItem value="stock_out">Xuất kho (trừ đi)</SelectItem>
+                                <SelectItem value="adjustment">Kiểm kê điều chỉnh (đặt số lượng mới)</SelectItem>
                               </SelectContent>
                             </Select>
                             <FormMessage />
@@ -452,50 +516,50 @@ export default function Inventory() {
                         filteredProducts.map((product) => {
                           const status = getStockStatus(product);
                           const StatusIcon = status.icon;
-                          const stockValue = parseFloat(product.price) * product.stockQuantity;
+                          const stockValue = Number(product.price) * product.stockQuantity;
 
                           return (
-                            <tr key={product.id} data-testid={`product-row-${product.id}`}>
+                            <tr key={product.productId} data-testid={`product-row-${product.productId}`}>
                               <td className="px-6 py-4">
                                 <div className="flex items-center">
                                   <img
                                     src={
-                                      product.ImageUrl
-                                        ? product.ImageUrl.startsWith("/uploads")
-                                          ? `http://localhost:5271${product.ImageUrl}`
-                                          : product.ImageUrl
-                                        : product.image || "https://images.unsplash.com/photo-1559056199-641a0ac8b55e?w=40&h=40&fit=crop"
+                                      product.imageUrl
+                                        ? product.imageUrl.startsWith("/uploads")
+                                          ? `http://localhost:5271${product.imageUrl}`
+                                          : product.imageUrl
+                                        : "https://images.unsplash.com/photo-1559056199-641a0ac8b55e?w=40&h=40&fit=crop"
                                     }
-                                    alt={product.name}
+                                    alt={product.name || 'Product'}
                                     className="w-10 h-10 rounded-lg object-cover mr-3"
                                   />
                                   <div>
-                                    <p className="font-medium text-gray-900" data-testid={`product-name-${product.id}`}>
+                                    <p className="font-medium text-gray-900" data-testid={`product-name-${product.productId}`}>
                                       {product.name}
                                     </p>
                                     <p className="text-sm text-gray-500">
-                                      {parseInt(product.price).toLocaleString('vi-VN')}₫
+                                      {Number(product.price).toLocaleString('vi-VN')}₫
                                     </p>
                                   </div>
                                 </div>
                               </td>
-                              <td className="px-6 py-4 text-sm text-gray-900" data-testid={`product-sku-${product.id}`}>
-                                {product.sku}
+                              <td className="px-6 py-4 text-sm text-gray-900" data-testid={`product-sku-${product.productId}`}>
+                                {product.barcode || 'N/A'}
                               </td>
                               <td className="px-6 py-4">
-                                <span className="text-lg font-semibold" data-testid={`product-stock-${product.id}`}>
+                                <span className="text-lg font-semibold" data-testid={`product-stock-${product.productId}`}>
                                   {product.stockQuantity}
                                 </span>
                                 <span className="text-sm text-gray-500 ml-1">{product.unit}</span>
                               </td>
-                              <td className="px-6 py-4 text-sm text-gray-500" data-testid={`product-min-stock-${product.id}`}>
+                              <td className="px-6 py-4 text-sm text-gray-500" data-testid={`product-min-stock-${product.productId}`}>
                                 {product.minStockLevel}
                               </td>
-                              <td className="px-6 py-4 text-sm font-medium text-gray-900" data-testid={`product-value-${product.id}`}>
+                              <td className="px-6 py-4 text-sm font-medium text-gray-900" data-testid={`product-value-${product.productId}`}>
                                 {stockValue.toLocaleString('vi-VN')}₫
                               </td>
                               <td className="px-6 py-4">
-                                <Badge className={`text-white ${status.color}`} data-testid={`product-status-${product.id}`}>
+                                <Badge className={`text-white ${status.color}`} data-testid={`product-status-${product.productId}`}>
                                   <StatusIcon className="w-3 h-3 mr-1" />
                                   {status.label}
                                 </Badge>
