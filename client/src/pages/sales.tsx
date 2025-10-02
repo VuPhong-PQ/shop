@@ -562,8 +562,8 @@ export default function Sales() {
 
         {/* Cart Section */}
         <div className="w-full lg:w-96 order-2 lg:order-2">
-          <Card className="h-auto lg:h-full">
-            <CardContent className="p-6 flex flex-col h-auto lg:h-full">
+          <Card className="h-auto lg:min-h-[calc(100vh-150px)]">
+            <CardContent className="p-6 flex flex-col h-auto lg:min-h-[calc(100vh-200px)]">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-semibold flex items-center">
                   <ShoppingCart className="w-5 h-5 mr-2" />
@@ -635,51 +635,59 @@ export default function Sales() {
               </div>
 
               {/* Cart Items */}
-              <div className="flex-1 overflow-y-auto space-y-3 mb-4 max-h-[30vh] lg:max-h-full">
+              <div className="flex-1 overflow-y-auto space-y-3 mb-4 min-h-[200px] max-h-[40vh] lg:max-h-[60vh]" style={{visibility: 'visible', display: 'block'}}>
                 {cart.length === 0 ? (
                   <div className="text-center py-8 text-gray-500">
                     <ShoppingCart className="w-12 h-12 mx-auto mb-2 opacity-50" />
                     <p>Giỏ hàng trống</p>
                   </div>
                 ) : (
-                  cart.map((item) => (
-                    <div key={item.productId} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg" data-testid={`cart-item-${item.productId}`}>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-sm truncate">{item.name}</p>
-                        <p className="text-primary font-semibold text-sm lg:text-base">{parseInt(item.price).toLocaleString('vi-VN')}₫</p>
+                  <>
+                    {console.log('Rendering cart items:', cart)}
+                    {cart.map((item) => (
+                      <div 
+                        key={item.cartItemId} 
+                        className="flex items-center justify-between p-3 bg-white rounded-lg border-2 border-blue-200 mb-2" 
+                        data-testid={`cart-item-${item.productId}`}
+                        style={{visibility: 'visible !important', display: 'flex !important', minHeight: '60px', opacity: '1 !important'}}
+                      >
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-sm truncate">{item.name || 'Tên sản phẩm không xác định'}</p>
+                          <p className="text-primary font-semibold text-sm lg:text-base">{parseInt(item.price || 0).toLocaleString('vi-VN')}₫</p>
+                        </div>
+                        <div className="flex items-center space-x-1 lg:space-x-2 ml-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => updateQuantity(item.cartItemId, item.quantity - 1)}
+                            data-testid={`button-decrease-${item.productId}`}
+                            className="h-8 w-8 p-0"
+                          >
+                            <Minus className="w-3 h-3" />
+                          </Button>
+                          <span className="w-6 lg:w-8 text-center text-sm font-medium" data-testid={`quantity-${item.productId}`}>{item.quantity}</span>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => updateQuantity(item.cartItemId, item.quantity + 1)}
+                            data-testid={`button-increase-${item.productId}`}
+                            className="h-8 w-8 p-0"
+                          >
+                            <Plus className="w-3 h-3" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removeFromCart(item.cartItemId)}
+                            data-testid={`button-remove-${item.productId}`}
+                            className="h-8 w-8 p-0 text-red-500 hover:text-red-700"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </Button>
+                        </div>
                       </div>
-                      <div className="flex items-center space-x-1 lg:space-x-2 ml-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => updateQuantity(item.cartItemId, item.quantity - 1)}
-                          data-testid={`button-decrease-${item.id}`}
-                          className="h-8 w-8 p-0"
-                        >
-                          <Minus className="w-3 h-3" />
-                        </Button>
-                        <span className="w-6 lg:w-8 text-center text-sm font-medium" data-testid={`quantity-${item.id}`}>{item.quantity}</span>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => updateQuantity(item.cartItemId, item.quantity + 1)}
-                          data-testid={`button-increase-${item.id}`}
-                          className="h-8 w-8 p-0"
-                        >
-                          <Plus className="w-3 h-3" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => removeFromCart(item.cartItemId)}
-                          data-testid={`button-remove-${item.id}`}
-                          className="h-8 w-8 p-0 text-red-500 hover:text-red-700"
-                        >
-                          <Trash2 className="w-3 h-3" />
-                        </Button>
-                      </div>
-                    </div>
-                  ))
+                    ))}
+                  </>
                 )}
               </div>
 
