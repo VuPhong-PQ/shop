@@ -1,6 +1,6 @@
 {
   "Version": 1,
-  "Hash": "tVm9K7uFGjfIy6vLVqm+QOnvZbbW300DdFL8+5iohL8=",
+  "Hash": "JSzEl6YD6dO0Ro4/CLQ8uqhggDJyLn/WvdBLezzbJyU=",
   "Source": "RetailPointBackend",
   "BasePath": "_content/RetailPointBackend",
   "Mode": "Default",
@@ -729,6 +729,27 @@
       "CopyToOutputDirectory": "Never",
       "CopyToPublishDirectory": "PreserveNewest",
       "OriginalItemSpec": "wwwroot\\uploads\\b8d1c50b-0564-47c3-b267-13634fd10fbf.jpeg"
+    },
+    {
+      "Identity": "D:\\laptrinh\\thiekepm\\RetailPoint\\Backend\\RetailPointBackend\\wwwroot\\uploads\\bc218f7f-f77a-41cb-bd16-6760ab382261.jpeg",
+      "SourceId": "RetailPointBackend",
+      "SourceType": "Discovered",
+      "ContentRoot": "D:\\laptrinh\\thiekepm\\RetailPoint\\Backend\\RetailPointBackend\\wwwroot\\",
+      "BasePath": "_content/RetailPointBackend",
+      "RelativePath": "uploads/bc218f7f-f77a-41cb-bd16-6760ab382261#[.{fingerprint}]?.jpeg",
+      "AssetKind": "All",
+      "AssetMode": "All",
+      "AssetRole": "Primary",
+      "AssetMergeBehavior": "",
+      "AssetMergeSource": "",
+      "RelatedAsset": "",
+      "AssetTraitName": "",
+      "AssetTraitValue": "",
+      "Fingerprint": "2xgsikijsn",
+      "Integrity": "Wrnj9bP058+ewkEBWvT7A3eY9O13rjA6g/p1PyJbh10=",
+      "CopyToOutputDirectory": "Never",
+      "CopyToPublishDirectory": "PreserveNewest",
+      "OriginalItemSpec": "wwwroot\\uploads\\bc218f7f-f77a-41cb-bd16-6760ab382261.jpeg"
     },
     {
       "Identity": "D:\\laptrinh\\thiekepm\\RetailPoint\\Backend\\RetailPointBackend\\wwwroot\\uploads\\bd5807ad-0d68-4e91-9dbd-214a2403eced.jpeg",
@@ -3696,6 +3717,88 @@
         {
           "Name": "Last-Modified",
           "Value": "Sun, 31 Aug 2025 04:00:31 GMT"
+        },
+        {
+          "Name": "Cache-Control",
+          "Value": "max-age=3600, must-revalidate"
+        }
+      ],
+      "EndpointProperties": [
+        {
+          "Name": "integrity",
+          "Value": "sha256-Wrnj9bP058+ewkEBWvT7A3eY9O13rjA6g/p1PyJbh10="
+        }
+      ]
+    },
+    {
+      "Route": "uploads/bc218f7f-f77a-41cb-bd16-6760ab382261.2xgsikijsn.jpeg",
+      "AssetFile": "D:\\laptrinh\\thiekepm\\RetailPoint\\Backend\\RetailPointBackend\\wwwroot\\uploads\\bc218f7f-f77a-41cb-bd16-6760ab382261.jpeg",
+      "Selectors": [],
+      "ResponseHeaders": [
+        {
+          "Name": "Accept-Ranges",
+          "Value": "bytes"
+        },
+        {
+          "Name": "Content-Length",
+          "Value": "5734"
+        },
+        {
+          "Name": "Content-Type",
+          "Value": "image/jpeg"
+        },
+        {
+          "Name": "ETag",
+          "Value": "\"Wrnj9bP058+ewkEBWvT7A3eY9O13rjA6g/p1PyJbh10=\""
+        },
+        {
+          "Name": "Last-Modified",
+          "Value": "Thu, 02 Oct 2025 05:38:04 GMT"
+        },
+        {
+          "Name": "Cache-Control",
+          "Value": "max-age=31536000, immutable"
+        }
+      ],
+      "EndpointProperties": [
+        {
+          "Name": "fingerprint",
+          "Value": "2xgsikijsn"
+        },
+        {
+          "Name": "label",
+          "Value": "uploads/bc218f7f-f77a-41cb-bd16-6760ab382261.jpeg"
+        },
+        {
+          "Name": "integrity",
+          "Value": "sha256-Wrnj9bP058+ewkEBWvT7A3eY9O13rjA6g/p1PyJbh10="
+        }
+      ]
+    },
+    {
+      "Route": "uploads/bc218f7f-f77a-41cb-bd16-6760ab382261.jpeg",
+      "AssetFile": "D:\\laptrinh\\thiekepm\\RetailPoint\\Backend\\RetailPointBackend\\wwwroot\\uploads\\bc218f7f-f77a-41cb-bd16-6760ab382261.jpeg",
+      "Selectors": [],
+      "ResponseHeaders": [
+        {
+          "Name": "Accept-Ranges",
+          "Value": "bytes"
+        },
+        {
+          "Name": "Content-Length",
+          "Value": "5734"
+        },
+        {
+          "Name": "Content-Type",
+          "Value": "image/jpeg"
+        },
+        {
+          "Name": "ETag",
+          "Value": "\"Wrnj9bP058+ewkEBWvT7A3eY9O13rjA6g/p1PyJbh10=\""
+        },
+        {
+          "Name": "Last-Modified",
+          "Value": "Thu, 02 Oct 2025 05:38:04 GMT"
         },
         {
           "Name": "Cache-Control",

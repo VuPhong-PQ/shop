@@ -56,6 +56,7 @@ export default function Reports() {
       }
       return response.json();
     },
+    enabled: !!dateRange.startDate && !!dateRange.endDate,
   });
 
   const { data: productPerformance, isLoading: productLoading } = useQuery({
@@ -67,6 +68,7 @@ export default function Reports() {
       }
       return response.json();
     },
+    enabled: !!dateRange.startDate && !!dateRange.endDate,
   });
 
   const { data: customerAnalytics, isLoading: customerLoading } = useQuery({
@@ -78,6 +80,7 @@ export default function Reports() {
       }
       return response.json();
     },
+    enabled: !!dateRange.startDate && !!dateRange.endDate,
   });
 
   const { data: profitAnalysis, isLoading: profitLoading } = useQuery({
@@ -89,6 +92,7 @@ export default function Reports() {
       }
       return response.json();
     },
+    enabled: !!dateRange.startDate && !!dateRange.endDate,
   });
 
   const isLoading = salesLoading || productLoading || customerLoading || profitLoading;
@@ -295,7 +299,7 @@ export default function Reports() {
                           </div>
                           <div className="text-right">
                             <p className="font-medium">{product.revenue}</p>
-                            <p className="text-sm text-green-600">{product.profit}</p>
+                            <p className="text-sm text-green-600">Lợi nhuận: {product.profit}</p>
                           </div>
                         </div>
                       ))}

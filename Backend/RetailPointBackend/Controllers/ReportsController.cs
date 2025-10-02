@@ -26,7 +26,8 @@ namespace RetailPointBackend.Controllers
 
                 // Lấy đơn hàng trong khoảng thời gian đã thanh toán
                 var orders = await _context.Orders
-                    .Where(o => o.CreatedAt >= start && o.CreatedAt < end && o.PaymentStatus == "paid")
+                    .Where(o => o.CreatedAt >= start && o.CreatedAt < end && 
+                           (o.PaymentStatus == "paid" || o.PaymentStatus == "completed"))
                     .Include(o => o.Items)
                     .ToListAsync();
 
@@ -39,10 +40,11 @@ namespace RetailPointBackend.Controllers
                 // Tổng số khách hàng unique
                 var totalCustomers = await _context.Customers.CountAsync();
 
-                // Tổng số sản phẩm bán ra
-                var totalProductsSold = orders
-                    .SelectMany(o => o.Items)
-                    .Sum(oi => oi.Quantity);
+                // Tính tổng số sản phẩm bán ra từ OrderItems
+                var totalProductsSold = await _context.OrderItems
+                    .Where(oi => oi.Order != null && oi.Order.CreatedAt >= start && oi.Order.CreatedAt < end && 
+                                (oi.Order.PaymentStatus == "paid" || oi.Order.PaymentStatus == "completed"))
+                    .SumAsync(oi => oi.Quantity);
 
                 var response = new
                 {
@@ -68,22 +70,34 @@ namespace RetailPointBackend.Controllers
                 var start = DateTime.Parse(startDate);
                 var end = DateTime.Parse(endDate).AddDays(1);
 
-                // Lấy các sản phẩm bán chạy từ OrderItems
-                var productStats = await _context.OrderItems
-                    .Where(oi => oi.Order != null && oi.Order.CreatedAt >= start && oi.Order.CreatedAt < end && oi.Order.PaymentStatus == "paid")
+                // Lấy các sản phẩm bán chạy từ OrderItems với thông tin cost
+                var orderItems = await _context.OrderItems
+                    .Where(oi => oi.Order != null && oi.Order.CreatedAt >= start && oi.Order.CreatedAt < end && 
+                                (oi.Order.PaymentStatus == "paid" || oi.Order.PaymentStatus == "completed"))
                     .Include(oi => oi.Order)
+                    .ToListAsync();
+
+                var products = await _context.Products.ToListAsync();
+                
+                var productStats = orderItems
                     .GroupBy(oi => new { oi.ProductId, oi.ProductName })
-                    .Select(g => new
-                    {
-                        productId = g.Key.ProductId,
-                        name = g.Key.ProductName ?? "Sản phẩm #" + g.Key.ProductId,
-                        totalSold = g.Sum(oi => oi.Quantity),
-                        revenue = g.Sum(oi => oi.TotalPrice),
-                        profit = g.Sum(oi => oi.TotalPrice * 0.4m) // Giả sử profit margin = 40%
+                    .Select(g => {
+                        var product = products.FirstOrDefault(p => p.ProductId == g.Key.ProductId);
+                        var costPrice = product?.CostPrice ?? (g.First().Price * 0.6m); // Fallback to 60% if no cost
+                        
+                        return new
+                        {
+                            productId = g.Key.ProductId,
+                            name = g.Key.ProductName ?? "Sản phẩm #" + g.Key.ProductId,
+                            totalSold = g.Sum(oi => oi.Quantity),
+                            revenue = g.Sum(oi => oi.TotalPrice),
+                            // Tính lợi nhuận đúng: (Giá bán - Giá nhập) × Số lượng
+                            profit = g.Sum(oi => oi.Quantity * (oi.Price - costPrice))
+                        };
                     })
                     .OrderByDescending(p => p.totalSold)
                     .Take(10)
-                    .ToListAsync();
+                    .ToList();
 
                 var topProducts = productStats.Select(p => new
                 {
@@ -95,7 +109,8 @@ namespace RetailPointBackend.Controllers
 
                 // Tính tổng sản phẩm bán ra
                 var totalProductsSold = await _context.OrderItems
-                    .Where(oi => oi.Order != null && oi.Order.CreatedAt >= start && oi.Order.CreatedAt < end && oi.Order.PaymentStatus == "paid")
+                    .Where(oi => oi.Order != null && oi.Order.CreatedAt >= start && oi.Order.CreatedAt < end && 
+                                (oi.Order.PaymentStatus == "paid" || oi.Order.PaymentStatus == "completed"))
                     .SumAsync(oi => oi.Quantity);
 
                 // Sản phẩm phổ biến nhất
@@ -127,36 +142,34 @@ namespace RetailPointBackend.Controllers
                 // Tổng số khách hàng
                 var totalCustomers = await _context.Customers.CountAsync();
 
-                // Khách hàng mới trong kỳ - giả sử sử dụng ngày đăng ký từ đơn hàng đầu tiên
-                var newCustomers = await _context.Orders
-                    .Where(o => o.CreatedAt >= start && o.CreatedAt < end && o.CustomerId.HasValue)
-                    .Select(o => o.CustomerId)
-                    .Distinct()
-                    .CountAsync();
+                // Khách hàng mới trong kỳ (nếu có trường CreatedAt)
+                var newCustomers = 0; // Tạm thời = 0 vì Customer model chưa có CreatedAt
 
                 // Khách hàng có đơn hàng trong kỳ
                 var activeCustomers = await _context.Orders
-                    .Where(o => o.CreatedAt >= start && o.CreatedAt < end && o.PaymentStatus == "paid")
+                    .Where(o => o.CreatedAt >= start && o.CreatedAt < end && 
+                               (o.PaymentStatus == "paid" || o.PaymentStatus == "completed"))
                     .Select(o => o.CustomerId)
                     .Distinct()
                     .CountAsync();
 
                 // Khách hàng quay lại (có > 1 đơn hàng)
                 var returningCustomers = await _context.Orders
-                    .Where(o => o.PaymentStatus == "paid" && o.CustomerId.HasValue)
+                    .Where(o => (o.PaymentStatus == "paid" || o.PaymentStatus == "completed") && o.CustomerId.HasValue)
                     .GroupBy(o => o.CustomerId)
                     .Where(g => g.Count() > 1)
                     .CountAsync();
 
                 // Top khách hàng VIP
                 var topCustomers = await _context.Orders
-                    .Where(o => o.CreatedAt >= start && o.CreatedAt < end && o.PaymentStatus == "paid" && o.CustomerId.HasValue)
+                    .Where(o => o.CreatedAt >= start && o.CreatedAt < end && 
+                               (o.PaymentStatus == "paid" || o.PaymentStatus == "completed") && o.CustomerId.HasValue)
                     .Include(o => o.Customer)
-                    .GroupBy(o => new { o.CustomerId, CustomerName = o.Customer!.HoTen })
+                    .GroupBy(o => new { o.CustomerId, o.Customer.HoTen })
                     .Select(g => new
                     {
                         customerId = g.Key.CustomerId,
-                        name = g.Key.CustomerName ?? "Khách hàng #" + g.Key.CustomerId,
+                        name = g.Key.HoTen ?? "Khách hàng #" + g.Key.CustomerId,
                         orders = g.Count(),
                         totalSpent = g.Sum(o => o.TotalAmount)
                     })
@@ -167,7 +180,8 @@ namespace RetailPointBackend.Controllers
                 // Trung bình đơn hàng trên khách
                 var averageOrdersPerCustomer = activeCustomers > 0 
                     ? Math.Round((double)await _context.Orders
-                        .Where(o => o.CreatedAt >= start && o.CreatedAt < end && o.PaymentStatus == "paid")
+                        .Where(o => o.CreatedAt >= start && o.CreatedAt < end && 
+                                   (o.PaymentStatus == "paid" || o.PaymentStatus == "completed"))
                         .CountAsync() / activeCustomers, 1)
                     : 0;
 
@@ -205,8 +219,8 @@ namespace RetailPointBackend.Controllers
 
                 // Lấy đơn hàng trong kỳ
                 var orders = await _context.Orders
-                    .Where(o => o.CreatedAt >= start && o.CreatedAt < end && o.PaymentStatus == "paid")
-                    .Include(o => o.Items)
+                    .Where(o => o.CreatedAt >= start && o.CreatedAt < end && 
+                               (o.PaymentStatus == "paid" || o.PaymentStatus == "completed"))
                     .ToListAsync();
 
                 // Tính tổng doanh thu
@@ -229,13 +243,13 @@ namespace RetailPointBackend.Controllers
 
                 // Top sản phẩm có lợi nhuận cao từ OrderItems
                 var profitableProducts = await _context.OrderItems
-                    .Where(oi => oi.Order != null && oi.Order.CreatedAt >= start && oi.Order.CreatedAt < end && oi.Order.PaymentStatus == "paid")
+                    .Where(oi => oi.Order != null && oi.Order.CreatedAt >= start && oi.Order.CreatedAt < end && 
+                                (oi.Order.PaymentStatus == "paid" || oi.Order.PaymentStatus == "completed"))
                     .GroupBy(oi => oi.ProductName)
                     .Select(g => new
                     {
-                        name = g.Key ?? "Sản phẩm không xác định",
-                        profit = g.Sum(oi => oi.TotalPrice * 0.4m), // 40% profit margin
-                        margin = "40%" // Giả sử margin = 40%
+                        name = g.Key ?? "Sản phẩm không tên",
+                        profit = g.Sum(oi => oi.TotalPrice * 0.4m) // 40% profit margin
                     })
                     .OrderByDescending(p => p.profit)
                     .Take(5)
@@ -243,7 +257,7 @@ namespace RetailPointBackend.Controllers
                     {
                         name = p.name,
                         profit = p.profit.ToString("N0") + "₫",
-                        margin = p.margin
+                        margin = "40%"
                     })
                     .ToListAsync();
 
@@ -255,7 +269,8 @@ namespace RetailPointBackend.Controllers
                     var monthEnd = monthStart.AddMonths(1);
                     
                     var monthOrders = await _context.Orders
-                        .Where(o => o.CreatedAt >= monthStart && o.CreatedAt < monthEnd && o.PaymentStatus == "paid")
+                        .Where(o => o.CreatedAt >= monthStart && o.CreatedAt < monthEnd && 
+                                   (o.PaymentStatus == "paid" || o.PaymentStatus == "completed"))
                         .SumAsync(o => o.TotalAmount);
 
                     var monthProfit = monthOrders * 0.2m; // 20% profit margin
