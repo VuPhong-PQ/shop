@@ -41,26 +41,54 @@ const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
 
 export default function Reports() {
   const [dateRange, setDateRange] = useState({
-    startDate: "2025-08-01",
-    endDate: "2025-08-26"
+    startDate: "2025-10-01",
+    endDate: "2025-10-02"
   });
   const [reportType, setReportType] = useState("summary");
 
   // Fetch report data
   const { data: salesSummary, isLoading: salesLoading } = useQuery({
     queryKey: ['/api/reports/sales-summary', dateRange.startDate, dateRange.endDate],
+    queryFn: async () => {
+      const response = await fetch(`http://localhost:5271/api/reports/sales-summary?startDate=${dateRange.startDate}&endDate=${dateRange.endDate}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch sales summary');
+      }
+      return response.json();
+    },
   });
 
   const { data: productPerformance, isLoading: productLoading } = useQuery({
     queryKey: ['/api/reports/product-performance', dateRange.startDate, dateRange.endDate],
+    queryFn: async () => {
+      const response = await fetch(`http://localhost:5271/api/reports/product-performance?startDate=${dateRange.startDate}&endDate=${dateRange.endDate}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch product performance');
+      }
+      return response.json();
+    },
   });
 
   const { data: customerAnalytics, isLoading: customerLoading } = useQuery({
     queryKey: ['/api/reports/customer-analytics', dateRange.startDate, dateRange.endDate],
+    queryFn: async () => {
+      const response = await fetch(`http://localhost:5271/api/reports/customer-analytics?startDate=${dateRange.startDate}&endDate=${dateRange.endDate}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch customer analytics');
+      }
+      return response.json();
+    },
   });
 
   const { data: profitAnalysis, isLoading: profitLoading } = useQuery({
     queryKey: ['/api/reports/profit-analysis', dateRange.startDate, dateRange.endDate],
+    queryFn: async () => {
+      const response = await fetch(`http://localhost:5271/api/reports/profit-analysis?startDate=${dateRange.startDate}&endDate=${dateRange.endDate}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch profit analysis');
+      }
+      return response.json();
+    },
   });
 
   const isLoading = salesLoading || productLoading || customerLoading || profitLoading;
