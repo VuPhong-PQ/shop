@@ -217,49 +217,110 @@ namespace RetailPointBackend.Controllers
                 var start = DateTime.Parse(startDate);
                 var end = DateTime.Parse(endDate).AddDays(1);
 
-                // Lấy đơn hàng trong kỳ
+                // Lấy đơn hàng trong kỳ với OrderItems
                 var orders = await _context.Orders
                     .Where(o => o.CreatedAt >= start && o.CreatedAt < end && 
                                (o.PaymentStatus == "paid" || o.PaymentStatus == "completed"))
+                    .Include(o => o.Items)
                     .ToListAsync();
 
-                // Tính tổng doanh thu
-                var totalRevenue = orders.Sum(o => o.TotalAmount);
+                // Lấy thông tin sản phẩm để có CostPrice
+                var products = await _context.Products.ToListAsync();
 
-                // Giả sử cost of goods sold = 60% revenue
-                var costOfGoodsSold = totalRevenue * 0.6m;
+                // Lấy cấu hình thuế
+                var taxConfig = await _context.TaxConfigs.FirstOrDefaultAsync() ?? new TaxConfig();
 
-                // Lợi nhuận gộp
+                // Tính tổng doanh thu (bao gồm thuế)
+                var totalRevenueIncludingTax = orders.Sum(o => o.TotalAmount);
+
+                // Tính thuế VAT
+                decimal totalTax = 0;
+                decimal totalRevenueExcludingTax = totalRevenueIncludingTax;
+
+                if (taxConfig.EnableVAT && taxConfig.VATIncludedInPrice)
+                {
+                    // Nếu thuế đã bao gồm trong giá: Tax = Revenue / (1 + VATRate) * VATRate
+                    totalTax = totalRevenueIncludingTax / (1 + taxConfig.VATRate / 100) * (taxConfig.VATRate / 100);
+                    totalRevenueExcludingTax = totalRevenueIncludingTax - totalTax;
+                }
+                else if (taxConfig.EnableVAT && !taxConfig.VATIncludedInPrice)
+                {
+                    // Nếu thuế tính thêm: Revenue đã không bao gồm thuế
+                    totalRevenueExcludingTax = totalRevenueIncludingTax;
+                    totalTax = totalRevenueExcludingTax * (taxConfig.VATRate / 100);
+                }
+
+                var totalRevenue = totalRevenueExcludingTax;
+
+                // Tính chi phí hàng bán thực tế dựa trên CostPrice
+                decimal costOfGoodsSold = 0;
+                foreach (var order in orders)
+                {
+                    foreach (var item in order.Items)
+                    {
+                        var product = products.FirstOrDefault(p => p.ProductId == item.ProductId);
+                        var costPrice = product?.CostPrice ?? (item.Price * 0.6m); // Fallback 60% nếu không có CostPrice
+                        costOfGoodsSold += item.Quantity * costPrice;
+                    }
+                }
+
+                // Lợi nhuận gộp = Doanh thu - Chi phí hàng bán thực tế
                 var grossProfit = totalRevenue - costOfGoodsSold;
 
-                // Giả sử chi phí hoạt động = 20% revenue
+                // Chi phí hoạt động = 20% doanh thu (có thể cập nhật sau)
                 var operatingExpenses = totalRevenue * 0.2m;
 
-                // Lợi nhuận ròng
+                // Lợi nhuận ròng = Lợi nhuận gộp - Chi phí hoạt động
                 var netProfit = grossProfit - operatingExpenses;
 
                 // Tỷ suất lợi nhuận
                 var profitMargin = totalRevenue > 0 ? (netProfit / totalRevenue * 100) : 0;
 
-                // Top sản phẩm có lợi nhuận cao từ OrderItems
-                var profitableProducts = await _context.OrderItems
+                // Top sản phẩm có lợi nhuận cao từ OrderItems với thông tin chi tiết
+                var orderItems = await _context.OrderItems
                     .Where(oi => oi.Order != null && oi.Order.CreatedAt >= start && oi.Order.CreatedAt < end && 
                                 (oi.Order.PaymentStatus == "paid" || oi.Order.PaymentStatus == "completed"))
+                    .ToListAsync();
+
+                var profitableProducts = orderItems
                     .GroupBy(oi => oi.ProductName)
-                    .Select(g => new
-                    {
-                        name = g.Key ?? "Sản phẩm không tên",
-                        profit = g.Sum(oi => oi.TotalPrice * 0.4m) // 40% profit margin
+                    .Select(g => {
+                        var firstItem = g.First();
+                        var product = products.FirstOrDefault(p => p.ProductId == firstItem.ProductId);
+                        var costPrice = product?.CostPrice ?? (firstItem.Price * 0.6m);
+                        var totalSold = g.Sum(oi => oi.Quantity);
+                        var totalRevenue = g.Sum(oi => oi.TotalPrice);
+                        var totalProfit = g.Sum(oi => oi.Quantity * (oi.Price - costPrice));
+                        var profitMarginPercent = firstItem.Price > 0 
+                            ? ((firstItem.Price - costPrice) / firstItem.Price * 100) 
+                            : 0;
+                        
+                        return new
+                        {
+                            name = g.Key ?? "Sản phẩm không tên",
+                            totalSold = totalSold,
+                            revenue = totalRevenue,
+                            profit = totalProfit,
+                            profitPerUnit = totalSold > 0 ? totalProfit / totalSold : 0,
+                            margin = profitMarginPercent.ToString("F1") + "%",
+                            costPrice = costPrice,
+                            sellPrice = firstItem.Price
+                        };
                     })
-                    .OrderByDescending(p => p.profit)
-                    .Take(5)
+                    .OrderByDescending(p => p.profit) // Sắp xếp theo tổng lợi nhuận
+                    .Take(10)
                     .Select(p => new
                     {
                         name = p.name,
+                        totalSold = p.totalSold,
+                        revenue = p.revenue.ToString("N0") + "₫",
                         profit = p.profit.ToString("N0") + "₫",
-                        margin = "40%"
+                        profitPerUnit = p.profitPerUnit.ToString("N0") + "₫",
+                        margin = p.margin,
+                        costPrice = p.costPrice.ToString("N0") + "₫",
+                        sellPrice = p.sellPrice.ToString("N0") + "₫"
                     })
-                    .ToListAsync();
+                    .ToList();
 
                 // Xu hướng lợi nhuận theo tháng (6 tháng gần nhất)
                 var monthlyTrend = new List<object>();
@@ -285,12 +346,20 @@ namespace RetailPointBackend.Controllers
 
                 var response = new
                 {
+                    // Doanh thu và thuế
+                    totalRevenueIncludingTax = totalRevenueIncludingTax.ToString("N0") + "₫",
+                    totalRevenueExcludingTax = totalRevenueExcludingTax.ToString("N0") + "₫",
+                    totalTax = totalTax.ToString("N0") + "₫",
+                    vatRate = taxConfig.EnableVAT ? taxConfig.VATRate.ToString("F1") + "%" : "0%",
+                    
+                    // Lợi nhuận
                     grossProfit = grossProfit.ToString("N0") + "₫",
                     costOfGoodsSold = costOfGoodsSold.ToString("N0") + "₫",
                     operatingExpenses = operatingExpenses.ToString("N0") + "₫",
                     totalProfit = netProfit.ToString("N0") + "₫",
                     profitMargin = profitMargin.ToString("F1") + "%",
                     profitableProducts = profitableProducts,
+                    topProfitableProducts = profitableProducts, // Alias cho frontend
                     monthlyTrend = monthlyTrend
                 };
 

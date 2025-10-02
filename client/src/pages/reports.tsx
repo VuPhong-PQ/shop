@@ -412,6 +412,24 @@ export default function Reports() {
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="space-y-2">
+                      {/* Doanh thu và thuế */}
+                      <div className="bg-blue-50 p-3 rounded-lg space-y-2">
+                        <h4 className="font-medium text-blue-800">Doanh thu & Thuế</h4>
+                        <div className="flex justify-between text-sm">
+                          <span>Doanh thu (bao gồm thuế):</span>
+                          <span className="font-medium">{profitAnalysis?.totalRevenueIncludingTax}</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span>Thuế VAT ({profitAnalysis?.vatRate}):</span>
+                          <span className="font-medium text-orange-600">{profitAnalysis?.totalTax}</span>
+                        </div>
+                        <div className="flex justify-between text-sm border-t pt-2">
+                          <span>Doanh thu (chưa thuế):</span>
+                          <span className="font-medium">{profitAnalysis?.totalRevenueExcludingTax}</span>
+                        </div>
+                      </div>
+                      
+                      {/* Lợi nhuận */}
                       <div className="flex justify-between">
                         <span>Lợi nhuận gộp:</span>
                         <span className="font-medium text-green-600">{profitAnalysis?.grossProfit}</span>
@@ -426,7 +444,7 @@ export default function Reports() {
                       </div>
                       <hr />
                       <div className="flex justify-between text-lg">
-                        <span className="font-semibold">Lợi nhuận ròng:</span>
+                        <span className="font-semibold">Lợi nhuận ròng (sau thuế):</span>
                         <span className="font-bold text-green-600">{profitAnalysis?.totalProfit}</span>
                       </div>
                       <div className="flex justify-between">
@@ -467,16 +485,20 @@ export default function Reports() {
                 <CardContent>
                   <div className="space-y-3">
                     {profitAnalysis?.topProfitableProducts?.map((product, index) => (
-                      <div key={product.name} className="flex items-center justify-between p-3 border rounded-lg">
+                      <div key={product.name} className="flex items-center justify-between p-4 border rounded-lg bg-gradient-to-r from-green-50 to-emerald-50">
                         <div className="flex items-center gap-3">
-                          <Badge variant="outline">{index + 1}</Badge>
+                          <Badge variant="outline" className="bg-green-100 text-green-800">#{index + 1}</Badge>
                           <div>
-                            <p className="font-medium">{product.name}</p>
-                            <p className="text-sm text-muted-foreground">Tỷ suất: {product.margin}</p>
+                            <p className="font-medium text-gray-900">{product.name}</p>
+                            <div className="text-sm text-muted-foreground space-y-1">
+                              <p>Đã bán: <span className="font-medium">{product.totalSold}</span> | Tỷ suất: <span className="font-medium text-green-600">{product.margin}</span></p>
+                              <p>Giá nhập: <span className="text-red-600">{product.costPrice}</span> → Giá bán: <span className="text-blue-600">{product.sellPrice}</span></p>
+                            </div>
                           </div>
                         </div>
                         <div className="text-right">
-                          <p className="font-medium text-green-600">{product.profit}</p>
+                          <p className="text-lg font-bold text-green-600">{product.profit}</p>
+                          <p className="text-sm text-gray-500">Lợi nhuận/sp: {product.profitPerUnit}</p>
                         </div>
                       </div>
                     ))}
