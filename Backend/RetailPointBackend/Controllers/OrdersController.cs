@@ -89,6 +89,44 @@ namespace RetailPointBackend.Controllers
                     order.CustomerName = customer.HoTen;
                 }
             }
+
+            // Kiểm tra và trừ tồn kho cho mỗi sản phẩm trong đơn hàng
+            var lowStockProducts = new List<string>();
+            var insufficientStockProducts = new List<string>();
+
+            foreach (var item in items)
+            {
+                var product = _context.Products.FirstOrDefault(p => p.ProductId == item.ProductId);
+                if (product != null)
+                {
+                    // Kiểm tra xem có đủ tồn kho hay không
+                    if (product.StockQuantity < item.Quantity)
+                    {
+                        insufficientStockProducts.Add($"{product.Name} (còn {product.StockQuantity}, cần {item.Quantity})");
+                        continue;
+                    }
+
+                    // Trừ tồn kho
+                    product.StockQuantity -= item.Quantity;
+
+                    // Kiểm tra tồn kho thấp sau khi trừ
+                    if (product.StockQuantity <= product.MinStockLevel)
+                    {
+                        lowStockProducts.Add($"{product.Name} (còn {product.StockQuantity})");
+                    }
+                }
+            }
+
+            // Nếu có sản phẩm không đủ tồn kho, trả về lỗi
+            if (insufficientStockProducts.Any())
+            {
+                return BadRequest(new 
+                { 
+                    message = "Không đủ tồn kho cho các sản phẩm", 
+                    products = insufficientStockProducts 
+                });
+            }
+
             _context.Orders.Add(order);
             _context.SaveChanges();
             
@@ -111,6 +149,25 @@ namespace RetailPointBackend.Controllers
                 };
                 
                 _notificationContext.Notifications.Add(notification);
+
+                // Tạo thông báo cho tồn kho thấp nếu có
+                if (lowStockProducts.Any())
+                {
+                    var lowStockNotification = new Notification
+                    {
+                        Type = NotificationType.LowStock,
+                        Title = "Cảnh báo tồn kho thấp",
+                        Message = $"Có {lowStockProducts.Count} sản phẩm đạt mức tồn kho thấp",
+                        Metadata = JsonSerializer.Serialize(new
+                        {
+                            ProductCount = lowStockProducts.Count,
+                            Products = lowStockProducts
+                        })
+                    };
+                    
+                    _notificationContext.Notifications.Add(lowStockNotification);
+                }
+
                 _notificationContext.SaveChanges();
             }
             catch (Exception ex)
@@ -118,8 +175,24 @@ namespace RetailPointBackend.Controllers
                 // Log error but don't fail the order creation
                 Console.WriteLine($"Failed to create notification: {ex.Message}");
             }
+
+            // Trả về kết quả với thông tin tồn kho thấp nếu có
+            var result = new { order.OrderId, Status = "Success" };
+            if (lowStockProducts.Any())
+            {
+                return Ok(new 
+                { 
+                    order.OrderId, 
+                    Status = "Success", 
+                    LowStockWarning = new 
+                    { 
+                        Message = "Đơn hàng đã được tạo, nhưng một số sản phẩm đạt mức tồn kho thấp",
+                        Products = lowStockProducts 
+                    }
+                });
+            }
             
-            return Ok(new { order.OrderId, Status = "Success" });
+            return Ok(result);
         }
 
         [HttpGet]
@@ -305,5 +378,184 @@ namespace RetailPointBackend.Controllers
                 });
             }
         }
+
+        // Phương thức POST JSON để tạo đơn hàng
+        [HttpPost("json")]
+        public async Task<IActionResult> CreateOrderFromJson([FromBody] CreateOrderRequest request)
+        {
+            try
+            {
+                if (request?.OrderItems == null || !request.OrderItems.Any())
+                {
+                    return BadRequest(new { message = "Đơn hàng phải có ít nhất một sản phẩm" });
+                }
+
+                var insufficientStockProducts = new List<string>();
+                var lowStockProducts = new List<string>();
+
+                // Kiểm tra và trừ tồn kho cho từng sản phẩm
+                foreach (var orderItem in request.OrderItems)
+                {
+                    var product = await _context.Products.FindAsync(orderItem.ProductId);
+                    if (product != null)
+                    {
+                        // Kiểm tra xem có đủ tồn kho hay không
+                        if (product.StockQuantity < orderItem.Quantity)
+                        {
+                            insufficientStockProducts.Add($"{product.Name} (còn {product.StockQuantity}, cần {orderItem.Quantity})");
+                            continue;
+                        }
+
+                        // Trừ tồn kho
+                        product.StockQuantity -= orderItem.Quantity;
+
+                        // Kiểm tra tồn kho thấp sau khi trừ
+                        if (product.StockQuantity <= product.MinStockLevel)
+                        {
+                            lowStockProducts.Add($"{product.Name} (còn {product.StockQuantity})");
+                        }
+                    }
+                }
+
+                // Nếu có sản phẩm không đủ tồn kho, trả về lỗi
+                if (insufficientStockProducts.Any())
+                {
+                    return BadRequest(new 
+                    { 
+                        message = "Không đủ tồn kho cho các sản phẩm", 
+                        products = insufficientStockProducts 
+                    });
+                }
+
+                // Tạo đơn hàng
+                var order = new Order
+                {
+                    CustomerName = request.CustomerName,
+                    CustomerId = request.CustomerId,
+                    TotalAmount = request.OrderItems.Sum(x => x.Quantity * x.UnitPrice),
+                    SubTotal = request.OrderItems.Sum(x => x.Quantity * x.UnitPrice),
+                    TaxAmount = 0,
+                    DiscountAmount = 0,
+                    PaymentMethod = request.PaymentMethod ?? "cash",
+                    PaymentStatus = request.PaymentStatus ?? "pending",
+                    Status = request.Status ?? "pending",
+                    CreatedAt = DateTime.Now,
+                    CashierId = request.CashierId?.ToString(),
+                    StoreId = request.StoreId?.ToString(),
+                    Notes = request.Notes
+                };
+
+                _context.Orders.Add(order);
+                await _context.SaveChangesAsync();
+
+                // Thêm OrderItems
+                foreach (var orderItem in request.OrderItems)
+                {
+                    var product = await _context.Products.FindAsync(orderItem.ProductId);
+                    var item = new OrderItem
+                    {
+                        OrderId = order.OrderId,
+                        ProductId = orderItem.ProductId,
+                        ProductName = product?.Name ?? "Unknown",
+                        Quantity = orderItem.Quantity,
+                        Price = orderItem.UnitPrice,
+                        TotalPrice = orderItem.Quantity * orderItem.UnitPrice
+                    };
+                    _context.OrderItems.Add(item);
+                }
+
+                await _context.SaveChangesAsync();
+
+                // Tạo thông báo đơn hàng mới
+                try
+                {
+                    var notification = new Notification
+                    {
+                        Type = NotificationType.NewOrder,
+                        Title = "Đơn hàng mới",
+                        Message = $"Khách hàng {order.CustomerName ?? "Vãng lai"} vừa đặt đơn hàng #{order.OrderId}",
+                        OrderId = order.OrderId,
+                        Metadata = JsonSerializer.Serialize(new
+                        {
+                            CustomerName = order.CustomerName ?? "Vãng lai",
+                            TotalAmount = order.TotalAmount,
+                            FormattedTotal = order.TotalAmount.ToString("N0") + "đ",
+                            ItemCount = request.OrderItems.Count
+                        })
+                    };
+                    
+                    _context.Notifications.Add(notification);
+                    await _context.SaveChangesAsync();
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Warning: Failed to create order notification: {ex.Message}");
+                }
+
+                // Tạo thông báo tồn kho thấp nếu có
+                if (lowStockProducts.Any())
+                {
+                    try
+                    {
+                        var lowStockNotification = new Notification
+                        {
+                            Type = NotificationType.LowStock,
+                            Title = "Cảnh báo tồn kho thấp",
+                            Message = $"Các sản phẩm sau có tồn kho thấp: {string.Join(", ", lowStockProducts)}",
+                            Metadata = JsonSerializer.Serialize(new
+                            {
+                                LowStockProducts = lowStockProducts,
+                                Count = lowStockProducts.Count
+                            })
+                        };
+                        
+                        _context.Notifications.Add(lowStockNotification);
+                        await _context.SaveChangesAsync();
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Warning: Failed to create low stock notification: {ex.Message}");
+                    }
+                }
+
+                return Ok(new 
+                { 
+                    message = "Đơn hàng được tạo thành công",
+                    orderId = order.OrderId,
+                    totalAmount = order.TotalAmount,
+                    lowStockWarnings = lowStockProducts.Any() ? lowStockProducts : null
+                });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error creating order: {ex.Message}");
+                Console.WriteLine($"Stack trace: {ex.StackTrace}");
+                return StatusCode(500, new { 
+                    message = "Lỗi khi tạo đơn hàng", 
+                    error = ex.Message 
+                });
+            }
+        }
+    }
+
+    // DTO classes for JSON requests
+    public class CreateOrderRequest
+    {
+        public string? CustomerName { get; set; }
+        public int? CustomerId { get; set; }
+        public string? PaymentMethod { get; set; }
+        public string? PaymentStatus { get; set; }
+        public string? Status { get; set; }
+        public int? CashierId { get; set; }
+        public int? StoreId { get; set; }
+        public string? Notes { get; set; }
+        public List<CreateOrderItemRequest> OrderItems { get; set; } = new();
+    }
+
+    public class CreateOrderItemRequest
+    {
+        public int ProductId { get; set; }
+        public int Quantity { get; set; }
+        public decimal UnitPrice { get; set; }
     }
 }

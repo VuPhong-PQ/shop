@@ -41,6 +41,35 @@ namespace RetailPointBackend.Controllers
             return await _context.Products.ToListAsync();
         }
 
+        // GET: api/products/low-stock
+        [HttpGet("low-stock")]
+        public async Task<ActionResult> GetLowStockProducts()
+        {
+            var products = await _context.Products
+                .Where(p => p.StockQuantity <= p.MinStockLevel)
+                .OrderBy(p => p.StockQuantity)
+                .ToListAsync();
+
+            var lowStockProducts = products.Select(p => new {
+                p.ProductId,
+                p.Name,
+                p.Barcode,
+                p.StockQuantity,
+                p.MinStockLevel,
+                p.Price,
+                p.Unit,
+                p.StockDeficit,
+                p.IsOutOfStock,
+                p.StockStatus
+            }).ToList();
+
+            return Ok(new 
+            { 
+                Count = lowStockProducts.Count,
+                Products = lowStockProducts 
+            });
+        }
+
         [HttpGet("{id}")]
         public async Task<ActionResult<Product>> GetProduct(int id)
         {
@@ -88,5 +117,76 @@ namespace RetailPointBackend.Controllers
             await _context.SaveChangesAsync();
             return NoContent();
         }
+
+        // POST: api/products/{id}/adjust-stock
+        [HttpPost("{id}/adjust-stock")]
+        public async Task<IActionResult> AdjustStock(int id, [FromBody] StockAdjustmentRequest request)
+        {
+            var product = await _context.Products.FindAsync(id);
+            if (product == null)
+            {
+                return NotFound("Sản phẩm không tồn tại");
+            }
+
+            var oldStock = product.StockQuantity;
+            product.StockQuantity = request.NewQuantity;
+
+            try
+            {
+                await _context.SaveChangesAsync();
+                
+                var result = new
+                {
+                    ProductId = product.ProductId,
+                    ProductName = product.Name,
+                    OldStock = oldStock,
+                    NewStock = product.StockQuantity,
+                    MinStockLevel = product.MinStockLevel,
+                    IsLowStock = product.IsLowStock,
+                    IsOutOfStock = product.IsOutOfStock,
+                    StockStatus = product.StockStatus,
+                    StockDeficit = product.StockDeficit,
+                    Reason = request.Reason ?? "Điều chỉnh tồn kho"
+                };
+
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Lỗi khi cập nhật tồn kho", error = ex.Message });
+            }
+        }
+
+        // GET: api/products/{id}/stock-info
+        [HttpGet("{id}/stock-info")]
+        public async Task<ActionResult> GetProductStockInfo(int id)
+        {
+            var product = await _context.Products.FindAsync(id);
+            if (product == null)
+            {
+                return NotFound("Sản phẩm không tồn tại");
+            }
+
+            var stockInfo = new
+            {
+                product.ProductId,
+                product.Name,
+                product.StockQuantity,
+                product.MinStockLevel,
+                product.IsLowStock,
+                product.IsOutOfStock,
+                product.StockDeficit,
+                product.StockStatus
+            };
+
+            return Ok(stockInfo);
+        }
+    }
+
+    // Model cho request điều chỉnh tồn kho
+    public class StockAdjustmentRequest
+    {
+        public int NewQuantity { get; set; }
+        public string? Reason { get; set; }
     }
 }

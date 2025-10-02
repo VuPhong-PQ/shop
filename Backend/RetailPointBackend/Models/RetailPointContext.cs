@@ -11,6 +11,7 @@ namespace RetailPointBackend.Models
     public DbSet<Order> Orders { get; set; }
     public DbSet<OrderItem> OrderItems { get; set; }
     public DbSet<Customer> Customers { get; set; }
+    public DbSet<Notification> Notifications { get; set; }
     }
 
     public class Category
@@ -39,5 +40,19 @@ namespace RetailPointBackend.Models
         public string? Unit { get; set; }
         public string? ImageUrl { get; set; }
         public string? Description { get; set; }
+
+        // Computed properties for stock status
+        [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+        public bool IsLowStock => StockQuantity <= MinStockLevel;
+
+        [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+        public bool IsOutOfStock => StockQuantity <= 0;
+
+        [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+        public string StockStatus => StockQuantity <= 0 ? "Hết hàng" : 
+                                   StockQuantity <= MinStockLevel ? "Tồn kho thấp" : "Đủ hàng";
+
+        [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+        public int StockDeficit => Math.Max(0, MinStockLevel - StockQuantity);
     }
 }
