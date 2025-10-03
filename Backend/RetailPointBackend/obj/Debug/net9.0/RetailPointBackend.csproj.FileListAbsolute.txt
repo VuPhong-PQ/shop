@@ -166,3 +166,5 @@ D:\laptrinh\thiekepm\RetailPoint\Backend\RetailPointBackend\obj\Debug\net9.0\ref
 D:\laptrinh\thiekepm\RetailPoint\Backend\RetailPointBackend\obj\Debug\net9.0\RetailPointBackend.pdb
 D:\laptrinh\thiekepm\RetailPoint\Backend\RetailPointBackend\obj\Debug\net9.0\RetailPointBackend.genruntimeconfig.cache
 D:\laptrinh\thiekepm\RetailPoint\Backend\RetailPointBackend\obj\Debug\net9.0\ref\RetailPointBackend.dll
+D:\laptrinh\thiekepm\RetailPoint\Backend\RetailPointBackend\bin\Debug\net9.0\EPPlus.dll
+D:\laptrinh\thiekepm\RetailPoint\Backend\RetailPointBackend\bin\Debug\net9.0\Microsoft.IO.RecyclableMemoryStream.dll

@@ -25,7 +25,7 @@ namespace RetailPointBackend.Controllers
         public IActionResult CreateOrder(
             [FromForm] string? orderNumber,
             [FromForm] int? customerId,
-            [FromForm] string? cashierId,
+            [FromForm] int? cashierId,
             [FromForm] string? storeId,
             [FromForm] string? subtotal,
             [FromForm] string? taxAmount,
@@ -440,7 +440,7 @@ namespace RetailPointBackend.Controllers
                     PaymentStatus = request.PaymentStatus ?? "pending",
                     Status = request.Status ?? "pending",
                     CreatedAt = DateTime.Now,
-                    CashierId = request.CashierId?.ToString(),
+                    CashierId = request.CashierId,
                     StoreId = request.StoreId?.ToString(),
                     Notes = request.Notes
                 };
