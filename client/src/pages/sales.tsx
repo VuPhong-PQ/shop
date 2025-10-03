@@ -197,7 +197,6 @@ export default function Sales() {
       setShowPayment(false);
       // Refetch tất cả dữ liệu liên quan
       queryClient.invalidateQueries({ queryKey: ['/api/orders'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/dashboard/metrics'] });
       queryClient.invalidateQueries({ queryKey: ['/api/notifications'] });
       queryClient.invalidateQueries({ queryKey: ['/api/notifications/count'] });
       
@@ -238,7 +237,6 @@ export default function Sales() {
       
       // Refetch danh sách đơn hàng và notifications
       queryClient.invalidateQueries({ queryKey: ['/api/orders'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/dashboard/metrics'] });
       queryClient.invalidateQueries({ queryKey: ['/api/notifications'] });
       queryClient.invalidateQueries({ queryKey: ['/api/notifications/count'] });
       
@@ -280,7 +278,6 @@ export default function Sales() {
       
       // Refetch tất cả dữ liệu liên quan
       queryClient.invalidateQueries({ queryKey: ['/api/orders'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/dashboard/metrics'] });
       queryClient.invalidateQueries({ queryKey: ['/api/notifications'] });
       queryClient.invalidateQueries({ queryKey: ['/api/notifications/count'] });
       

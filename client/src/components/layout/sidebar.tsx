@@ -1,7 +1,6 @@
 import { Link, useLocation } from "wouter";
 import { useState } from "react";
 import {
-  LayoutDashboard,
   ShoppingCart,
   Package,
   Users,
@@ -20,8 +19,7 @@ import {
 import { cn } from "@/lib/utils";
 
 const navigation = [
-  { name: 'Dashboard', href: '/', icon: LayoutDashboard },
-  { name: 'Bán hàng', href: '/sales', icon: ShoppingCart },
+  { name: 'Bán hàng', href: '/', icon: ShoppingCart },
   { 
     name: 'Sản phẩm', 
     icon: Package,
