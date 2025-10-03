@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { PaymentReport } from "@/components/reports/payment-report";
 import { 
   BarChart, 
   Bar, 
@@ -35,7 +36,8 @@ import {
   BarChart3,
   PieChart as PieChartIcon,
   LineChart as LineChartIcon,
-  RefreshCw
+  RefreshCw,
+  CreditCard
 } from "lucide-react";
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
@@ -240,9 +242,10 @@ export default function Reports() {
           </div>
         ) : (
           <Tabs defaultValue="overview" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-5">
               <TabsTrigger value="overview">Tổng quan</TabsTrigger>
               <TabsTrigger value="products">Sản phẩm</TabsTrigger>
+              <TabsTrigger value="payment">Hình thức thanh toán</TabsTrigger>
               <TabsTrigger value="customers">Khách hàng</TabsTrigger>
               <TabsTrigger value="profit">Lợi nhuận</TabsTrigger>
             </TabsList>
@@ -404,6 +407,10 @@ export default function Reports() {
                   </CardContent>
                 </Card>
               </div>
+            </TabsContent>
+
+            <TabsContent value="payment" className="space-y-6">
+              <PaymentReport />
             </TabsContent>
 
             <TabsContent value="customers" className="space-y-6">

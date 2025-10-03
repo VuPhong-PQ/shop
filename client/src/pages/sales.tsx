@@ -507,6 +507,7 @@ export default function Sales() {
 
   // Complete reopened order (update existing order)
   const completeReopenedOrder = () => {
+    console.log('Complete reopened order with payment method:', selectedPayment); // Debug log
     const formData = new FormData();
     formData.append('paymentMethod', selectedPayment);
     formData.append('paymentStatus', 'paid');
@@ -518,6 +519,7 @@ export default function Sales() {
 
   // Create new order
   const createNewOrder = () => {
+    console.log('Creating new order with payment method:', selectedPayment); // Debug log
     // Tạo form-data đúng chuẩn cho backend
     const formData = new FormData();
     formData.append('orderNumber', `ORD${Date.now()}`);
