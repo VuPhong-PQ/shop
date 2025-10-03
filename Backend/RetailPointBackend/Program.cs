@@ -51,6 +51,9 @@ builder.Services.AddScoped<INotificationService, NotificationService>();
 // Đăng ký SeedDataService
 builder.Services.AddScoped<SeedDataService>();
 
+// Đăng ký FixEncodingService
+builder.Services.AddScoped<FixEncodingService>();
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
