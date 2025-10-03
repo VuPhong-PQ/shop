@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { apiRequest } from "@/lib/queryClient";
-import { Banknote, CreditCard, QrCode, Smartphone, TrendingUp, Calendar, RefreshCw, ChevronDown, ChevronRight, Eye, Package, User, Clock, Download } from "lucide-react";
+import { Banknote, CreditCard, QrCode, Smartphone, TrendingUp, Calendar, RefreshCw, ChevronDown, ChevronRight, Eye, Package, User, Clock, Download, Receipt } from "lucide-react";
 import * as XLSX from 'xlsx';
 
 interface OrderItem {
@@ -246,61 +246,69 @@ export function PaymentReport() {
   return (
     <div className="space-y-6">
       {/* Header với bộ lọc ngày */}
-      <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-            <TrendingUp className="w-6 h-6" />
-            Báo cáo Hình thức Thanh toán
-          </h2>
-          <p className="text-gray-600 text-sm">
-            Thống kê doanh thu theo phương thức thanh toán
-          </p>
-        </div>
-        
-        <div className="flex flex-col sm:flex-row gap-2 items-end">
-          <div className="flex gap-2 items-center">
-            <Calendar className="w-4 h-4 text-gray-500" />
-            <Input
-              type="date"
-              value={fromDate}
-              onChange={(e) => setFromDate(e.target.value)}
-              className="w-auto text-sm"
-            />
-            <span className="text-gray-500">-</span>
-            <Input
-              type="date"
-              value={toDate}
-              onChange={(e) => setToDate(e.target.value)}
-              className="w-auto text-sm"
-            />
+      <div className="bg-white rounded-lg border p-6 sm:p-8">
+        <div className="space-y-6">
+          <div className="text-center sm:text-left">
+            <h2 className="text-xl sm:text-2xl font-bold text-gray-900 flex items-center justify-center sm:justify-start gap-2 mb-3">
+              <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />
+              Báo cáo Hình thức Thanh toán
+            </h2>
+            <p className="text-gray-600 text-sm mb-4">
+              Thống kê doanh thu theo phương thức thanh toán
+            </p>
           </div>
-          <Button onClick={handleRefresh} size="sm" variant="outline">
-            <RefreshCw className="w-4 h-4 mr-1" />
-            Làm mới
-          </Button>
-          <Button 
-            onClick={exportToExcel} 
-            size="sm" 
-            className="bg-green-600 hover:bg-green-700 text-white"
-          >
-            <Download className="w-4 h-4 mr-1" />
-            Xuất Excel
-          </Button>
+          
+          <div className="border-t pt-5">
+            <div className="flex flex-col gap-3">
+              <div className="flex flex-col sm:flex-row gap-2 items-start sm:items-center">
+                <Calendar className="w-4 h-4 text-gray-500 flex-shrink-0" />
+                <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                  <Input
+                    type="date"
+                    value={fromDate}
+                    onChange={(e) => setFromDate(e.target.value)}
+                    className="w-full sm:w-auto text-sm"
+                  />
+                  <span className="text-gray-500 self-center">-</span>
+                  <Input
+                    type="date"
+                    value={toDate}
+                    onChange={(e) => setToDate(e.target.value)}
+                    className="w-full sm:w-auto text-sm"
+                  />
+                </div>
+              </div>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <Button onClick={handleRefresh} size="sm" variant="outline" className="w-full sm:w-auto">
+                  <RefreshCw className="w-4 h-4 mr-1" />
+                  Làm mới
+                </Button>
+                <Button 
+                  onClick={exportToExcel} 
+                  size="sm" 
+                  className="bg-green-600 hover:bg-green-700 text-white w-full sm:w-auto"
+                >
+                  <Download className="w-4 h-4 mr-1" />
+                  Xuất Excel
+                </Button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
       {/* Tổng quan */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Tổng doanh thu</p>
-                <p className="text-2xl font-bold text-green-600">
+              <div className="min-w-0 flex-1">
+                <p className="text-sm text-gray-600 truncate">Tổng doanh thu</p>
+                <p className="text-lg sm:text-2xl font-bold text-green-600 truncate">
                   {paymentStats?.totalRevenue?.toLocaleString('vi-VN')}₫
                 </p>
               </div>
-              <TrendingUp className="w-8 h-8 text-green-600" />
+              <TrendingUp className="w-6 h-6 sm:w-8 sm:h-8 text-green-600 flex-shrink-0" />
             </div>
           </CardContent>
         </Card>
@@ -308,14 +316,14 @@ export function PaymentReport() {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Tổng đơn hàng</p>
-                <p className="text-2xl font-bold text-blue-600">
+              <div className="min-w-0 flex-1">
+                <p className="text-sm text-gray-600 truncate">Tổng đơn hàng</p>
+                <p className="text-lg sm:text-2xl font-bold text-blue-600">
                   {paymentStats?.totalOrders || 0}
                 </p>
               </div>
-              <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                <span className="text-blue-600 font-bold text-sm">#{paymentStats?.totalOrders || 0}</span>
+              <div className="w-6 h-6 sm:w-8 sm:h-8 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+                <span className="text-blue-600 font-bold text-xs sm:text-sm">{paymentStats?.totalOrders || 0}</span>
               </div>
             </div>
           </CardContent>
@@ -324,13 +332,15 @@ export function PaymentReport() {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Phương thức phổ biến</p>
-                <p className="text-lg font-semibold text-purple-600">
+              <div className="min-w-0 flex-1">
+                <p className="text-sm text-gray-600 truncate">Phương thức phổ biến</p>
+                <p className="text-sm sm:text-lg font-semibold text-purple-600 truncate">
                   {paymentStats?.paymentStats?.[0]?.paymentMethod || "Chưa có dữ liệu"}
                 </p>
               </div>
-              {paymentStats?.paymentStats?.[0] && getPaymentIcon(paymentStats.paymentStats[0].paymentMethodId)}
+              <div className="flex-shrink-0">
+                {paymentStats?.paymentStats?.[0] && getPaymentIcon(paymentStats.paymentStats[0].paymentMethodId)}
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -338,14 +348,14 @@ export function PaymentReport() {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Số phương thức sử dụng</p>
-                <p className="text-2xl font-bold text-orange-600">
+              <div className="min-w-0 flex-1">
+                <p className="text-sm text-gray-600 truncate">Số phương thức sử dụng</p>
+                <p className="text-lg sm:text-2xl font-bold text-orange-600">
                   {paymentStats?.paymentStats?.length || 0}
                 </p>
               </div>
-              <div className="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center">
-                <span className="text-orange-600 font-bold text-sm">{paymentStats?.paymentStats?.length || 0}</span>
+              <div className="w-6 h-6 sm:w-8 sm:h-8 bg-orange-100 rounded-full flex items-center justify-center flex-shrink-0">
+                <span className="text-orange-600 font-bold text-xs sm:text-sm">{paymentStats?.paymentStats?.length || 0}</span>
               </div>
             </div>
           </CardContent>
@@ -356,26 +366,29 @@ export function PaymentReport() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Biểu đồ dạng cột */}
         <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Biểu đồ Doanh thu theo Hình thức</CardTitle>
+          <CardHeader className="pb-4">
+            <CardTitle className="text-base sm:text-lg flex items-center gap-2 mb-2">
+              <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-green-600" />
+              Biểu đồ Doanh thu theo Hình thức
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
               {paymentStats?.paymentStats?.map((stat, index) => (
                 <div key={stat.paymentMethodId} className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 min-w-0 flex-1">
                       {getPaymentIcon(stat.paymentMethodId)}
-                      <span className="font-medium">{stat.paymentMethod}</span>
+                      <span className="font-medium text-sm sm:text-base truncate">{stat.paymentMethod}</span>
                     </div>
-                    <div className="text-right">
-                      <div className="font-semibold">{stat.totalAmount.toLocaleString('vi-VN')}₫</div>
-                      <div className="text-sm text-gray-500">{stat.percentage}%</div>
+                    <div className="text-right flex-shrink-0 ml-2">
+                      <div className="font-semibold text-sm sm:text-base">{stat.totalAmount.toLocaleString('vi-VN')}₫</div>
+                      <div className="text-xs sm:text-sm text-gray-500">{stat.percentage}%</div>
                     </div>
                   </div>
-                  <div className="w-full bg-gray-200 rounded-full h-3">
+                  <div className="w-full bg-gray-200 rounded-full h-2 sm:h-3">
                     <div
-                      className={`h-3 rounded-full ${getPaymentColor(stat.paymentMethodId)}`}
+                      className={`h-2 sm:h-3 rounded-full ${getPaymentColor(stat.paymentMethodId)}`}
                       style={{ width: `${stat.percentage}%` }}
                     ></div>
                   </div>
@@ -390,15 +403,18 @@ export function PaymentReport() {
 
         {/* Bảng xếp hạng */}
         <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Xếp hạng Hình thức Thanh toán</CardTitle>
+          <CardHeader className="pb-4">
+            <CardTitle className="text-base sm:text-lg flex items-center gap-2 mb-2">
+              <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-600" />
+              Xếp hạng Hình thức Thanh toán
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
               {paymentStats?.paymentStats?.map((stat, index) => (
                 <div key={stat.paymentMethodId} className="flex items-center gap-3 p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors">
                   <div className="flex-shrink-0">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm ${
+                    <div className={`w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-white font-bold text-xs sm:text-sm ${
                       index === 0 ? 'bg-yellow-500' : 
                       index === 1 ? 'bg-gray-400' : 
                       index === 2 ? 'bg-orange-600' : 'bg-gray-300'
@@ -411,15 +427,15 @@ export function PaymentReport() {
                     {getPaymentIcon(stat.paymentMethodId)}
                   </div>
                   
-                  <div className="flex-grow">
-                    <div className="font-medium">{stat.paymentMethod}</div>
-                    <div className="text-sm text-gray-500">
+                  <div className="flex-grow min-w-0">
+                    <div className="font-medium text-sm sm:text-base truncate">{stat.paymentMethod}</div>
+                    <div className="text-xs sm:text-sm text-gray-500">
                       {stat.orderCount} đơn hàng • {stat.percentage}%
                     </div>
                   </div>
                   
-                  <div className="text-right">
-                    <div className="font-semibold text-lg">
+                  <div className="text-right flex-shrink-0">
+                    <div className="font-semibold text-sm sm:text-lg">
                       {stat.totalAmount.toLocaleString('vi-VN')}₫
                     </div>
                   </div>
@@ -428,9 +444,9 @@ export function PaymentReport() {
               
               {(!paymentStats?.paymentStats || paymentStats.paymentStats.length === 0) && (
                 <div className="text-center py-8 text-gray-500">
-                  <TrendingUp className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-                  <p>Chưa có dữ liệu thanh toán</p>
-                  <p className="text-sm">Hãy thực hiện một số giao dịch để xem báo cáo</p>
+                  <TrendingUp className="w-8 h-8 sm:w-12 sm:h-12 mx-auto mb-3 text-gray-300" />
+                  <p className="text-sm sm:text-base">Chưa có dữ liệu thanh toán</p>
+                  <p className="text-xs sm:text-sm">Hãy thực hiện một số giao dịch để xem báo cáo</p>
                 </div>
               )}
             </div>
@@ -440,35 +456,40 @@ export function PaymentReport() {
 
       {/* Chi tiết đơn hàng theo hình thức thanh toán */}
       <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Chi tiết Đơn hàng theo Hình thức Thanh toán</CardTitle>
+        <CardHeader className="pb-4">
+          <CardTitle className="text-base sm:text-lg flex items-center gap-2 mb-2">
+            <Receipt className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
+            Chi tiết Đơn hàng theo Hình thức Thanh toán
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
             {paymentStats?.paymentStats?.map((stat) => (
               <div key={stat.paymentMethodId} className="border rounded-lg overflow-hidden">
                 <div 
-                  className="p-4 bg-gray-50 cursor-pointer flex items-center justify-between hover:bg-gray-100 transition-colors"
+                  className="p-3 sm:p-4 bg-gray-50 cursor-pointer flex items-center justify-between hover:bg-gray-100 transition-colors"
                   onClick={() => togglePaymentMethod(stat.paymentMethodId)}
                 >
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
                     {getPaymentIcon(stat.paymentMethodId)}
-                    <div>
-                      <h3 className="font-semibold">{stat.paymentMethod}</h3>
-                      <p className="text-sm text-gray-600">
+                    <div className="min-w-0 flex-1">
+                      <h3 className="font-semibold text-sm sm:text-base truncate">{stat.paymentMethod}</h3>
+                      <p className="text-xs sm:text-sm text-gray-600 truncate">
                         {stat.orderCount} đơn hàng • {stat.totalAmount.toLocaleString('vi-VN')}₫
                       </p>
                     </div>
                   </div>
-                  {expandedPaymentMethods.has(stat.paymentMethodId) ? 
-                    <ChevronDown className="w-5 h-5" /> : 
-                    <ChevronRight className="w-5 h-5" />
-                  }
+                  <div className="flex-shrink-0">
+                    {expandedPaymentMethods.has(stat.paymentMethodId) ? 
+                      <ChevronDown className="w-4 h-4 sm:w-5 sm:h-5" /> : 
+                      <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5" />
+                    }
+                  </div>
                 </div>
                 
                 {expandedPaymentMethods.has(stat.paymentMethodId) && (
                   <div className="border-t">
-                    <div className="p-4 space-y-3">
+                    <div className="p-3 sm:p-4 space-y-3">
                       {(() => {
                         console.log(`Orders for ${stat.paymentMethodId}:`, stat.orders);
                         return null;
@@ -479,32 +500,34 @@ export function PaymentReport() {
                             className="p-3 bg-white cursor-pointer flex items-center justify-between hover:bg-gray-50 transition-colors"
                             onClick={() => toggleOrder(order.orderId)}
                           >
-                            <div className="flex items-center gap-3">
-                              <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                            <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+                              <div className="w-6 h-6 sm:w-8 sm:h-8 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
                                 <span className="text-blue-600 font-semibold text-xs">#{order.orderId}</span>
                               </div>
-                              <div>
-                                <div className="font-medium">{order.orderNumber || `Đơn #${order.orderId}`}</div>
-                                <div className="text-sm text-gray-600 flex items-center gap-4">
-                                  <span className="flex items-center gap-1">
-                                    <User className="w-3 h-3" />
-                                    {order.customerName}
-                                  </span>
-                                  <span className="flex items-center gap-1">
-                                    <Clock className="w-3 h-3" />
-                                    {formatDate(order.createdAt)}
-                                  </span>
+                              <div className="min-w-0 flex-1">
+                                <div className="font-medium text-sm sm:text-base truncate">{order.orderNumber || `Đơn #${order.orderId}`}</div>
+                                <div className="text-xs sm:text-sm text-gray-600">
+                                  <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4">
+                                    <span className="flex items-center gap-1 truncate">
+                                      <User className="w-3 h-3 flex-shrink-0" />
+                                      <span className="truncate">{order.customerName}</span>
+                                    </span>
+                                    <span className="flex items-center gap-1">
+                                      <Clock className="w-3 h-3 flex-shrink-0" />
+                                      {formatDate(order.createdAt)}
+                                    </span>
+                                  </div>
                                 </div>
                               </div>
                             </div>
-                            <div className="text-right">
-                              <div className="font-semibold">{order.totalAmount.toLocaleString('vi-VN')}₫</div>
-                              <div className="flex items-center gap-1 text-sm text-gray-500">
+                            <div className="text-right flex-shrink-0 ml-2">
+                              <div className="font-semibold text-sm sm:text-base">{order.totalAmount.toLocaleString('vi-VN')}₫</div>
+                              <div className="flex items-center gap-1 text-xs sm:text-sm text-gray-500 justify-end">
                                 <Package className="w-3 h-3" />
-                                {order.items?.length || 0} items
+                                <span>{order.items?.length || 0} items</span>
                                 {expandedOrders.has(order.orderId) ? 
-                                  <ChevronDown className="w-4 h-4 ml-1" /> : 
-                                  <ChevronRight className="w-4 h-4 ml-1" />
+                                  <ChevronDown className="w-3 h-3 sm:w-4 sm:h-4 ml-1" /> : 
+                                  <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4 ml-1" />
                                 }
                               </div>
                             </div>
@@ -513,17 +536,17 @@ export function PaymentReport() {
                           {expandedOrders.has(order.orderId) && (
                             <div className="border-t bg-gray-50">
                               <div className="p-3">
-                                <h5 className="font-medium mb-2 text-sm">Chi tiết sản phẩm:</h5>
+                                <h5 className="font-medium mb-2 text-xs sm:text-sm">Chi tiết sản phẩm:</h5>
                                 <div className="space-y-2">
                                   {order.items?.map((item, index) => (
-                                    <div key={index} className="flex items-center justify-between p-2 bg-white rounded border text-sm">
-                                      <div className="flex-1">
-                                        <div className="font-medium">{item.productName}</div>
+                                    <div key={index} className="flex items-center justify-between p-2 bg-white rounded border text-xs sm:text-sm">
+                                      <div className="flex-1 min-w-0 pr-2">
+                                        <div className="font-medium truncate">{item.productName}</div>
                                         <div className="text-gray-600">
                                           {item.quantity} x {item.price.toLocaleString('vi-VN')}₫
                                         </div>
                                       </div>
-                                      <div className="font-semibold">
+                                      <div className="font-semibold flex-shrink-0">
                                         {item.totalPrice.toLocaleString('vi-VN')}₫
                                       </div>
                                     </div>
@@ -537,8 +560,8 @@ export function PaymentReport() {
                       
                       {(!stat.orders || stat.orders.length === 0) && (
                         <div className="text-center py-4 text-gray-500">
-                          <Package className="w-8 h-8 mx-auto mb-2 text-gray-300" />
-                          <p>Chưa có đơn hàng nào</p>
+                          <Package className="w-6 h-6 sm:w-8 sm:h-8 mx-auto mb-2 text-gray-300" />
+                          <p className="text-sm">Chưa có đơn hàng nào</p>
                         </div>
                       )}
                     </div>
@@ -549,9 +572,9 @@ export function PaymentReport() {
             
             {(!paymentStats?.paymentStats || paymentStats.paymentStats.length === 0) && (
               <div className="text-center py-8 text-gray-500">
-                <TrendingUp className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-                <p>Chưa có dữ liệu thanh toán</p>
-                <p className="text-sm">Hãy thực hiện một số giao dịch để xem báo cáo</p>
+                <TrendingUp className="w-8 h-8 sm:w-12 sm:h-12 mx-auto mb-3 text-gray-300" />
+                <p className="text-sm sm:text-base">Chưa có dữ liệu thanh toán</p>
+                <p className="text-xs sm:text-sm">Hãy thực hiện một số giao dịch để xem báo cáo</p>
               </div>
             )}
           </div>
