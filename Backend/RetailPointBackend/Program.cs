@@ -2,9 +2,12 @@ using Microsoft.EntityFrameworkCore;
 using RetailPointBackend.Models;
 using RetailPointBackend.Services;
 using OfficeOpenXml;
-
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Cấu hình encoding UTF-8
+Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 
 // Thêm cấu hình CORS cho phép từ frontend
 builder.Services.AddCors(options =>
@@ -20,7 +23,18 @@ builder.Services.AddCors(options =>
 
 // Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .ConfigureApiBehaviorOptions(options =>
+    {
+        // Cấu hình để trả về UTF-8
+        options.SuppressModelStateInvalidFilter = false;
+    });
+
+builder.Services.Configure<Microsoft.AspNetCore.Mvc.JsonOptions>(options =>
+{
+    options.JsonSerializerOptions.Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping;
+});
+
 builder.Services.AddOpenApi();
 
 // Add DbContext for EF Core
