@@ -34,6 +34,9 @@ builder.Services.AddDbContext<RetailPointContext>(options =>
 // Đăng ký NotificationService
 builder.Services.AddScoped<INotificationService, NotificationService>();
 
+// Đăng ký SeedDataService
+builder.Services.AddScoped<SeedDataService>();
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -72,6 +75,13 @@ app.MapGet("/weatherforecast", () =>
     return forecast;
 })
 .WithName("GetWeatherForecast");
+
+// TODO: Seed initial data khi đã fix migration issue
+// using (var scope = app.Services.CreateScope())
+// {
+//     var seedService = scope.ServiceProvider.GetRequiredService<SeedDataService>();
+//     await seedService.SeedAsync();
+// }
 
 app.Run();
 

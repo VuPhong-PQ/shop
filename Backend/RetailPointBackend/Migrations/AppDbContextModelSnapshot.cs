@@ -47,7 +47,7 @@ namespace RetailPointBackend.Migrations
 
                     b.HasKey("CustomerId");
 
-                    b.ToTable("Customers");
+                    b.ToTable("Customers", (string)null);
                 });
 
             modelBuilder.Entity("RetailPointBackend.Models.Notification", b =>
@@ -95,7 +95,7 @@ namespace RetailPointBackend.Migrations
 
                     b.HasIndex("OrderId");
 
-                    b.ToTable("Notifications");
+                    b.ToTable("Notifications", (string)null);
                 });
 
             modelBuilder.Entity("RetailPointBackend.Models.Order", b =>
@@ -106,9 +106,6 @@ namespace RetailPointBackend.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("OrderId"));
 
-                    b.Property<int?>("CashierId")
-                        .HasColumnType("int");
-
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
@@ -118,43 +115,14 @@ namespace RetailPointBackend.Migrations
                     b.Property<string>("CustomerName")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<decimal>("DiscountAmount")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<string>("Notes")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("OrderNumber")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("PaymentMethod")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("PaymentStatus")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Status")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("StoreId")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<decimal>("SubTotal")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal>("TaxAmount")
-                        .HasColumnType("decimal(18,2)");
-
                     b.Property<decimal>("TotalAmount")
                         .HasColumnType("decimal(18,2)");
 
                     b.HasKey("OrderId");
 
-                    b.HasIndex("CashierId");
-
                     b.HasIndex("CustomerId");
 
-                    b.ToTable("Orders");
+                    b.ToTable("Orders", (string)null);
                 });
 
             modelBuilder.Entity("RetailPointBackend.Models.OrderItem", b =>
@@ -192,7 +160,7 @@ namespace RetailPointBackend.Migrations
 
                     b.HasIndex("OrderId");
 
-                    b.ToTable("OrderItems");
+                    b.ToTable("OrderItems", (string)null);
                 });
 
             modelBuilder.Entity("RetailPointBackend.Models.PaymentMethodConfig", b =>
@@ -230,7 +198,7 @@ namespace RetailPointBackend.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("PaymentMethodConfigs");
+                    b.ToTable("PaymentMethodConfigs", (string)null);
                 });
 
             modelBuilder.Entity("RetailPointBackend.Models.PaymentSettings", b =>
@@ -265,36 +233,7 @@ namespace RetailPointBackend.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("PaymentSettings");
-                });
-
-            modelBuilder.Entity("RetailPointBackend.Models.Permission", b =>
-                {
-                    b.Property<int>("PermissionId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("PermissionId"));
-
-                    b.Property<string>("Category")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Description")
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.Property<string>("PermissionName")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.HasKey("PermissionId");
-
-                    b.ToTable("Permissions");
+                    b.ToTable("PaymentSettings", (string)null);
                 });
 
             modelBuilder.Entity("RetailPointBackend.Models.PrintConfig", b =>
@@ -338,7 +277,7 @@ namespace RetailPointBackend.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("PrintConfigs");
+                    b.ToTable("PrintConfigs", (string)null);
                 });
 
             modelBuilder.Entity("RetailPointBackend.Models.Product", b =>
@@ -385,112 +324,7 @@ namespace RetailPointBackend.Migrations
 
                     b.HasKey("ProductId");
 
-                    b.ToTable("Products");
-                });
-
-            modelBuilder.Entity("RetailPointBackend.Models.Role", b =>
-                {
-                    b.Property<int>("RoleId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("RoleId"));
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Description")
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.Property<string>("RoleName")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.HasKey("RoleId");
-
-                    b.ToTable("Roles");
-                });
-
-            modelBuilder.Entity("RetailPointBackend.Models.RolePermission", b =>
-                {
-                    b.Property<int>("RolePermissionId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("RolePermissionId"));
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("PermissionId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("RoleId")
-                        .HasColumnType("int");
-
-                    b.HasKey("RolePermissionId");
-
-                    b.HasIndex("PermissionId");
-
-                    b.HasIndex("RoleId");
-
-                    b.ToTable("RolePermissions");
-                });
-
-            modelBuilder.Entity("RetailPointBackend.Models.Staff", b =>
-                {
-                    b.Property<int>("StaffId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("StaffId"));
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Email")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("FullName")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
-
-                    b.Property<DateTime?>("LastLogin")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Notes")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<string>("PasswordHash")
-                        .IsRequired()
-                        .HasMaxLength(256)
-                        .HasColumnType("nvarchar(256)");
-
-                    b.Property<string>("PhoneNumber")
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
-
-                    b.Property<int>("RoleId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Username")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.HasKey("StaffId");
-
-                    b.HasIndex("RoleId");
-
-                    b.ToTable("Staffs");
+                    b.ToTable("Products", (string)null);
                 });
 
             modelBuilder.Entity("RetailPointBackend.Models.StoreInfo", b =>
@@ -531,7 +365,7 @@ namespace RetailPointBackend.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("StoreInfos");
+                    b.ToTable("StoreInfos", (string)null);
                 });
 
             modelBuilder.Entity("RetailPointBackend.Models.TaxConfig", b =>
@@ -563,7 +397,7 @@ namespace RetailPointBackend.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("TaxConfigs");
+                    b.ToTable("TaxConfigs", (string)null);
                 });
 
             modelBuilder.Entity("RetailPointBackend.Models.Notification", b =>
@@ -577,15 +411,9 @@ namespace RetailPointBackend.Migrations
 
             modelBuilder.Entity("RetailPointBackend.Models.Order", b =>
                 {
-                    b.HasOne("RetailPointBackend.Models.Staff", "Cashier")
-                        .WithMany()
-                        .HasForeignKey("CashierId");
-
                     b.HasOne("RetailPointBackend.Models.Customer", "Customer")
                         .WithMany("Orders")
                         .HasForeignKey("CustomerId");
-
-                    b.Navigation("Cashier");
 
                     b.Navigation("Customer");
                 });
@@ -607,36 +435,6 @@ namespace RetailPointBackend.Migrations
                     b.Navigation("Order");
                 });
 
-            modelBuilder.Entity("RetailPointBackend.Models.RolePermission", b =>
-                {
-                    b.HasOne("RetailPointBackend.Models.Permission", "Permission")
-                        .WithMany("RolePermissions")
-                        .HasForeignKey("PermissionId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("RetailPointBackend.Models.Role", "Role")
-                        .WithMany("RolePermissions")
-                        .HasForeignKey("RoleId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Permission");
-
-                    b.Navigation("Role");
-                });
-
-            modelBuilder.Entity("RetailPointBackend.Models.Staff", b =>
-                {
-                    b.HasOne("RetailPointBackend.Models.Role", "Role")
-                        .WithMany("Staffs")
-                        .HasForeignKey("RoleId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Role");
-                });
-
             modelBuilder.Entity("RetailPointBackend.Models.Customer", b =>
                 {
                     b.Navigation("OrderItems");
@@ -647,18 +445,6 @@ namespace RetailPointBackend.Migrations
             modelBuilder.Entity("RetailPointBackend.Models.Order", b =>
                 {
                     b.Navigation("Items");
-                });
-
-            modelBuilder.Entity("RetailPointBackend.Models.Permission", b =>
-                {
-                    b.Navigation("RolePermissions");
-                });
-
-            modelBuilder.Entity("RetailPointBackend.Models.Role", b =>
-                {
-                    b.Navigation("RolePermissions");
-
-                    b.Navigation("Staffs");
                 });
 #pragma warning restore 612, 618
         }

@@ -168,3 +168,4 @@ D:\laptrinh\thiekepm\RetailPoint\Backend\RetailPointBackend\obj\Debug\net9.0\Ret
 D:\laptrinh\thiekepm\RetailPoint\Backend\RetailPointBackend\obj\Debug\net9.0\ref\RetailPointBackend.dll
 D:\laptrinh\thiekepm\RetailPoint\Backend\RetailPointBackend\bin\Debug\net9.0\EPPlus.dll
 D:\laptrinh\thiekepm\RetailPoint\Backend\RetailPointBackend\bin\Debug\net9.0\Microsoft.IO.RecyclableMemoryStream.dll
+D:\laptrinh\thiekepm\RetailPoint\Backend\RetailPointBackend\bin\Debug\net9.0\BCrypt.Net-Next.dll
