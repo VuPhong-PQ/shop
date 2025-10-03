@@ -26,8 +26,9 @@ namespace RetailPointBackend.Controllers
                 var startDate = fromDate ?? DateTime.Now.AddDays(-30).Date;
                 var endDate = toDate ?? DateTime.Now.Date.AddDays(1).AddTicks(-1);
 
-                // Lấy các đơn hàng đã hoàn thành trong khoảng thời gian
+                // Lấy các đơn hàng đã hoàn thành trong khoảng thời gian với items
                 var orders = await _context.Orders
+                    .Include(o => o.Items)
                     .Where(o => o.Status == "completed" && 
                                o.PaymentStatus == "paid" &&
                                o.CreatedAt >= startDate && 
@@ -50,7 +51,22 @@ namespace RetailPointBackend.Controllers
                         PaymentMethodId = g.Key,
                         TotalAmount = g.Sum(o => o.TotalAmount),
                         OrderCount = g.Count(),
-                        Percentage = 0.0 // Sẽ tính sau
+                        Percentage = 0.0, // Sẽ tính sau
+                        Orders = g.Select(order => new
+                        {
+                            OrderId = order.OrderId,
+                            OrderNumber = order.OrderNumber,
+                            CustomerName = order.CustomerName ?? "Khách lẻ",
+                            TotalAmount = order.TotalAmount,
+                            CreatedAt = order.CreatedAt,
+                            Items = order.Items.Select(item => new
+                            {
+                                ProductName = item.ProductName,
+                                Quantity = item.Quantity,
+                                Price = item.Price,
+                                TotalPrice = item.TotalPrice
+                            }).ToList()
+                        }).OrderByDescending(x => x.CreatedAt).ToList()
                     })
                     .OrderByDescending(x => x.TotalAmount)
                     .ToList();
@@ -63,6 +79,7 @@ namespace RetailPointBackend.Controllers
                     stat.PaymentMethodId,
                     stat.TotalAmount,
                     stat.OrderCount,
+                    stat.Orders,
                     Percentage = totalRevenue > 0 ? Math.Round((stat.TotalAmount / totalRevenue) * 100, 1) : 0
                 }).ToList();
 

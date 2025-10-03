@@ -3,8 +3,26 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import { apiRequest } from "@/lib/queryClient";
-import { Banknote, CreditCard, QrCode, Smartphone, TrendingUp, Calendar, RefreshCw } from "lucide-react";
+import { Banknote, CreditCard, QrCode, Smartphone, TrendingUp, Calendar, RefreshCw, ChevronDown, ChevronRight, Eye, Package, User, Clock, Download } from "lucide-react";
+import * as XLSX from 'xlsx';
+
+interface OrderItem {
+  productName: string;
+  quantity: number;
+  price: number;
+  totalPrice: number;
+}
+
+interface OrderDetail {
+  orderId: number;
+  orderNumber: string;
+  customerName: string;
+  totalAmount: number;
+  createdAt: string;
+  items: OrderItem[];
+}
 
 interface PaymentStat {
   paymentMethod: string;
@@ -12,6 +30,7 @@ interface PaymentStat {
   totalAmount: number;
   orderCount: number;
   percentage: number;
+  orders: OrderDetail[];
 }
 
 interface PaymentStatsData {
@@ -35,6 +54,9 @@ export function PaymentReport() {
     return date.toISOString().split('T')[0];
   });
 
+  const [expandedPaymentMethods, setExpandedPaymentMethods] = useState<Set<string>>(new Set());
+  const [expandedOrders, setExpandedOrders] = useState<Set<number>>(new Set());
+
   const { data: paymentStats, isLoading, refetch } = useQuery<PaymentStatsData>({
     queryKey: ["/api/PaymentStats", fromDate, toDate],
     queryFn: async () => {
@@ -44,6 +66,7 @@ export function PaymentReport() {
       });
       const res = await apiRequest(`/api/PaymentStats?${params}`, { method: "GET" });
       console.log('Payment stats data:', res); // Debug log
+      console.log('Payment stats structure:', JSON.stringify(res, null, 2)); // Detailed debug
       return res;
     },
   });
@@ -70,6 +93,138 @@ export function PaymentReport() {
 
   const handleRefresh = () => {
     refetch();
+  };
+
+  const togglePaymentMethod = (methodId: string) => {
+    setExpandedPaymentMethods(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(methodId)) {
+        newSet.delete(methodId);
+      } else {
+        newSet.add(methodId);
+      }
+      return newSet;
+    });
+  };
+
+  const toggleOrder = (orderId: number) => {
+    setExpandedOrders(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(orderId)) {
+        newSet.delete(orderId);
+      } else {
+        newSet.add(orderId);
+      }
+      return newSet;
+    });
+  };
+
+  const formatDate = (dateStr: string) => {
+    return new Date(dateStr).toLocaleString('vi-VN');
+  };
+
+  const exportToExcel = () => {
+    if (!paymentStats?.paymentStats || paymentStats.paymentStats.length === 0) {
+      alert('Không có dữ liệu để xuất');
+      return;
+    }
+
+    const workbook = XLSX.utils.book_new();
+
+    // Sheet 1: Tổng quan
+    const overviewData = [
+      ['Báo cáo Hình thức Thanh toán'],
+      [`Từ ngày: ${fromDate} đến ${toDate}`],
+      [`Tổng doanh thu: ${paymentStats.totalRevenue?.toLocaleString('vi-VN')}₫`],
+      [`Tổng đơn hàng: ${paymentStats.totalOrders}`],
+      [''],
+      ['Hình thức thanh toán', 'Số đơn hàng', 'Doanh thu', 'Tỷ lệ %']
+    ];
+
+    paymentStats.paymentStats.forEach(stat => {
+      overviewData.push([
+        stat.paymentMethod,
+        stat.orderCount.toString(),
+        `${stat.totalAmount.toLocaleString('vi-VN')}₫`,
+        `${stat.percentage}%`
+      ]);
+    });
+
+    const overviewWs = XLSX.utils.aoa_to_sheet(overviewData);
+    XLSX.utils.book_append_sheet(workbook, overviewWs, 'Tổng quan');
+
+    // Sheet 2: Chi tiết từng đơn hàng
+    const detailData = [
+      ['Chi tiết Đơn hàng theo Hình thức Thanh toán'],
+      [''],
+      ['Hình thức thanh toán', 'Số đơn', 'Mã đơn hàng', 'Khách hàng', 'Thời gian', 'Tổng tiền', 'Sản phẩm', 'Số lượng', 'Đơn giá', 'Thành tiền']
+    ];
+
+    paymentStats.paymentStats.forEach(stat => {
+      if (stat.orders && stat.orders.length > 0) {
+        stat.orders.forEach(order => {
+          if (order.items && order.items.length > 0) {
+            order.items.forEach((item, itemIndex) => {
+              detailData.push([
+                itemIndex === 0 ? stat.paymentMethod : '', // Chỉ hiện tên phương thức ở dòng đầu
+                itemIndex === 0 ? order.orderId.toString() : '',
+                itemIndex === 0 ? (order.orderNumber || `Đơn #${order.orderId}`) : '',
+                itemIndex === 0 ? order.customerName : '',
+                itemIndex === 0 ? formatDate(order.createdAt) : '',
+                itemIndex === 0 ? `${order.totalAmount.toLocaleString('vi-VN')}₫` : '',
+                item.productName,
+                item.quantity.toString(),
+                `${item.price.toLocaleString('vi-VN')}₫`,
+                `${item.totalPrice.toLocaleString('vi-VN')}₫`
+              ]);
+            });
+          } else {
+            // Nếu đơn hàng không có items
+            detailData.push([
+              stat.paymentMethod,
+              order.orderId.toString(),
+              order.orderNumber || `Đơn #${order.orderId}`,
+              order.customerName,
+              formatDate(order.createdAt),
+              `${order.totalAmount.toLocaleString('vi-VN')}₫`,
+              'Không có sản phẩm',
+              '',
+              '',
+              ''
+            ]);
+          }
+        });
+        // Thêm dòng trống giữa các phương thức thanh toán
+        detailData.push(['', '', '', '', '', '', '', '', '', '']);
+      }
+    });
+
+    const detailWs = XLSX.utils.aoa_to_sheet(detailData);
+    XLSX.utils.book_append_sheet(workbook, detailWs, 'Chi tiết đơn hàng');
+
+    // Sheet 3: Xếp hạng phương thức thanh toán
+    const rankingData = [
+      ['Xếp hạng Hình thức Thanh toán'],
+      [''],
+      ['Hạng', 'Hình thức thanh toán', 'Số đơn hàng', 'Doanh thu', 'Tỷ lệ %']
+    ];
+
+    paymentStats.paymentStats.forEach((stat, index) => {
+      rankingData.push([
+        (index + 1).toString(),
+        stat.paymentMethod,
+        stat.orderCount.toString(),
+        `${stat.totalAmount.toLocaleString('vi-VN')}₫`,
+        `${stat.percentage}%`
+      ]);
+    });
+
+    const rankingWs = XLSX.utils.aoa_to_sheet(rankingData);
+    XLSX.utils.book_append_sheet(workbook, rankingWs, 'Xếp hạng');
+
+    // Xuất file
+    const fileName = `Bao_cao_hinh_thuc_thanh_toan_${fromDate}_den_${toDate}.xlsx`;
+    XLSX.writeFile(workbook, fileName);
   };
 
   if (isLoading) {
@@ -122,6 +277,14 @@ export function PaymentReport() {
           <Button onClick={handleRefresh} size="sm" variant="outline">
             <RefreshCw className="w-4 h-4 mr-1" />
             Làm mới
+          </Button>
+          <Button 
+            onClick={exportToExcel} 
+            size="sm" 
+            className="bg-green-600 hover:bg-green-700 text-white"
+          >
+            <Download className="w-4 h-4 mr-1" />
+            Xuất Excel
           </Button>
         </div>
       </div>
@@ -274,6 +437,126 @@ export function PaymentReport() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Chi tiết đơn hàng theo hình thức thanh toán */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Chi tiết Đơn hàng theo Hình thức Thanh toán</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {paymentStats?.paymentStats?.map((stat) => (
+              <div key={stat.paymentMethodId} className="border rounded-lg overflow-hidden">
+                <div 
+                  className="p-4 bg-gray-50 cursor-pointer flex items-center justify-between hover:bg-gray-100 transition-colors"
+                  onClick={() => togglePaymentMethod(stat.paymentMethodId)}
+                >
+                  <div className="flex items-center gap-3">
+                    {getPaymentIcon(stat.paymentMethodId)}
+                    <div>
+                      <h3 className="font-semibold">{stat.paymentMethod}</h3>
+                      <p className="text-sm text-gray-600">
+                        {stat.orderCount} đơn hàng • {stat.totalAmount.toLocaleString('vi-VN')}₫
+                      </p>
+                    </div>
+                  </div>
+                  {expandedPaymentMethods.has(stat.paymentMethodId) ? 
+                    <ChevronDown className="w-5 h-5" /> : 
+                    <ChevronRight className="w-5 h-5" />
+                  }
+                </div>
+                
+                {expandedPaymentMethods.has(stat.paymentMethodId) && (
+                  <div className="border-t">
+                    <div className="p-4 space-y-3">
+                      {(() => {
+                        console.log(`Orders for ${stat.paymentMethodId}:`, stat.orders);
+                        return null;
+                      })()}
+                      {stat.orders?.map((order) => (
+                        <div key={order.orderId} className="border rounded-lg overflow-hidden">
+                          <div 
+                            className="p-3 bg-white cursor-pointer flex items-center justify-between hover:bg-gray-50 transition-colors"
+                            onClick={() => toggleOrder(order.orderId)}
+                          >
+                            <div className="flex items-center gap-3">
+                              <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                                <span className="text-blue-600 font-semibold text-xs">#{order.orderId}</span>
+                              </div>
+                              <div>
+                                <div className="font-medium">{order.orderNumber || `Đơn #${order.orderId}`}</div>
+                                <div className="text-sm text-gray-600 flex items-center gap-4">
+                                  <span className="flex items-center gap-1">
+                                    <User className="w-3 h-3" />
+                                    {order.customerName}
+                                  </span>
+                                  <span className="flex items-center gap-1">
+                                    <Clock className="w-3 h-3" />
+                                    {formatDate(order.createdAt)}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <div className="font-semibold">{order.totalAmount.toLocaleString('vi-VN')}₫</div>
+                              <div className="flex items-center gap-1 text-sm text-gray-500">
+                                <Package className="w-3 h-3" />
+                                {order.items?.length || 0} items
+                                {expandedOrders.has(order.orderId) ? 
+                                  <ChevronDown className="w-4 h-4 ml-1" /> : 
+                                  <ChevronRight className="w-4 h-4 ml-1" />
+                                }
+                              </div>
+                            </div>
+                          </div>
+                          
+                          {expandedOrders.has(order.orderId) && (
+                            <div className="border-t bg-gray-50">
+                              <div className="p-3">
+                                <h5 className="font-medium mb-2 text-sm">Chi tiết sản phẩm:</h5>
+                                <div className="space-y-2">
+                                  {order.items?.map((item, index) => (
+                                    <div key={index} className="flex items-center justify-between p-2 bg-white rounded border text-sm">
+                                      <div className="flex-1">
+                                        <div className="font-medium">{item.productName}</div>
+                                        <div className="text-gray-600">
+                                          {item.quantity} x {item.price.toLocaleString('vi-VN')}₫
+                                        </div>
+                                      </div>
+                                      <div className="font-semibold">
+                                        {item.totalPrice.toLocaleString('vi-VN')}₫
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                      
+                      {(!stat.orders || stat.orders.length === 0) && (
+                        <div className="text-center py-4 text-gray-500">
+                          <Package className="w-8 h-8 mx-auto mb-2 text-gray-300" />
+                          <p>Chưa có đơn hàng nào</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+            
+            {(!paymentStats?.paymentStats || paymentStats.paymentStats.length === 0) && (
+              <div className="text-center py-8 text-gray-500">
+                <TrendingUp className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+                <p>Chưa có dữ liệu thanh toán</p>
+                <p className="text-sm">Hãy thực hiện một số giao dịch để xem báo cáo</p>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
