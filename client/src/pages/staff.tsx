@@ -38,6 +38,7 @@ import {
   MapPin,
   Award,
   Group,
+  User,
   Package
 } from "lucide-react";
 import {
@@ -49,29 +50,26 @@ import {
 
 const staffFormSchema = z.object({
   fullName: z.string().min(1, "Họ tên là bắt buộc"),
-  email: z.string().email("Email không hợp lệ"),
-  phone: z.string().min(1, "Số điện thoại là bắt buộc"),
-  address: z.string().optional(),
-  role: z.string().min(1, "Vai trò là bắt buộc"),
-  storeId: z.string().min(1, "Cửa hàng là bắt buộc"),
-  workSchedule: z.string().optional(),
-  salary: z.string().optional(),
-  startDate: z.string().min(1, "Ngày bắt đầu là bắt buộc"),
+  username: z.string().min(1, "Tên đăng nhập là bắt buộc"),
+  password: z.string().min(6, "Mật khẩu tối thiểu 6 ký tự"),
+  email: z.string().email("Email không hợp lệ").optional(),
+  phoneNumber: z.string().optional(),
+  roleId: z.number().min(1, "Vai trò là bắt buộc"),
   isActive: z.boolean().default(true),
   notes: z.string().optional()
 });
 
 type StaffFormData = z.infer<typeof staffFormSchema>;
 
-const getRoleBadgeColor = (role: string) => {
+const getRoleBadgeColor = (roleName: string) => {
   const colors: { [key: string]: string } = {
-    admin: "bg-red-100 text-red-800",
-    manager: "bg-blue-100 text-blue-800",
-    cashier: "bg-green-100 text-green-800",
+    "Admin": "bg-red-100 text-red-800",
+    "Quản lý": "bg-blue-100 text-blue-800",
+    "Thu ngân": "bg-green-100 text-green-800",
     staff: "bg-gray-100 text-gray-800",
     inventory: "bg-orange-100 text-orange-800"
   };
-  return colors[role] || colors.staff;
+  return colors[roleName] || colors.staff;
 };
 
 const getRoleIcon = (role: string) => {
@@ -95,17 +93,38 @@ export default function Staff() {
   // Fetch data
   const { data: staff = [], isLoading: staffLoading } = useQuery<any[]>({
     queryKey: ['/api/staff'],
+    queryFn: async () => {
+      const response = await fetch('/api/staff');
+      if (!response.ok) throw new Error('Failed to fetch staff');
+      return response.json();
+    },
   });
 
   const { data: roles = [], isLoading: rolesLoading } = useQuery<any[]>({
-    queryKey: ['/api/roles'],
+    queryKey: ['/api/role'],
+    queryFn: async () => {
+      const response = await fetch('/api/role');
+      if (!response.ok) throw new Error('Failed to fetch roles');
+      return response.json();
+    },
   });
 
-  const { data: groups = [], isLoading: groupsLoading } = useQuery<any[]>({
-    queryKey: ['/api/staff-groups'],
+  const { data: permissions = [], isLoading: permissionsLoading } = useQuery<any[]>({
+    queryKey: ['/api/permission'],
+    queryFn: async () => {
+      const response = await fetch('/api/permission');
+      if (!response.ok) throw new Error('Failed to fetch permissions');
+      return response.json();
+    },
   });
 
-  const isLoading = staffLoading || rolesLoading || groupsLoading;
+  // Mock groups data for now (will be implemented later)
+  const groups = [
+    { id: 1, name: 'Admin', count: 1 },
+    { id: 2, name: 'Thu ngân', count: 1 }
+  ];
+
+  const isLoading = staffLoading || rolesLoading || permissionsLoading;
 
   // Form
   const form = useForm<StaffFormData>({
@@ -128,7 +147,12 @@ export default function Staff() {
   // Mutations
   const addStaffMutation = useMutation({
     mutationFn: async (staffData: StaffFormData) => {
-      const response = await apiRequest('POST', '/api/staff', staffData);
+      const response = await fetch('/api/staff', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(staffData)
+      });
+      if (!response.ok) throw new Error('Failed to create staff');
       return response.json();
     },
     onSuccess: () => {
@@ -150,8 +174,13 @@ export default function Staff() {
   });
 
   const updateStaffMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: Partial<StaffFormData> }) => {
-      const response = await apiRequest('PUT', `/api/staff/${id}`, data);
+    mutationFn: async ({ id, data }: { id: number; data: Partial<StaffFormData> }) => {
+      const response = await fetch(`/api/staff/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      if (!response.ok) throw new Error('Failed to update staff');
       return response.json();
     },
     onSuccess: () => {
@@ -174,8 +203,11 @@ export default function Staff() {
   });
 
   const deleteStaffMutation = useMutation({
-    mutationFn: async (id: string) => {
-      const response = await apiRequest('DELETE', `/api/staff/${id}`);
+    mutationFn: async (id: number) => {
+      const response = await fetch(`/api/staff/${id}`, {
+        method: 'DELETE'
+      });
+      if (!response.ok) throw new Error('Failed to delete staff');
       return response.json();
     },
     onSuccess: () => {
@@ -198,14 +230,15 @@ export default function Staff() {
   const filteredStaff = staff.filter((member: any) => {
     const matchesSearch = member.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          member.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         member.phone?.includes(searchTerm);
-    const matchesRole = selectedRole === "all" || member.role === selectedRole;
+                         member.username?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         member.phoneNumber?.includes(searchTerm);
+    const matchesRole = selectedRole === "all" || member.roleId?.toString() === selectedRole;
     return matchesSearch && matchesRole;
   });
 
   const onSubmit = (data: StaffFormData) => {
     if (editingStaff) {
-      updateStaffMutation.mutate({ id: editingStaff.id, data });
+      updateStaffMutation.mutate({ id: editingStaff.staffId, data });
     } else {
       addStaffMutation.mutate(data);
     }
@@ -215,21 +248,18 @@ export default function Staff() {
     setEditingStaff(member);
     form.reset({
       fullName: member.fullName || "",
+      username: member.username || "",
+      password: "", // Don't populate password for editing
       email: member.email || "",
-      phone: member.phone || "",
-      address: member.address || "",
-      role: member.role || "",
-      storeId: member.storeId || "550e8400-e29b-41d4-a716-446655440002",
-      workSchedule: member.workSchedule || "9:00-18:00",
-      salary: member.salary || "",
-      startDate: member.startDate?.split('T')[0] || new Date().toISOString().split('T')[0],
+      phoneNumber: member.phoneNumber || "",
+      roleId: member.roleId || 0,
       isActive: member.isActive ?? true,
       notes: member.notes || ""
     });
     setIsAddDialogOpen(true);
   };
 
-  const handleDeleteStaff = (id: string) => {
+  const handleDeleteStaff = (id: number) => {
     if (confirm("Bạn có chắc muốn xóa nhân viên này?")) {
       deleteStaffMutation.mutate(id);
     }
@@ -240,7 +270,7 @@ export default function Staff() {
   const activeStaff = staff.filter((member: any) => member.isActive).length;
   const staffByRole = roles.map((role: any) => ({
     ...role,
-    count: staff.filter((s: any) => s.role === role.id).length
+    count: staff.filter((s: any) => s.roleId === role.roleId).length
   }));
 
   return (
@@ -353,10 +383,38 @@ export default function Staff() {
 
                       <FormField
                         control={form.control}
+                        name="username"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Tên đăng nhập *</FormLabel>
+                            <FormControl>
+                              <Input {...field} data-testid="input-staff-username" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="password"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Mật khẩu *</FormLabel>
+                            <FormControl>
+                              <Input {...field} type="password" data-testid="input-staff-password" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
                         name="email"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Email *</FormLabel>
+                            <FormLabel>Email</FormLabel>
                             <FormControl>
                               <Input {...field} type="email" data-testid="input-staff-email" />
                             </FormControl>
@@ -367,10 +425,10 @@ export default function Staff() {
 
                       <FormField
                         control={form.control}
-                        name="phone"
+                        name="phoneNumber"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Số điện thoại *</FormLabel>
+                            <FormLabel>Số điện thoại</FormLabel>
                             <FormControl>
                               <Input {...field} data-testid="input-staff-phone" />
                             </FormControl>
@@ -381,11 +439,11 @@ export default function Staff() {
 
                       <FormField
                         control={form.control}
-                        name="role"
+                        name="roleId"
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel>Vai trò *</FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value || ""}>
+                            <Select onValueChange={(value) => field.onChange(parseInt(value))} value={field.value?.toString() || ""}>
                               <FormControl>
                                 <SelectTrigger data-testid="select-staff-role">
                                   <SelectValue placeholder="Chọn vai trò" />
@@ -393,54 +451,12 @@ export default function Staff() {
                               </FormControl>
                               <SelectContent>
                                 {roles.map((role: any) => (
-                                  <SelectItem key={role.id} value={role.id}>
-                                    {role.name}
+                                  <SelectItem key={role.roleId} value={role.roleId.toString()}>
+                                    {role.roleName}
                                   </SelectItem>
                                 ))}
                               </SelectContent>
                             </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={form.control}
-                        name="workSchedule"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Giờ làm việc</FormLabel>
-                            <FormControl>
-                              <Input {...field} placeholder="9:00-18:00" data-testid="input-work-schedule" />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={form.control}
-                        name="salary"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Lương (VNĐ)</FormLabel>
-                            <FormControl>
-                              <Input {...field} type="number" data-testid="input-staff-salary" />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={form.control}
-                        name="startDate"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Ngày bắt đầu *</FormLabel>
-                            <FormControl>
-                              <Input {...field} type="date" data-testid="input-start-date" />
-                            </FormControl>
                             <FormMessage />
                           </FormItem>
                         )}
@@ -465,20 +481,6 @@ export default function Staff() {
                         )}
                       />
                     </div>
-
-                    <FormField
-                      control={form.control}
-                      name="address"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Địa chỉ</FormLabel>
-                          <FormControl>
-                            <Input {...field} data-testid="input-staff-address" />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
 
                     <FormField
                       control={form.control}
@@ -542,8 +544,8 @@ export default function Staff() {
                     <SelectContent>
                       <SelectItem value="all">Tất cả vai trò</SelectItem>
                       {roles.map((role: any) => (
-                        <SelectItem key={role.id} value={role.id}>
-                          {role.name}
+                        <SelectItem key={role.roleId} value={role.roleId.toString()}>
+                          {role.roleName}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -591,7 +593,7 @@ export default function Staff() {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {filteredStaff.map((member: any) => (
-                  <Card key={member.id} className="hover:shadow-md transition-shadow" data-testid={`staff-card-${member.id}`}>
+                  <Card key={member.staffId} className="hover:shadow-md transition-shadow" data-testid={`staff-card-${member.staffId}`}>
                     <CardContent className="p-6">
                       <div className="flex items-start justify-between mb-4">
                         <div className="flex items-center space-x-3">
@@ -603,7 +605,7 @@ export default function Staff() {
                           </Avatar>
                           <div>
                             <h3 className="font-semibold text-gray-900">{member.fullName}</h3>
-                            <p className="text-sm text-gray-500">{member.email}</p>
+                            <p className="text-sm text-gray-500">{member.email || member.username}</p>
                           </div>
                         </div>
                         <DropdownMenu>
@@ -618,7 +620,7 @@ export default function Staff() {
                               Chỉnh sửa
                             </DropdownMenuItem>
                             <DropdownMenuItem 
-                              onClick={() => handleDeleteStaff(member.id)}
+                              onClick={() => handleDeleteStaff(member.staffId)}
                               className="text-red-600"
                             >
                               <Trash2 className="mr-2 h-4 w-4" />
@@ -630,9 +632,9 @@ export default function Staff() {
 
                       <div className="space-y-3">
                         <div className="flex items-center justify-between">
-                          <Badge className={getRoleBadgeColor(member.role)} variant="outline">
-                            {getRoleIcon(member.role)}
-                            <span className="ml-1">{roles.find((r: any) => r.id === member.role)?.name || member.role}</span>
+                          <Badge className={getRoleBadgeColor(member.roleName || 'N/A')} variant="outline">
+                            {getRoleIcon(member.roleName || 'N/A')}
+                            <span className="ml-1">{member.roleName || 'N/A'}</span>
                           </Badge>
                           <Badge variant={member.isActive ? 'default' : 'secondary'}>
                             {member.isActive ? 'Hoạt động' : 'Không hoạt động'}
@@ -641,17 +643,23 @@ export default function Staff() {
 
                         <div className="space-y-2 text-sm text-gray-600">
                           <div className="flex items-center">
-                            <Phone className="w-4 h-4 mr-2" />
-                            {member.phone}
+                            <User className="w-4 h-4 mr-2" />
+                            {member.username}
                           </div>
+                          {member.phoneNumber && (
+                            <div className="flex items-center">
+                              <Phone className="w-4 h-4 mr-2" />
+                              {member.phoneNumber}
+                            </div>
+                          )}
                           <div className="flex items-center">
                             <Clock className="w-4 h-4 mr-2" />
-                            {member.workSchedule}
+                            Tạo: {new Date(member.createdAt).toLocaleDateString('vi-VN')}
                           </div>
-                          {member.salary && (
-                            <div className="flex items-center">
-                              <Award className="w-4 h-4 mr-2" />
-                              {parseInt(member.salary).toLocaleString('vi-VN')}₫
+                          {member.notes && (
+                            <div className="flex items-start">
+                              <Award className="w-4 h-4 mr-2 mt-0.5" />
+                              <span className="text-xs">{member.notes}</span>
                             </div>
                           )}
                         </div>
@@ -685,9 +693,9 @@ export default function Staff() {
                       <div className="space-y-2">
                         <h4 className="font-medium text-sm">Quyền hạn:</h4>
                         <div className="flex flex-wrap gap-1">
-                          {role.permissions.map((permission: string) => (
-                            <Badge key={permission} variant="outline" className="text-xs">
-                              {permission.replace('_', ' ').toLowerCase()}
+                          {role.permissions.map((permission: any) => (
+                            <Badge key={permission.permissionId} variant="outline" className="text-xs">
+                              {permission.permissionName.replace(/([A-Z])/g, ' $1').trim().toLowerCase()}
                             </Badge>
                           ))}
                         </div>
