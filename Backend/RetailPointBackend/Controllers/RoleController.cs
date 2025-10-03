@@ -229,6 +229,64 @@ namespace RetailPointBackend.Controllers
             return NoContent();
         }
 
+        // POST: api/Role/assign-permission
+        [HttpPost("assign-permission")]
+        public async Task<ActionResult> AssignPermissionToRole([FromBody] AssignPermissionDto dto)
+        {
+            // Kiểm tra role và permission có tồn tại không
+            var roleExists = await _context.Roles.AnyAsync(r => r.RoleId == dto.RoleId);
+            if (!roleExists)
+            {
+                return NotFound("Role not found");
+            }
+
+            var permissionExists = await _context.Permissions.AnyAsync(p => p.PermissionId == dto.PermissionId);
+            if (!permissionExists)
+            {
+                return NotFound("Permission not found");
+            }
+
+            // Kiểm tra xem permission đã được assign chưa
+            var existingAssignment = await _context.RolePermissions
+                .FirstOrDefaultAsync(rp => rp.RoleId == dto.RoleId && rp.PermissionId == dto.PermissionId);
+
+            if (existingAssignment != null)
+            {
+                return BadRequest("Permission already assigned to this role");
+            }
+
+            // Tạo assignment mới
+            var rolePermission = new RolePermission
+            {
+                RoleId = dto.RoleId,
+                PermissionId = dto.PermissionId,
+                CreatedAt = DateTime.Now
+            };
+
+            _context.RolePermissions.Add(rolePermission);
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "Permission assigned successfully" });
+        }
+
+        // POST: api/Role/remove-permission
+        [HttpPost("remove-permission")]
+        public async Task<ActionResult> RemovePermissionFromRole([FromBody] AssignPermissionDto dto)
+        {
+            var rolePermission = await _context.RolePermissions
+                .FirstOrDefaultAsync(rp => rp.RoleId == dto.RoleId && rp.PermissionId == dto.PermissionId);
+
+            if (rolePermission == null)
+            {
+                return NotFound("Permission assignment not found");
+            }
+
+            _context.RolePermissions.Remove(rolePermission);
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "Permission removed successfully" });
+        }
+
         private bool RoleExists(int id)
         {
             return _context.Roles.Any(e => e.RoleId == id);
@@ -274,5 +332,11 @@ namespace RetailPointBackend.Controllers
         public string? Description { get; set; }
 
         public List<int>? PermissionIds { get; set; }
+    }
+
+    public class AssignPermissionDto
+    {
+        public int RoleId { get; set; }
+        public int PermissionId { get; set; }
     }
 }

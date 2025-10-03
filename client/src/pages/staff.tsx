@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { AppLayout } from "@/components/layout/app-layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -89,6 +90,8 @@ export default function Staff() {
   const [selectedGroup, setSelectedGroup] = useState<string>("all");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [editingStaff, setEditingStaff] = useState<any | null>(null);
+  const [isConfigDialogOpen, setIsConfigDialogOpen] = useState(false);
+  const [selectedConfigRole, setSelectedConfigRole] = useState<any | null>(null);
 
   // Fetch data
   const { data: staff = [], isLoading: staffLoading } = useQuery<any[]>({
@@ -131,16 +134,13 @@ export default function Staff() {
     resolver: zodResolver(staffFormSchema),
     defaultValues: {
       fullName: "",
+      username: "",
+      password: "",
       email: "",
-      phone: "",
-      address: "",
-      role: "",
-      storeId: "550e8400-e29b-41d4-a716-446655440002",
-      workSchedule: "9:00-18:00",
-      salary: "",
-      startDate: new Date().toISOString().split('T')[0],
+      phoneNumber: "",
+      roleId: 0,
       isActive: true,
-      notes: ""
+      notes: "",
     },
   });
 
@@ -221,6 +221,160 @@ export default function Staff() {
       toast({
         title: "Lỗi",
         description: "Không thể xóa nhân viên",
+        variant: "destructive",
+      });
+    }
+  });
+
+  // Permission management functions
+  const togglePermission = useMutation({
+    mutationFn: async ({ roleId, permissionId, action }: { roleId: number, permissionId: number, action: 'add' | 'remove' }) => {
+      const url = action === 'add' 
+        ? '/api/role/assign-permission' 
+        : '/api/role/remove-permission';
+      
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ roleId, permissionId })
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('API Error:', response.status, errorText);
+        throw new Error(`Failed to update permission: ${response.status}`);
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Thành công",
+        description: "Quyền hạn đã được cập nhật",
+      });
+      // Invalidate queries to refresh data
+      queryClient.invalidateQueries({ queryKey: ['/api/role'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/permission'] });
+      
+      // Update selectedConfigRole with fresh data
+      if (selectedConfigRole) {
+        setTimeout(() => {
+          const roles = queryClient.getQueryData(['/api/role']) as any[];
+          const updatedRole = roles?.find(r => r.roleId === selectedConfigRole.roleId);
+          if (updatedRole) {
+            setSelectedConfigRole(updatedRole);
+          }
+        }, 100);
+      }
+    },
+    onError: () => {
+      toast({
+        title: "Lỗi",
+        description: "Không thể cập nhật quyền hạn",
+        variant: "destructive",
+      });
+    }
+  });
+
+  const handlePermissionToggle = (permissionId: number, hasPermission: boolean) => {
+    if (!selectedConfigRole) {
+      console.error('No role selected for permission toggle');
+      return;
+    }
+    
+    const requestData = {
+      roleId: selectedConfigRole.roleId,
+      permissionId,
+      action: (hasPermission ? 'remove' : 'add') as 'add' | 'remove'
+    };
+    
+    console.log('Toggling permission:', requestData);
+    console.log('Selected role:', selectedConfigRole);
+    
+    togglePermission.mutate(requestData);
+  };
+
+  const openConfigDialog = (role: any) => {
+    console.log('Opening config dialog for role:', role);
+    setSelectedConfigRole(role);
+    setIsConfigDialogOpen(true);
+  };
+
+  // Auto-update selectedConfigRole when roles data changes
+  useEffect(() => {
+    if (selectedConfigRole && roles.length > 0) {
+      const updatedRole = roles.find((r: any) => r.roleId === selectedConfigRole.roleId);
+      if (updatedRole) {
+        setSelectedConfigRole(updatedRole);
+      }
+    }
+  }, [roles, selectedConfigRole?.roleId]);
+
+  // Select/Deselect all permissions
+  const selectAllPermissions = useMutation({
+    mutationFn: async () => {
+      if (!selectedConfigRole) throw new Error('No role selected');
+      
+      const currentPermissionIds = selectedConfigRole.permissions?.map((p: any) => p.permissionId) || [];
+      const allPermissionIds = permissions.map((p: any) => p.permissionId);
+      const toAssign = allPermissionIds.filter(id => !currentPermissionIds.includes(id));
+      
+      // Assign missing permissions
+      for (const permissionId of toAssign) {
+        const response = await fetch('/api/role/assign-permission', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ roleId: selectedConfigRole.roleId, permissionId })
+        });
+        if (!response.ok) throw new Error('Failed to assign permission');
+      }
+      
+      return { assigned: toAssign.length };
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Thành công",
+        description: `Đã chọn tất cả quyền hạn (${data.assigned} quyền mới)`,
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/role'] });
+    },
+    onError: () => {
+      toast({
+        title: "Lỗi",
+        description: "Không thể chọn tất cả quyền hạn",
+        variant: "destructive",
+      });
+    }
+  });
+
+  const deselectAllPermissions = useMutation({
+    mutationFn: async () => {
+      if (!selectedConfigRole) throw new Error('No role selected');
+      
+      const currentPermissionIds = selectedConfigRole.permissions?.map((p: any) => p.permissionId) || [];
+      
+      // Remove all permissions
+      for (const permissionId of currentPermissionIds) {
+        const response = await fetch('/api/role/remove-permission', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ roleId: selectedConfigRole.roleId, permissionId })
+        });
+        if (!response.ok) throw new Error('Failed to remove permission');
+      }
+      
+      return { removed: currentPermissionIds.length };
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Thành công",
+        description: `Đã hủy tất cả quyền hạn (${data.removed} quyền)`,
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/role'] });
+    },
+    onError: () => {
+      toast({
+        title: "Lỗi",
+        description: "Không thể hủy tất cả quyền hạn",
         variant: "destructive",
       });
     }
@@ -707,7 +861,7 @@ export default function Staff() {
                               {staffCount > 0 ? 'Đang sử dụng' : 'Chưa có NV'}
                             </span>
                           </p>
-                          <Button variant="outline" size="sm">
+                          <Button variant="outline" size="sm" onClick={() => openConfigDialog(role)}>
                             <Settings className="w-3 h-3 mr-1" />
                             Cấu hình
                           </Button>
@@ -828,6 +982,108 @@ export default function Staff() {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Permission Configuration Dialog */}
+      <Dialog open={isConfigDialogOpen} onOpenChange={setIsConfigDialogOpen}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Settings className="w-5 h-5" />
+              Cấu hình quyền hạn - {selectedConfigRole?.roleName}
+            </DialogTitle>
+          </DialogHeader>
+          
+          {/* Bulk Actions */}
+          <div className="flex items-center justify-between pb-4 border-b">
+            <div className="text-sm text-gray-600">
+              Đã chọn: {selectedConfigRole?.permissions?.length || 0} / {permissions.length} quyền
+            </div>
+            <div className="flex gap-2">
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => selectAllPermissions.mutate()}
+                disabled={selectAllPermissions.isPending}
+              >
+                Chọn tất cả
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => deselectAllPermissions.mutate()}
+                disabled={deselectAllPermissions.isPending}
+              >
+                Hủy tất cả
+              </Button>
+            </div>
+          </div>
+          
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {permissions.map((permission: any) => {
+                const hasPermission = selectedConfigRole?.permissions?.some(
+                  (p: any) => p.permissionId === permission.permissionId
+                );
+                
+                return (
+                  <div key={`permission-${permission.permissionId}`} className="flex items-start space-x-3 p-3 border rounded-lg hover:bg-gray-50">
+                    <Checkbox
+                      id={`permission-${permission.permissionId}`}
+                      checked={hasPermission}
+                      onCheckedChange={() => handlePermissionToggle(permission.permissionId, hasPermission)}
+                      className="mt-1"
+                      aria-describedby={`permission-desc-${permission.permissionId}`}
+                    />
+                    <div className="flex-1 min-w-0">
+                      <label 
+                        htmlFor={`permission-${permission.permissionId}`}
+                        className="block text-sm font-medium text-gray-900 cursor-pointer"
+                      >
+                        {permission.permissionName}
+                      </label>
+                      <p 
+                        id={`permission-desc-${permission.permissionId}`}
+                        className="text-xs text-gray-500 mt-1"
+                      >
+                        {permission.description}
+                      </p>
+                      <Badge variant="outline" className="text-xs mt-1">
+                        {permission.category}
+                      </Badge>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            
+            {permissions.length === 0 && (
+              <div className="text-center py-8 text-gray-500">
+                <Shield className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                <p>Không có quyền hạn nào được tìm thấy</p>
+              </div>
+            )}
+          </div>
+          
+          <div className="flex justify-end items-center pt-4 border-t">
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setIsConfigDialogOpen(false)}>
+                Đóng
+              </Button>
+              <Button 
+                onClick={() => {
+                  toast({
+                    title: "Thành công",
+                    description: "Cấu hình quyền hạn đã được lưu",
+                  });
+                  setIsConfigDialogOpen(false);
+                }}
+              >
+                Lưu thay đổi
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </AppLayout>
   );
 }
