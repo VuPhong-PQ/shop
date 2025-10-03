@@ -333,18 +333,40 @@ namespace RetailPointBackend.Controllers
                     var monthStart = DateTime.Now.AddMonths(-i).Date.AddDays(1 - DateTime.Now.AddMonths(-i).Day);
                     var monthEnd = monthStart.AddMonths(1);
                     
+                    // Lấy đơn hàng trong tháng
                     var monthOrders = await _context.Orders
                         .Where(o => o.CreatedAt >= monthStart && o.CreatedAt < monthEnd && 
                                    (o.PaymentStatus == "paid" || o.PaymentStatus == "completed"))
-                        .SumAsync(o => o.TotalAmount);
+                        .Include(o => o.Items)
+                        .ToListAsync();
 
-                    var monthProfit = monthOrders * 0.2m; // 20% profit margin
+                    var monthTotalRevenue = monthOrders.Sum(o => o.TotalAmount);
+                    
+                    // Tính chi phí hàng bán cho tháng này
+                    decimal monthCostOfGoodsSold = 0;
+                    decimal monthTax = 0;
+                    
+                    foreach (var order in monthOrders)
+                    {
+                        monthTax += order.TaxAmount;
+                        foreach (var item in order.Items)
+                        {
+                            var product = products.FirstOrDefault(p => p.ProductId == item.ProductId);
+                            var costPrice = product?.CostPrice ?? (item.Price * 0.6m); // Fallback 60% nếu không có CostPrice
+                            monthCostOfGoodsSold += item.Quantity * costPrice;
+                        }
+                    }
+                    
+                    // Tính lợi nhuận thực tế cho tháng
+                    var monthRevenueExcludingTax = monthTotalRevenue - monthTax;
+                    var monthProfit = monthRevenueExcludingTax - monthCostOfGoodsSold;
+                    var monthProfitMargin = monthRevenueExcludingTax > 0 ? (monthProfit / monthRevenueExcludingTax * 100) : 0;
                     
                     monthlyTrend.Add(new
                     {
                         month = monthStart.ToString("MM/yyyy"),
                         profit = monthProfit.ToString("N0") + "₫",
-                        margin = "20%"
+                        margin = monthProfitMargin.ToString("F1") + "%"
                     });
                 }
 

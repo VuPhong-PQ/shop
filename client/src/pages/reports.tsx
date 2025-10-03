@@ -39,6 +39,7 @@ import {
   RefreshCw,
   CreditCard
 } from "lucide-react";
+import * as XLSX from 'xlsx';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
 
@@ -161,6 +162,102 @@ export default function Reports() {
     margin: parseFloat(item.margin.replace('%', ''))
   })) || [];
 
+  // Export to Excel function
+  const exportToExcel = () => {
+    if (!salesSummary && !productPerformance && !customerAnalytics && !profitAnalysis) {
+      alert('Chưa có dữ liệu để xuất báo cáo. Vui lòng chờ dữ liệu tải xong.');
+      return;
+    }
+
+    const workbook = XLSX.utils.book_new();
+    
+    // Sheet 1: Tổng quan doanh thu
+    const summaryData = [
+      ['BÁO CÁO TỔNG QUAN DOANH THU'],
+      [`Từ ngày: ${dateRange.startDate} đến ngày: ${dateRange.endDate}`],
+      [`Thời gian xuất: ${new Date().toLocaleString('vi-VN')}`],
+      [''],
+      ['Chỉ số', 'Giá trị', 'So với tháng trước'],
+      ['Tổng doanh thu', salesSummary?.totalRevenue || '0₫', salesSummary?.revenueChange || '0%'],
+      ['Tổng đơn hàng', salesSummary?.totalOrders || '0', salesSummary?.ordersChange || '0%'],
+      ['Tổng khách hàng', salesSummary?.totalCustomers || '0', salesSummary?.customersChange || '0%'],
+      ['Sản phẩm bán ra', salesSummary?.totalProductsSold || '0', salesSummary?.productsChange || '0%']
+    ];
+    
+    const summaryWs = XLSX.utils.aoa_to_sheet(summaryData);
+    XLSX.utils.book_append_sheet(workbook, summaryWs, 'Tổng quan');
+
+    // Sheet 2: Top sản phẩm
+    const productData = [
+      ['TOP SẢN PHẨM BÁN CHẠY'],
+      [`Từ ngày: ${dateRange.startDate} đến ngày: ${dateRange.endDate}`],
+      [''],
+      ['STT', 'Tên sản phẩm', 'Doanh thu', 'Số lượng bán', 'Lợi nhuận']
+    ];
+    
+    if (productPerformance?.topProducts?.length > 0) {
+      productPerformance.topProducts.forEach((product, index) => {
+        productData.push([
+          (index + 1).toString(),
+          product.name || 'N/A',
+          product.revenue || '0₫',
+          product.totalSold?.toString() || '0',
+          product.profit || '0₫'
+        ]);
+      });
+    } else {
+      productData.push(['', 'Chưa có dữ liệu sản phẩm', '', '', '']);
+    }
+    
+    const productWs = XLSX.utils.aoa_to_sheet(productData);
+    XLSX.utils.book_append_sheet(workbook, productWs, 'Sản phẩm');
+
+    // Sheet 3: Khách hàng
+    const customerData = [
+      ['PHÂN TÍCH KHÁCH HÀNG'],
+      [`Từ ngày: ${dateRange.startDate} đến ngày: ${dateRange.endDate}`],
+      [''],
+      ['Chỉ số', 'Giá trị'],
+      ['Khách hàng mới', customerAnalytics?.newCustomers?.toString() || '0'],
+      ['Khách hàng quay lại', customerAnalytics?.returningCustomers?.toString() || '0'],
+      ['Tỷ lệ giữ chân', customerAnalytics?.retentionRate || '0%'],
+      ['Giá trị trung bình đơn hàng', customerAnalytics?.averageOrderValue || '0₫']
+    ];
+    
+    const customerWs = XLSX.utils.aoa_to_sheet(customerData);
+    XLSX.utils.book_append_sheet(workbook, customerWs, 'Khách hàng');
+
+    // Sheet 4: Lợi nhuận
+    const profitData = [
+      ['PHÂN TÍCH LỢI NHUẬN'],
+      [`Từ ngày: ${dateRange.startDate} đến ngày: ${dateRange.endDate}`],
+      [''],
+      ['Tháng', 'Lợi nhuận', 'Tỷ lệ lợi nhuận']
+    ];
+    
+    if (profitAnalysis?.monthlyTrend?.length > 0) {
+      profitAnalysis.monthlyTrend.forEach(item => {
+        profitData.push([
+          item.month || 'N/A',
+          item.profit || '0₫',
+          item.margin || '0%'
+        ]);
+      });
+    } else {
+      profitData.push(['', 'Chưa có dữ liệu lợi nhuận', '', '']);
+    }
+    
+    const profitWs = XLSX.utils.aoa_to_sheet(profitData);
+    XLSX.utils.book_append_sheet(workbook, profitWs, 'Lợi nhuận');
+
+    // Xuất file
+    const fileName = `Bao_cao_tong_quan_${dateRange.startDate.replace(/-/g, '')}_den_${dateRange.endDate.replace(/-/g, '')}.xlsx`;
+    XLSX.writeFile(workbook, fileName);
+    
+    // Thông báo thành công
+    alert(`Đã xuất báo cáo thành công! File: ${fileName}`);
+  };
+
   return (
     <AppLayout title="Báo cáo & Phân tích">
       <div className="space-y-6" data-testid="reports-page">
@@ -220,9 +317,9 @@ export default function Reports() {
                   <RefreshCw className="w-4 h-4 mr-2" />
                   Refresh
                 </Button>
-                <Button className="flex-1" data-testid="button-export">
+                <Button className="flex-1" data-testid="button-export" onClick={exportToExcel} disabled={isLoading}>
                   <Download className="w-4 h-4 mr-2" />
-                  Xuất báo cáo
+                  {isLoading ? 'Đang tải...' : 'Xuất báo cáo'}
                 </Button>
               </div>
             </div>

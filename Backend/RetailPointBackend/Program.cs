@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using RetailPointBackend.Models;
 using RetailPointBackend.Services;
+using OfficeOpenXml;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -32,7 +33,6 @@ builder.Services.AddDbContext<RetailPointContext>(options =>
 
 // Đăng ký NotificationService
 builder.Services.AddScoped<INotificationService, NotificationService>();
-
 
 var app = builder.Build();
 

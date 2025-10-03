@@ -23,7 +23,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { cn, normalizeSearchText } from "@/lib/utils";
-import { Plus, Search, Edit, Trash2, Package, AlertTriangle } from "lucide-react";
+import { Plus, Search, Edit, Trash2, Package, AlertTriangle, Download, Upload } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -54,7 +54,9 @@ export default function Products() {
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [selectedGroup, setSelectedGroup] = useState<string>("all");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [importFile, setImportFile] = useState<File | null>(null);
 
   // Fetch products and categories
   const { data: products = [], isLoading } = useQuery<Product[]>({
@@ -210,6 +212,71 @@ export default function Products() {
     }
   });
 
+  // Export template mutation
+  const exportTemplateMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch('http://localhost:5271/api/products/export-template');
+      if (!response.ok) {
+        throw new Error('Failed to export template');
+      }
+      return response.blob();
+    },
+    onSuccess: (blob) => {
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Products_Template_${new Date().toISOString().slice(0, 10)}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      toast({
+        title: "Thành công",
+        description: "Template Excel đã được tải xuống",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Lỗi",
+        description: "Không thể tải xuống template Excel",
+        variant: "destructive",
+      });
+    }
+  });
+
+  // Import from Excel mutation
+  const importFromExcelMutation = useMutation({
+    mutationFn: async (file: File) => {
+      const formData = new FormData();
+      formData.append('file', file);
+      const response = await fetch('http://localhost:5271/api/products/import-excel', {
+        method: 'POST',
+        body: formData,
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to import Excel file');
+      }
+      return response.json();
+    },
+    onSuccess: (result) => {
+      toast({
+        title: "Import thành công",
+        description: `${result.message || `Đã import ${result.successCount} sản phẩm`}`,
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/products'] });
+      setIsImportDialogOpen(false);
+      setImportFile(null);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Lỗi import",
+        description: error.message || "Không thể import file Excel",
+        variant: "destructive",
+      });
+    }
+  });
+
   // Filter products with Vietnamese diacritics support
   const filteredProducts = products.filter(product => {
     const searchNormalized = normalizeSearchText(searchTerm);
@@ -320,7 +387,70 @@ export default function Products() {
             </Select>
           </div>
 
-          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+          <div className="flex items-center space-x-2">
+            {/* Export Template Button */}
+            <Button
+              variant="outline"
+              onClick={() => exportTemplateMutation.mutate()}
+              disabled={exportTemplateMutation.isPending}
+              data-testid="button-export-template"
+            >
+              <Download className="w-4 h-4 mr-2" />
+              {exportTemplateMutation.isPending ? "Đang xuất..." : "Xuất Template"}
+            </Button>
+
+            {/* Import Excel Button */}
+            <Dialog open={isImportDialogOpen} onOpenChange={setIsImportDialogOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline" data-testid="button-import-excel">
+                  <Upload className="w-4 h-4 mr-2" />
+                  Nhập từ Excel
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Nhập sản phẩm từ Excel</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Chọn file Excel</label>
+                    <Input
+                      type="file"
+                      accept=".xlsx,.xls"
+                      onChange={(e) => setImportFile(e.target.files?.[0] || null)}
+                      data-testid="input-excel-file"
+                    />
+                  </div>
+                  <div className="text-sm text-gray-600">
+                    <p>Lưu ý:</p>
+                    <ul className="list-disc list-inside space-y-1">
+                      <li>Chỉ hỗ trợ file .xlsx và .xls</li>
+                      <li>Tải template mẫu để biết định dạng chính xác</li>
+                      <li>Các trường có dấu (*) là bắt buộc</li>
+                    </ul>
+                  </div>
+                  <div className="flex justify-end space-x-2">
+                    <Button variant="outline" onClick={() => setIsImportDialogOpen(false)}>
+                      Hủy
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        if (importFile) {
+                          importFromExcelMutation.mutate(importFile);
+                        }
+                      }}
+                      disabled={!importFile || importFromExcelMutation.isPending}
+                      data-testid="button-confirm-import"
+                    >
+                      {importFromExcelMutation.isPending ? "Đang nhập..." : "Nhập dữ liệu"}
+                    </Button>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
+
+            {/* Add Product Button */}
+            <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
             <DialogTrigger asChild>
               <Button
                 onClick={() => {
@@ -534,6 +664,7 @@ export default function Products() {
               </Form>
             </DialogContent>
           </Dialog>
+        </div>
         </div>
 
         {/* Products Grid */}
