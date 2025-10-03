@@ -30,9 +30,9 @@ export function PaymentSettings() {
   const { data: config } = useQuery<PaymentMethodConfig | null>({
     queryKey: ["/api/PaymentMethodConfig"],
     queryFn: async () => {
-      const res = await apiRequest("GET", "/api/PaymentMethodConfig");
+      const res = await apiRequest("/api/PaymentMethodConfig", { method: "GET" });
       if (res.status === 404) return null;
-      return res.json();
+      return res;
     },
   });
   const [form, setForm] = useState<PaymentMethodConfig>({
@@ -45,25 +45,44 @@ export function PaymentSettings() {
     enableDrawer: true,
     defaultMethod: "cash",
   });
+  const [hasChanges, setHasChanges] = useState(false);
+
   useEffect(() => {
-    if (config) setForm(config);
+    if (config) {
+      setForm(config);
+      setHasChanges(false);
+    }
   }, [config]);
+
   const mutation = useMutation({
     mutationFn: async (data: PaymentMethodConfig) => {
-      const res = await apiRequest("POST", "/api/PaymentMethodConfig", data);
-      return res.json();
+      const res = await apiRequest("/api/PaymentMethodConfig", { 
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data)
+      });
+      return res;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(["/api/PaymentMethodConfig"]);
+      queryClient.invalidateQueries({ queryKey: ["/api/PaymentMethodConfig"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/PaymentMethodConfig/enabled"] });
+      setHasChanges(false);
+      
+      // Dispatch event to notify other components about config change
+      window.dispatchEvent(new CustomEvent('paymentConfigChanged'));
+      
       alert("Đã lưu cấu hình thanh toán!");
     },
   });
+
   function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) {
-    const { name, value, type, checked } = e.target;
+    const { name, value, type } = e.target;
+    const checked = (e.target as HTMLInputElement).checked;
     setForm(f => ({
       ...f,
       [name]: type === "checkbox" ? checked : value,
     }));
+    setHasChanges(true);
   }
   return (
     <Card>
@@ -129,10 +148,44 @@ export function PaymentSettings() {
               ))}
             </select>
           </div>
-          <div className="flex justify-end pt-2">
-            <Button type="submit" disabled={mutation.isPending}>
-              <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
-              Lưu cấu hình
+          <div className="flex justify-between items-center pt-2">
+            {hasChanges && (
+              <span className="text-orange-600 text-sm flex items-center gap-1">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                </svg>
+                Có thay đổi chưa lưu
+              </span>
+            )}
+            {!hasChanges && (
+              <span className="text-green-600 text-sm flex items-center gap-1">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                </svg>
+                Đã lưu
+              </span>
+            )}
+            <Button 
+              type="submit" 
+              disabled={mutation.isPending || !hasChanges}
+              className={hasChanges ? "bg-orange-600 hover:bg-orange-700" : ""}
+            >
+              {mutation.isPending ? (
+                <>
+                  <svg className="animate-spin w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Đang lưu...
+                </>
+              ) : (
+                <>
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  Lưu cấu hình
+                </>
+              )}
             </Button>
           </div>
         </form>

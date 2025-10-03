@@ -23,6 +23,50 @@ namespace RetailPointBackend.Controllers
             return Ok(config);
         }
 
+        // GET: api/PaymentMethodConfig/enabled
+        [HttpGet("enabled")]
+        public IActionResult GetEnabledPaymentMethods()
+        {
+            var config = _context.PaymentMethodConfigs.FirstOrDefault();
+            if (config == null) 
+            {
+                // Trả về phương thức mặc định nếu chưa có cấu hình
+                return Ok(new
+                {
+                    paymentMethods = new[]
+                    {
+                        new { id = "cash", name = "Tiền mặt", enabled = true }
+                    },
+                    defaultMethod = "cash"
+                });
+            }
+
+            var enabledMethods = new List<object>();
+            
+            if (config.EnableCash)
+                enabledMethods.Add(new { id = "cash", name = "Tiền mặt", enabled = true });
+            
+            if (config.EnableBankCard)
+                enabledMethods.Add(new { id = "card", name = "Thẻ ngân hàng", enabled = true });
+            
+            if (config.EnableQRCode)
+                enabledMethods.Add(new { id = "qr", name = "QR Code", enabled = true });
+            
+            if (config.EnableEWallet)
+                enabledMethods.Add(new { id = "ewallet", name = "Ví điện tử", enabled = true });
+            
+            if (config.EnableBankTransfer)
+                enabledMethods.Add(new { id = "banktransfer", name = "Chuyển khoản", enabled = true });
+
+            return Ok(new
+            {
+                paymentMethods = enabledMethods,
+                defaultMethod = config.DefaultMethod,
+                enablePartialPayment = config.EnablePartialPayment,
+                enableDrawer = config.EnableDrawer
+            });
+        }
+
         // POST: api/PaymentMethodConfig
         [HttpPost]
         public IActionResult UpsertConfig([FromBody] PaymentMethodConfig model)

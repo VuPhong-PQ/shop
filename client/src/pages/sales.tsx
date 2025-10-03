@@ -25,15 +25,40 @@ interface PaymentMethod {
   id: string;
   name: string;
   icon: any;
-  color: string;
+  color?: string;
+  enabled?: boolean;
 }
 
-const paymentMethods: PaymentMethod[] = [
-  { id: 'cash', name: 'Tiền mặt', icon: Banknote, color: 'bg-green-500' },
-  { id: 'card', name: 'Thẻ', icon: CreditCard, color: 'bg-blue-500' },
-  { id: 'qr', name: 'QR Code', icon: QrCode, color: 'bg-purple-500' },
-  { id: 'ewallet', name: 'Ví điện tử', icon: Smartphone, color: 'bg-orange-500' },
-];
+interface PaymentConfig {
+  paymentMethods: PaymentMethod[];
+  defaultMethod: string;
+  enablePartialPayment: boolean;
+  enableDrawer: boolean;
+}
+
+// Icon mapping function
+const getPaymentIcon = (id: string) => {
+  switch (id) {
+    case 'cash': return Banknote;
+    case 'card': return CreditCard;
+    case 'qr': return QrCode;
+    case 'ewallet': return Smartphone;
+    case 'banktransfer': return CreditCard;
+    default: return Banknote;
+  }
+};
+
+// Color mapping function
+const getPaymentColor = (id: string) => {
+  switch (id) {
+    case 'cash': return 'bg-green-500';
+    case 'card': return 'bg-blue-500';
+    case 'qr': return 'bg-purple-500';
+    case 'ewallet': return 'bg-orange-500';
+    case 'banktransfer': return 'bg-indigo-500';
+    default: return 'bg-gray-500';
+  }
+};
 
 export default function Sales() {
   const [location, navigate] = useLocation();
@@ -49,6 +74,54 @@ export default function Sales() {
   // Initialize hooks
   const { toast } = useToast();
   const { playNotificationSound } = useNotificationSound();
+
+  // Fetch payment methods configuration from backend
+  const { data: paymentConfig, refetch: refetchPaymentConfig } = useQuery<PaymentConfig>({
+    queryKey: ["/api/PaymentMethodConfig/enabled"],
+    queryFn: async () => {
+      const res = await apiRequest("/api/PaymentMethodConfig/enabled", { method: "GET" });
+      console.log('Payment config fetched:', res);
+      return res;
+    },
+    staleTime: 0, // Always refetch to get latest config
+    cacheTime: 0, // Don't cache
+  });
+
+  // Set default payment method based on config
+  useEffect(() => {
+    if (paymentConfig?.defaultMethod && selectedPayment === "cash") {
+      setSelectedPayment(paymentConfig.defaultMethod);
+    }
+  }, [paymentConfig]);
+
+  // Listen for payment config changes from settings page
+  useEffect(() => {
+    const handlePaymentConfigChange = () => {
+      console.log('Payment config changed, refetching...');
+      refetchPaymentConfig();
+    };
+
+    window.addEventListener('paymentConfigChanged', handlePaymentConfigChange);
+    
+    return () => {
+      window.removeEventListener('paymentConfigChanged', handlePaymentConfigChange);
+    };
+  }, [refetchPaymentConfig]);
+
+  // Get available payment methods from config
+  const availablePaymentMethods: PaymentMethod[] = paymentConfig?.paymentMethods?.map((method: any) => ({
+    ...method,
+    icon: getPaymentIcon(method.id),
+    color: getPaymentColor(method.id)
+  })) || [
+    // Fallback to cash only if no config
+    { id: 'cash', name: 'Tiền mặt', icon: Banknote, color: 'bg-green-500', enabled: true }
+  ];
+
+  // Debug log for payment methods
+  useEffect(() => {
+    console.log('Available payment methods updated:', availablePaymentMethods);
+  }, [availablePaymentMethods]);
 
   // Utility function để dispatch event và debug
   const dispatchReportsUpdate = (source: string) => {
@@ -784,7 +857,7 @@ export default function Sales() {
                 <div className="space-y-3">
                   <p className="font-medium">Phương thức thanh toán:</p>
                   <div className="grid grid-cols-2 lg:grid-cols-2 gap-2">
-                    {paymentMethods.map((method) => {
+                    {availablePaymentMethods.map((method) => {
                       const Icon = method.icon;
                       return (
                         <Button
