@@ -19,12 +19,12 @@ namespace RetailPointBackend.Models
         public string? PaymentStatus { get; set; } = "pending"; // paid, pending, failed - default pending
         public string? Status { get; set; } = "pending"; // completed, pending, cancelled - default pending
         public string? OrderNumber { get; set; }
-        public int? CashierId { get; set; } // Foreign Key to Staff
+        public int? StaffId { get; set; } // Foreign Key to Staff
         public string? StoreId { get; set; }
         public string? Notes { get; set; }
         
         public Customer? Customer { get; set; }
-        public Staff? Cashier { get; set; } // Navigation property to Staff
+        public Staff? Staff { get; set; } // Navigation property to Staff
         public List<OrderItem> Items { get; set; } = new List<OrderItem>();
     }
 }

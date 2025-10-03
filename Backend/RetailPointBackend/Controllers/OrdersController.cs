@@ -25,7 +25,7 @@ namespace RetailPointBackend.Controllers
         public IActionResult CreateOrder(
             [FromForm] string? orderNumber,
             [FromForm] int? customerId,
-            [FromForm] int? cashierId,
+            [FromForm] int? staffId,
             [FromForm] string? storeId,
             [FromForm] string? subtotal,
             [FromForm] string? taxAmount,
@@ -76,7 +76,7 @@ namespace RetailPointBackend.Controllers
                 PaymentStatus = paymentStatus ?? "pending", // Default là pending thay vì paid
                 Status = status ?? "pending", // Default là pending thay vì completed
                 OrderNumber = orderNumber,
-                CashierId = cashierId,
+                StaffId = staffId,
                 StoreId = storeId,
                 Items = items
             };
@@ -255,7 +255,7 @@ namespace RetailPointBackend.Controllers
                     o.PaymentStatus,
                     o.Status,
                     o.OrderNumber,
-                    o.CashierId,
+                    o.StaffId,
                     o.StoreId,
                     o.Notes,
                     Items = o.Items.Select(i => new {
@@ -440,7 +440,7 @@ namespace RetailPointBackend.Controllers
                     PaymentStatus = request.PaymentStatus ?? "pending",
                     Status = request.Status ?? "pending",
                     CreatedAt = DateTime.Now,
-                    CashierId = request.CashierId,
+                    StaffId = request.StaffId,
                     StoreId = request.StoreId?.ToString(),
                     Notes = request.Notes
                 };
@@ -546,7 +546,7 @@ namespace RetailPointBackend.Controllers
         public string? PaymentMethod { get; set; }
         public string? PaymentStatus { get; set; }
         public string? Status { get; set; }
-        public int? CashierId { get; set; }
+        public int? StaffId { get; set; }
         public int? StoreId { get; set; }
         public string? Notes { get; set; }
         public List<CreateOrderItemRequest> OrderItems { get; set; } = new();

@@ -76,12 +76,19 @@ app.MapGet("/weatherforecast", () =>
 })
 .WithName("GetWeatherForecast");
 
-// TODO: Seed initial data khi đã fix migration issue
-// using (var scope = app.Services.CreateScope())
-// {
-//     var seedService = scope.ServiceProvider.GetRequiredService<SeedDataService>();
-//     await seedService.SeedAsync();
-// }
+// Seed initial data
+try
+{
+    using (var scope = app.Services.CreateScope())
+    {
+        var seedService = scope.ServiceProvider.GetRequiredService<SeedDataService>();
+        await seedService.SeedAsync();
+    }
+}
+catch (Exception ex)
+{
+    Console.WriteLine($"Seed data failed: {ex.Message}");
+}
 
 app.Run();
 
