@@ -28,12 +28,14 @@ builder.Services.AddControllers()
     {
         // Cấu hình để trả về UTF-8
         options.SuppressModelStateInvalidFilter = false;
+    })
+    .AddJsonOptions(options =>
+    {
+        // Cấu hình để sử dụng camelCase cho JSON serialization
+        options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
+        options.JsonSerializerOptions.DictionaryKeyPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
+        options.JsonSerializerOptions.Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping;
     });
-
-builder.Services.Configure<Microsoft.AspNetCore.Mvc.JsonOptions>(options =>
-{
-    options.JsonSerializerOptions.Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping;
-});
 
 builder.Services.AddOpenApi();
 

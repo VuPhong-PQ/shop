@@ -8,8 +8,9 @@ namespace RetailPointBackend.Controllers
     [Route("api/[controller]")]
     public class ProductGroupsController : ControllerBase
     {
-        private readonly RetailPointContext _context;
-        public ProductGroupsController(RetailPointContext context)
+        private readonly AppDbContext _context;
+        
+        public ProductGroupsController(AppDbContext context)
         {
             _context = context;
         }
@@ -17,16 +18,45 @@ namespace RetailPointBackend.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<ProductGroup>>> GetProductGroups()
         {
-            // Trả về tất cả nhóm sản phẩm
-            return await _context.ProductGroups.ToListAsync();
+            try
+            {
+                Console.WriteLine("Getting product groups...");
+                var groups = await _context.ProductGroups.ToListAsync();
+                Console.WriteLine($"Found {groups.Count} product groups");
+                return groups;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error getting product groups: {ex.Message}");
+                Console.WriteLine($"Stack trace: {ex.StackTrace}");
+                return StatusCode(500, new { message = "Lỗi khi lấy danh sách nhóm sản phẩm", error = ex.Message });
+            }
         }
 
         [HttpPost]
         public async Task<IActionResult> CreateProductGroup([FromBody] ProductGroup group)
         {
-            _context.ProductGroups.Add(group);
-            await _context.SaveChangesAsync();
-            return CreatedAtAction(nameof(GetProductGroup), new { id = group.ProductGroupId }, group);
+            try
+            {
+                Console.WriteLine($"Creating product group: {group.Name}");
+                
+                if (string.IsNullOrEmpty(group.Name))
+                {
+                    return BadRequest(new { message = "Tên nhóm sản phẩm là bắt buộc" });
+                }
+
+                _context.ProductGroups.Add(group);
+                await _context.SaveChangesAsync();
+                
+                Console.WriteLine($"Product group created with ID: {group.ProductGroupId}");
+                return CreatedAtAction(nameof(GetProductGroup), new { id = group.ProductGroupId }, group);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error creating product group: {ex.Message}");
+                Console.WriteLine($"Stack trace: {ex.StackTrace}");
+                return StatusCode(500, new { message = "Không thể tạo nhóm sản phẩm", error = ex.Message });
+            }
         }
 
         [HttpGet("{id}")]

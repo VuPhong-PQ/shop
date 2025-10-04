@@ -52,12 +52,22 @@ import {
 const staffFormSchema = z.object({
   fullName: z.string().min(1, "Họ tên là bắt buộc"),
   username: z.string().min(1, "Tên đăng nhập là bắt buộc"),
-  password: z.string().min(6, "Mật khẩu tối thiểu 6 ký tự"),
+  password: z.string().optional(),
   email: z.string().email("Email không hợp lệ").optional(),
   phoneNumber: z.string().optional(),
   roleId: z.number().min(1, "Vai trò là bắt buộc"),
   isActive: z.boolean().default(true),
   notes: z.string().optional()
+}).refine((data) => {
+  // For new staff, password is required and must be at least 6 chars
+  // For editing staff, password is optional but if provided must be at least 6 chars
+  if (data.password && data.password.length > 0) {
+    return data.password.length >= 6;
+  }
+  return true;
+}, {
+  message: "Mật khẩu tối thiểu 6 ký tự",
+  path: ["password"]
 });
 
 type StaffFormData = z.infer<typeof staffFormSchema>;
@@ -175,12 +185,22 @@ export default function Staff() {
 
   const updateStaffMutation = useMutation({
     mutationFn: async ({ id, data }: { id: number; data: Partial<StaffFormData> }) => {
+      console.log('Updating staff with ID:', id);
+      console.log('Data being sent:', data);
+      
       const response = await fetch(`/api/staff/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
       });
-      if (!response.ok) throw new Error('Failed to update staff');
+      
+      console.log('Response status:', response.status);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Update failed:', response.status, errorText);
+        throw new Error(`Failed to update staff: ${response.status} - ${errorText}`);
+      }
       return response.json();
     },
     onSuccess: () => {
@@ -391,9 +411,29 @@ export default function Staff() {
   });
 
   const onSubmit = (data: StaffFormData) => {
+    console.log('onSubmit called with data:', data);
+    console.log('editingStaff:', editingStaff);
+    
+    // For new staff, password is required
+    if (!editingStaff && (!data.password || data.password.length < 6)) {
+      toast({
+        title: "Lỗi",
+        description: "Mật khẩu là bắt buộc và tối thiểu 6 ký tự khi tạo nhân viên mới",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // For updating staff, only send password if it's provided
     if (editingStaff) {
-      updateStaffMutation.mutate({ id: editingStaff.staffId, data });
+      const updateData = { ...data };
+      if (!data.password || data.password.length === 0) {
+        delete updateData.password;
+      }
+      console.log('Calling updateStaffMutation with:', { id: editingStaff.staffId, data: updateData });
+      updateStaffMutation.mutate({ id: editingStaff.staffId, data: updateData });
     } else {
+      console.log('Calling addStaffMutation with:', data);
       addStaffMutation.mutate(data);
     }
   };
@@ -554,9 +594,16 @@ export default function Staff() {
                         name="password"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Mật khẩu *</FormLabel>
+                            <FormLabel>
+                              {editingStaff ? "Mật khẩu mới (để trống nếu không đổi)" : "Mật khẩu *"}
+                            </FormLabel>
                             <FormControl>
-                              <Input {...field} type="password" data-testid="input-staff-password" />
+                              <Input 
+                                {...field} 
+                                type="password" 
+                                placeholder={editingStaff ? "Nhập mật khẩu mới..." : "Tối thiểu 6 ký tự"}
+                                data-testid="input-staff-password" 
+                              />
                             </FormControl>
                             <FormMessage />
                           </FormItem>

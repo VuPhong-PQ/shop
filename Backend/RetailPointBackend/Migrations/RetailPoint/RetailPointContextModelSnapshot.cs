@@ -8,10 +8,10 @@ using RetailPointBackend.Models;
 
 #nullable disable
 
-namespace RetailPointBackend.Migrations
+namespace RetailPointBackend.Migrations.RetailPoint
 {
-    [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [DbContext(typeof(RetailPointContext))]
+    partial class RetailPointContextModelSnapshot : ModelSnapshot
     {
         protected override void BuildModel(ModelBuilder modelBuilder)
         {
@@ -21,6 +21,31 @@ namespace RetailPointBackend.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
+
+            modelBuilder.Entity("RetailPointBackend.Models.Category", b =>
+                {
+                    b.Property<int>("CategoryId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("CategoryId"));
+
+                    b.Property<string>("Description")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("IsVisible")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("ParentId")
+                        .HasColumnType("int");
+
+                    b.HasKey("CategoryId");
+
+                    b.ToTable("Categories");
+                });
 
             modelBuilder.Entity("RetailPointBackend.Models.Customer", b =>
                 {
@@ -195,79 +220,6 @@ namespace RetailPointBackend.Migrations
                     b.ToTable("OrderItems");
                 });
 
-            modelBuilder.Entity("RetailPointBackend.Models.PaymentMethodConfig", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("DefaultMethod")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<bool>("EnableBankCard")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("EnableBankTransfer")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("EnableCash")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("EnableDrawer")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("EnableEWallet")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("EnablePartialPayment")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("EnableQRCode")
-                        .HasColumnType("bit");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("PaymentMethodConfigs");
-                });
-
-            modelBuilder.Entity("RetailPointBackend.Models.PaymentSettings", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("BankAccount")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("BankName")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("PaymentMethod")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("QrApi")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("StoreId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("PaymentSettings");
-                });
-
             modelBuilder.Entity("RetailPointBackend.Models.Permission", b =>
                 {
                     b.Property<int>("PermissionId")
@@ -294,51 +246,7 @@ namespace RetailPointBackend.Migrations
 
                     b.HasKey("PermissionId");
 
-                    b.ToTable("Permissions");
-                });
-
-            modelBuilder.Entity("RetailPointBackend.Models.PrintConfig", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<bool>("AutoPrintBill")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("AutoPrintOnOrder")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("BillFooter")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("BillHeader")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("PaperSize")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<bool>("PrintBarcode")
-                        .HasColumnType("bit");
-
-                    b.Property<int>("PrintCopies")
-                        .HasColumnType("int");
-
-                    b.Property<bool>("PrintLogo")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("PrinterName")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("PrintConfigs");
+                    b.ToTable("Permission");
                 });
 
             modelBuilder.Entity("RetailPointBackend.Models.Product", b =>
@@ -427,7 +335,7 @@ namespace RetailPointBackend.Migrations
 
                     b.HasKey("RoleId");
 
-                    b.ToTable("Roles");
+                    b.ToTable("Role");
                 });
 
             modelBuilder.Entity("RetailPointBackend.Models.RolePermission", b =>
@@ -453,7 +361,7 @@ namespace RetailPointBackend.Migrations
 
                     b.HasIndex("RoleId");
 
-                    b.ToTable("RolePermissions");
+                    b.ToTable("RolePermission");
                 });
 
             modelBuilder.Entity("RetailPointBackend.Models.Staff", b =>
@@ -507,80 +415,7 @@ namespace RetailPointBackend.Migrations
 
                     b.HasIndex("RoleId");
 
-                    b.ToTable("Staffs");
-                });
-
-            modelBuilder.Entity("RetailPointBackend.Models.StoreInfo", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Address")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("BankAccountName")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("BankAccountNumber")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("BankBranch")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("BankName")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Email")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Phone")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("TaxCode")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("StoreInfos");
-                });
-
-            modelBuilder.Entity("RetailPointBackend.Models.TaxConfig", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<bool>("EnableEnvTax")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("EnableVAT")
-                        .HasColumnType("bit");
-
-                    b.Property<decimal>("EnvTaxRate")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<bool>("VATIncludedInPrice")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("VATLabel")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<decimal>("VATRate")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("TaxConfigs");
+                    b.ToTable("Staff");
                 });
 
             modelBuilder.Entity("RetailPointBackend.Models.Notification", b =>
