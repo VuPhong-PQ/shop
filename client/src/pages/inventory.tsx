@@ -74,13 +74,9 @@ export default function Inventory() {
 
   // Fetch inventory transactions
   const { data: transactionsResponse, isLoading: isLoadingTransactions } = useQuery<InventoryTransactionResponse>({
-    queryKey: ['/api/inventory/transactions', transactionTypeFilter, fromDate, toDate],
+    queryKey: ['/api/inventory/transactions', fromDate, toDate],
     queryFn: () => {
       const params = new URLSearchParams();
-      
-      if (transactionTypeFilter && transactionTypeFilter !== 'all') {
-        params.append('type', transactionTypeFilter === 'inbound' ? '1' : '2');
-      }
       
       if (fromDate) {
         params.append('fromDate', fromDate);
@@ -207,7 +203,24 @@ export default function Inventory() {
                          productNameNormalized.includes(searchNormalized) ||
                          reasonNormalized.includes(searchNormalized);
     
-    return matchesSearch;
+    // Filter by transaction type
+    let matchesType = true;
+    if (transactionTypeFilter !== 'all') {
+      if (transactionTypeFilter === 'new-product') {
+        // Sản phẩm mới: type = IN và reason chứa "ban đầu"
+        matchesType = transaction.type === 'IN' && 
+                     (transaction.reason === 'Nhập kho ban đầu' || transaction.reason.includes('ban đầu'));
+      } else if (transactionTypeFilter === 'adjustment') {
+        // Điều chỉnh kho: type = IN nhưng không phải "ban đầu"
+        matchesType = transaction.type === 'IN' && 
+                     !(transaction.reason === 'Nhập kho ban đầu' || transaction.reason.includes('ban đầu'));
+      } else if (transactionTypeFilter === 'outbound') {
+        // Xuất kho: type = OUT
+        matchesType = transaction.type === 'OUT';
+      }
+    }
+    
+    return matchesSearch && matchesType;
   });
 
   // Get stock status
@@ -725,8 +738,9 @@ export default function Inventory() {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="all">Tất cả</SelectItem>
-                        <SelectItem value="inbound">Nhập kho</SelectItem>
-                        <SelectItem value="outbound">Xuất kho</SelectItem>
+                        <SelectItem value="new-product">🟡 Nhập kho - Sản phẩm mới</SelectItem>
+                        <SelectItem value="adjustment">🟢 Điều chỉnh kho</SelectItem>
+                        <SelectItem value="outbound">🔴 Xuất kho - Đã bán</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
