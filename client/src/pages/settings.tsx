@@ -4,10 +4,11 @@ import { apiRequest } from "../lib/utils";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { AppLayout } from "@/components/layout/app-layout";
-import { Store, Printer, CreditCard, Calculator } from "lucide-react";
+import { Store, Printer, CreditCard, Calculator, QrCode } from "lucide-react";
 import { TaxSettings } from "./tax-settings";
 import { PaymentSettings } from "./payment-settings";
 import { PrintSettings } from "./print-settings";
+import { QRSettings } from "./qr-settings";
 
 type StoreInfo = {
   name: string;
@@ -93,6 +94,12 @@ export default function SettingsPage() {
             <CreditCard className="w-5 h-5" /> Thanh toán
           </button>
           <button
+            className={`flex-1 py-3 flex items-center justify-center gap-2 font-medium transition ${tab === "qr" ? "bg-white shadow text-primary" : "text-gray-700"}`}
+            onClick={() => setTab("qr")}
+          >
+            <QrCode className="w-5 h-5" /> QR Code
+          </button>
+          <button
             className={`flex-1 py-3 flex items-center justify-center gap-2 font-medium transition ${tab === "print" ? "bg-white shadow text-primary" : "text-gray-700"}`}
             onClick={() => setTab("print")}
           >
@@ -173,6 +180,9 @@ export default function SettingsPage() {
         )}
         {tab === "payment" && (
           <div className="max-w-4xl mx-auto"><PaymentSettings /></div>
+        )}
+        {tab === "qr" && (
+          <div className="max-w-4xl mx-auto"><QRSettings /></div>
         )}
         {tab === "print" && (
           <div className="max-w-6xl mx-auto"><PrintSettings /></div>

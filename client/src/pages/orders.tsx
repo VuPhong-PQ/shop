@@ -432,6 +432,26 @@ export default function OrdersPage() {
             {/* Thông tin bổ sung */}
             <div>Hình thức thanh toán: <b>{selectedOrder.paymentMethod || "Tiền mặt"}</b></div>
             <div>Thu Ngân: <b>{selectedOrder.cashierName || "Admin"}</b></div>
+            
+            {/* QR Code cho thanh toán QR */}
+            {(selectedOrder.paymentMethod === 'qr' || selectedOrder.paymentMethod === 'QR Code' || selectedOrder.paymentMethod?.toLowerCase().includes('qr')) && (
+              <div className="mt-4 text-center border rounded-lg p-4 bg-purple-50">
+                <h4 className="font-semibold text-purple-800 mb-2">Mã QR Thanh toán</h4>
+                <div className="flex justify-center mb-2">
+                  <img 
+                    src={`https://api.vietqr.io/image/970436-0091000232791-3bYrdPX.jpg?accountName=NGUYEN%20VU%20PHONG&amount=${selectedOrder.totalAmount}`}
+                    alt="QR Code thanh toán" 
+                    className="w-32 h-32 border rounded-lg"
+                  />
+                </div>
+                <p className="text-xs text-gray-600">Vietcombank - 0091000232791</p>
+                <p className="text-xs text-gray-600">NGUYEN VU PHONG</p>
+                <p className="text-sm font-semibold text-purple-600">
+                  Số tiền: {Number(selectedOrder.totalAmount).toLocaleString('vi-VN')}₫
+                </p>
+              </div>
+            )}
+            
             <div className="mt-4">
               <table className="w-full border">
                 <thead>

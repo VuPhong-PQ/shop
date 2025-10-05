@@ -70,6 +70,8 @@ export default function Sales() {
   const [pendingOrderToReopen, setPendingOrderToReopen] = useState<any>(null);
   const [currentReopenedOrder, setCurrentReopenedOrder] = useState<any>(null);
   const [checkLocalStorage, setCheckLocalStorage] = useState(0); // Counter to trigger localStorage check
+  const [qrCodeData, setQrCodeData] = useState<any>(null);
+  const [showQRCode, setShowQRCode] = useState(false);
   
   // Initialize hooks
   const { toast } = useToast();
@@ -122,6 +124,21 @@ export default function Sales() {
   useEffect(() => {
     console.log('Available payment methods updated:', availablePaymentMethods);
   }, [availablePaymentMethods]);
+
+  // Auto-generate QR code when QR payment is selected and cart has items
+  useEffect(() => {
+    if (selectedPayment === 'qr' && cart.length > 0) {
+      const total = cart.reduce((sum, item) => sum + item.totalPrice, 0);
+      const customerName = selectedCustomer?.name || "khách vãng lai";
+      generateQRMutation.mutate({
+        amount: total,
+        description: `Thanh toan hoa don - ${customerName}`
+      });
+    } else {
+      setShowQRCode(false);
+      setQrCodeData(null);
+    }
+  }, [selectedPayment, cart, selectedCustomer]);
 
   // Utility function để dispatch event và debug
   const dispatchReportsUpdate = (source: string) => {
@@ -363,6 +380,32 @@ export default function Sales() {
       toast({
         title: "Lỗi",
         description: "Không thể thanh toán đơn hàng. Vui lòng thử lại.",
+        variant: "destructive",
+      });
+    }
+  });
+
+  // Generate QR Code mutation
+  const generateQRMutation = useMutation({
+    mutationFn: async ({ amount, description }: { amount: number, description?: string }) => {
+      return await apiRequest("/api/TestQR/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          accountName: "NGUYEN VU PHONG",
+          amount: amount,
+          description: description || "Thanh toan hoa don"
+        })
+      });
+    },
+    onSuccess: (data) => {
+      setQrCodeData(data);
+      setShowQRCode(true);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Lỗi tạo QR",
+        description: error.message || "Không thể tạo mã QR. Vui lòng kiểm tra cấu hình.",
         variant: "destructive",
       });
     }
@@ -876,6 +919,50 @@ export default function Sales() {
                         </Button>
                       );
                     })}
+                  </div>
+                </div>
+              )}
+
+              {/* QR Code Display */}
+              {selectedPayment === 'qr' && showQRCode && qrCodeData && (
+                <div className="space-y-3 border rounded-lg p-4 bg-purple-50">
+                  <div className="text-center">
+                    <h3 className="font-semibold text-purple-800 mb-2">Quét mã QR để thanh toán</h3>
+                    <p className="text-sm text-purple-600 mb-3">
+                      Số tiền: <span className="font-bold">{total.toLocaleString('vi-VN')}₫</span>
+                    </p>
+                    
+                    {(qrCodeData.qrDataURL || qrCodeData.qrImageUrl) && (
+                      <div className="flex justify-center mb-3">
+                        <img 
+                          src={qrCodeData.qrDataURL || qrCodeData.qrImageUrl} 
+                          alt="QR Code thanh toán" 
+                          className="w-48 h-48 border rounded-lg"
+                        />
+                      </div>
+                    )}
+                    
+                    {(qrCodeData.bankInfo || qrCodeData.accountNumber) && (
+                      <p className="text-xs text-gray-600">
+                        {qrCodeData.bankInfo || `${qrCodeData.accountNumber} - ${qrCodeData.accountName}`}
+                      </p>
+                    )}
+                    
+                    {generateQRMutation.isPending && (
+                      <div className="flex items-center justify-center gap-2 text-purple-600">
+                        <div className="animate-spin w-4 h-4 border-2 border-purple-600 border-t-transparent rounded-full"></div>
+                        <span className="text-sm">Đang tạo mã QR...</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {selectedPayment === 'qr' && !showQRCode && !generateQRMutation.isPending && cart.length > 0 && (
+                <div className="space-y-3 border rounded-lg p-4 bg-red-50">
+                  <div className="text-center text-red-600">
+                    <p className="text-sm">Không thể tạo mã QR</p>
+                    <p className="text-xs">Vui lòng kiểm tra cấu hình QR trong Settings</p>
                   </div>
                 </div>
               )}
