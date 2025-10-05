@@ -11,11 +11,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { normalizeSearchText } from "@/lib/utils";
-import { Package, Search, AlertTriangle, TrendingUp, TrendingDown, Plus, Minus, FileText, BarChart3 } from "lucide-react";
+import { Package, Search, AlertTriangle, TrendingUp, TrendingDown, Plus, Minus, FileText, BarChart3, Eye } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { z } from "zod";
+import { OutboundDetailModal } from "@/components/inventory/outbound-detail-modal";
 import type { 
   Product, 
   InventoryTransaction, 
@@ -43,6 +44,20 @@ export default function Inventory() {
   const [searchTerm, setSearchTerm] = useState("");
   const [stockFilter, setStockFilter] = useState<string>("all");
   const [isAdjustmentDialogOpen, setIsAdjustmentDialogOpen] = useState(false);
+  const [selectedTransaction, setSelectedTransaction] = useState<InventoryTransaction | null>(null);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  
+  // Transaction filters
+  const [transactionSearchTerm, setTransactionSearchTerm] = useState("");
+  const [transactionTypeFilter, setTransactionTypeFilter] = useState<string>("all");
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
+
+  // Handle opening detail modal
+  const handleViewDetail = (transaction: InventoryTransaction) => {
+    setSelectedTransaction(transaction);
+    setIsDetailModalOpen(true);
+  };
 
   // Reset form when dialog opens
   const handleDialogOpenChange = (open: boolean) => {
@@ -59,13 +74,29 @@ export default function Inventory() {
 
   // Fetch inventory transactions
   const { data: transactionsResponse, isLoading: isLoadingTransactions } = useQuery<InventoryTransactionResponse>({
-    queryKey: ['/api/inventory/transactions'],
-    queryFn: () => apiRequest('/api/inventory/transactions', { method: 'GET' }),
+    queryKey: ['/api/inventory/transactions', transactionTypeFilter, fromDate, toDate],
+    queryFn: () => {
+      const params = new URLSearchParams();
+      
+      if (transactionTypeFilter && transactionTypeFilter !== 'all') {
+        params.append('type', transactionTypeFilter === 'inbound' ? '1' : '2');
+      }
+      
+      if (fromDate) {
+        params.append('fromDate', fromDate);
+      }
+      
+      if (toDate) {
+        // Add time to make it end of day
+        const endOfDay = new Date(toDate);
+        endOfDay.setHours(23, 59, 59, 999);
+        params.append('toDate', endOfDay.toISOString());
+      }
+      
+      const url = `/api/inventory/transactions${params.toString() ? '?' + params.toString() : ''}`;
+      return apiRequest(url, { method: 'GET' });
+    },
   });
-
-  // Debug log
-  console.log('Transactions Response:', transactionsResponse);
-  console.log('Is Loading Transactions:', isLoadingTransactions);
 
   // Fetch inventory summary
   const { data: inventorySummary = [], isLoading: isLoadingSummary } = useQuery<InventorySummary[]>({
@@ -164,6 +195,19 @@ export default function Inventory() {
     }
     
     return matchesSearch && matchesStock;
+  });
+
+  // Filter transactions with Vietnamese diacritics support
+  const filteredTransactions = (transactionsResponse?.data || []).filter(transaction => {
+    const searchNormalized = normalizeSearchText(transactionSearchTerm);
+    const productNameNormalized = normalizeSearchText(transaction.productName || '');
+    const reasonNormalized = normalizeSearchText(transaction.reason || '');
+    
+    const matchesSearch = transactionSearchTerm === '' || 
+                         productNameNormalized.includes(searchNormalized) ||
+                         reasonNormalized.includes(searchNormalized);
+    
+    return matchesSearch;
   });
 
   // Get stock status
@@ -620,6 +664,75 @@ export default function Inventory() {
                   Lịch sử xuất nhập kho
                 </CardTitle>
               </CardHeader>
+              
+              {/* Filter Controls */}
+              <div className="px-6 pb-4 border-b">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-gray-700">Tìm kiếm sản phẩm</label>
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                      <Input
+                        placeholder="Tên sản phẩm, lý do..."
+                        value={transactionSearchTerm}
+                        onChange={(e) => setTransactionSearchTerm(e.target.value)}
+                        className="pl-10"
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-gray-700">Loại giao dịch</label>
+                    <Select value={transactionTypeFilter} onValueChange={setTransactionTypeFilter}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Chọn loại" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Tất cả</SelectItem>
+                        <SelectItem value="inbound">Nhập kho</SelectItem>
+                        <SelectItem value="outbound">Xuất kho</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-gray-700">Từ ngày</label>
+                    <Input
+                      type="date"
+                      value={fromDate}
+                      onChange={(e) => setFromDate(e.target.value)}
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-gray-700">Đến ngày</label>
+                    <Input
+                      type="date"
+                      value={toDate}
+                      onChange={(e) => setToDate(e.target.value)}
+                    />
+                  </div>
+                </div>
+                
+                <div className="flex justify-between items-center mt-4">
+                  <p className="text-sm text-gray-600">
+                    Hiển thị {filteredTransactions.length} / {transactionsResponse?.totalCount || 0} giao dịch
+                  </p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setTransactionSearchTerm("");
+                      setTransactionTypeFilter("all");
+                      setFromDate("");
+                      setToDate("");
+                    }}
+                  >
+                    Xóa bộ lọc
+                  </Button>
+                </div>
+              </div>
+              
               <CardContent>
                 {isLoadingTransactions ? (
                   <div className="text-center py-8">
@@ -627,13 +740,13 @@ export default function Inventory() {
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {transactionsResponse?.data.map((transaction) => (
+                    {filteredTransactions.map((transaction) => (
                       <div 
                         key={transaction.transactionId} 
                         className="flex items-center justify-between p-4 border rounded-lg"
                         data-testid={`transaction-${transaction.transactionId}`}
                       >
-                        <div className="flex items-center space-x-4">
+                        <div className="flex items-center space-x-4 flex-1">
                           <div className={`p-2 rounded-full ${
                             transaction.type === 'IN' ? 'bg-green-100 text-green-600' :
                             'bg-red-100 text-red-600'
@@ -641,7 +754,7 @@ export default function Inventory() {
                             {transaction.type === 'IN' ? <TrendingUp className="w-4 h-4" /> :
                              <TrendingDown className="w-4 h-4" />}
                           </div>
-                          <div>
+                          <div className="flex-1">
                             <p className="font-medium">{transaction.productName}</p>
                             <p className="text-sm text-gray-500">{transaction.reason}</p>
                             {transaction.notes && (
@@ -655,32 +768,50 @@ export default function Inventory() {
                             )}
                           </div>
                         </div>
-                        <div className="text-right">
-                          <p className={`font-semibold ${
-                            transaction.type === 'IN' ? 'text-green-600' : 'text-red-600'
-                          }`}>
-                            {transaction.type === 'IN' ? '+' : ''}
-                            {transaction.quantity}
-                          </p>
-                          <p className="text-sm text-gray-500">
-                            {transaction.stockBefore} → {transaction.stockAfter}
-                          </p>
-                          <p className="text-xs text-gray-400">
-                            {new Date(transaction.transactionDate).toLocaleDateString('vi-VN')}
-                          </p>
-                          <p className="text-xs text-green-600">
-                            {new Intl.NumberFormat('vi-VN', { 
-                              style: 'currency', 
-                              currency: 'VND' 
-                            }).format(Math.abs(transaction.totalValue))}
-                          </p>
+                        <div className="flex items-center gap-4">
+                          <div className="text-right">
+                            <p className={`font-semibold ${
+                              transaction.type === 'IN' ? 'text-green-600' : 'text-red-600'
+                            }`}>
+                              {transaction.type === 'IN' ? '+' : ''}
+                              {transaction.quantity}
+                            </p>
+                            <p className="text-sm text-gray-500">
+                              {transaction.stockBefore} → {transaction.stockAfter}
+                            </p>
+                            <p className="text-xs text-gray-400">
+                              {new Date(transaction.transactionDate).toLocaleDateString('vi-VN')}
+                            </p>
+                            <p className="text-xs text-green-600">
+                              {new Intl.NumberFormat('vi-VN', { 
+                                style: 'currency', 
+                                currency: 'VND' 
+                              }).format(Math.abs(transaction.totalValue))}
+                            </p>
+                          </div>
+                          {transaction.type === 'OUT' && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleViewDetail(transaction)}
+                              className="flex items-center gap-1"
+                            >
+                              <Eye className="w-4 h-4" />
+                              Chi tiết
+                            </Button>
+                          )}
                         </div>
                       </div>
                     ))}
-                    {(!transactionsResponse?.data || transactionsResponse.data.length === 0) && (
+                    {filteredTransactions.length === 0 && (
                       <div className="text-center py-8 text-gray-500">
                         <FileText className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                        <p>Chưa có hoạt động xuất nhập kho nào</p>
+                        <p>
+                          {transactionSearchTerm || transactionTypeFilter !== "all" || fromDate || toDate
+                            ? "Không tìm thấy giao dịch nào phù hợp với bộ lọc"
+                            : "Chưa có hoạt động xuất nhập kho nào"
+                          }
+                        </p>
                       </div>
                     )}
                   </div>
@@ -689,6 +820,13 @@ export default function Inventory() {
             </Card>
           </TabsContent>
         </Tabs>
+        
+        {/* Outbound Detail Modal */}
+        <OutboundDetailModal
+          transaction={selectedTransaction}
+          isOpen={isDetailModalOpen}
+          onClose={() => setIsDetailModalOpen(false)}
+        />
       </div>
     </AppLayout>
   );

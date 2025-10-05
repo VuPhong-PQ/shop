@@ -24,9 +24,36 @@ namespace RetailPointBackend.Controllers
             {
                 // Log thông tin nhận được
                 Console.WriteLine($"[CreateProduct] Nhận product: {System.Text.Json.JsonSerializer.Serialize(product)}");
+                
+                // Tạo sản phẩm
                 _context.Products.Add(product);
                 await _context.SaveChangesAsync();
                 Console.WriteLine($"[CreateProduct] Đã lưu productId: {product.ProductId}");
+                
+                // Tự động tạo inventory transaction nếu có số lượng ban đầu
+                if (product.StockQuantity > 0)
+                {
+                    var inventoryTransaction = new InventoryTransaction
+                    {
+                        ProductId = product.ProductId,
+                        StaffId = 1, // TODO: Get from authentication context
+                        Type = TransactionType.IN,
+                        Quantity = product.StockQuantity,
+                        UnitPrice = product.CostPrice ?? 0,
+                        TotalValue = product.StockQuantity * (product.CostPrice ?? 0),
+                        Reason = "Nhập kho ban đầu",
+                        Notes = product.Description ?? "Tạo sản phẩm mới",
+                        TransactionDate = DateTime.Now,
+                        StockBefore = 0,
+                        StockAfter = product.StockQuantity
+                    };
+                    
+                    _context.InventoryTransactions.Add(inventoryTransaction);
+                    await _context.SaveChangesAsync();
+                    
+                    Console.WriteLine($"[CreateProduct] Đã tạo inventory transaction cho sản phẩm mới: {inventoryTransaction.TransactionId}");
+                }
+                
                 return CreatedAtAction(nameof(GetProduct), new { id = product.ProductId }, product);
             }
             catch (Exception ex)
