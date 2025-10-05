@@ -149,19 +149,76 @@ namespace RetailPointBackend.Controllers
                         : settings.DefaultDescription
                 };
 
-                // Gọi service tạo QR (sẽ cải tiến ở bước tiếp theo)
-                // Hiện tại trả về thông tin test
+                // Gọi VietQR Image API trực tiếp
+                var qrImageUrl = "";
+                if (settings.QRProvider.ToLower() == "vietqr")
+                {
+                    // Sử dụng VietQR Image API
+                    var template = !string.IsNullOrEmpty(settings.QRTemplate) ? settings.QRTemplate : "compact";
+                    qrImageUrl = $"https://api.vietqr.io/image/{settings.BankCode}-{settings.BankAccountNumber}-{template}.jpg" +
+                               $"?accountName={Uri.EscapeDataString(settings.BankAccountHolder)}" +
+                               $"&amount={request.Amount}";
+                    
+                    if (!string.IsNullOrEmpty(qrRequest.Description))
+                    {
+                        qrImageUrl += $"&addInfo={Uri.EscapeDataString(qrRequest.Description)}";
+                    }
+                }
+
                 return Ok(new { 
-                    message = "QR được tạo thành công",
+                    success = true,
+                    qrImageUrl = qrImageUrl,
                     amount = request.Amount,
                     description = qrRequest.Description,
                     bankInfo = $"{settings.BankName} - {settings.BankAccountNumber}",
+                    accountHolder = settings.BankAccountHolder,
                     provider = settings.QRProvider
                 });
             }
             catch (Exception ex)
             {
                 return StatusCode(500, new { message = "Lỗi khi tạo QR", error = ex.Message });
+            }
+        }
+
+        // GET: api/QRSettings/generate-url - Tạo QR URL đơn giản
+        [HttpGet("generate-url")]
+        public async Task<IActionResult> GenerateQRUrl(decimal amount, string? description = null)
+        {
+            try
+            {
+                var settings = await _context.QRSettings.FirstOrDefaultAsync();
+                
+                if (settings == null || !settings.IsEnabled)
+                {
+                    return BadRequest(new { message = "QR Code chưa được cấu hình hoặc bị tắt" });
+                }
+
+                var qrImageUrl = "";
+                if (settings.QRProvider.ToLower() == "vietqr")
+                {
+                    var template = !string.IsNullOrEmpty(settings.QRTemplate) ? settings.QRTemplate : "compact";
+                    qrImageUrl = $"https://api.vietqr.io/image/{settings.BankCode}-{settings.BankAccountNumber}-{template}.jpg" +
+                               $"?accountName={Uri.EscapeDataString(settings.BankAccountHolder)}" +
+                               $"&amount={amount}";
+                    
+                    if (!string.IsNullOrEmpty(description))
+                    {
+                        qrImageUrl += $"&addInfo={Uri.EscapeDataString(description)}";
+                    }
+                }
+
+                return Ok(new { 
+                    qrImageUrl = qrImageUrl,
+                    bankName = settings.BankName,
+                    accountNumber = settings.BankAccountNumber,
+                    accountHolder = settings.BankAccountHolder,
+                    amount = amount
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Lỗi khi tạo QR URL", error = ex.Message });
             }
         }
     }

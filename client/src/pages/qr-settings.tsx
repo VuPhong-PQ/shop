@@ -102,18 +102,42 @@ export function QRSettings() {
   }
 
   const bankCodes = [
-    { value: "970436", label: "Vietcombank" },
-    { value: "970415", label: "Vietinbank" },
-    { value: "970422", label: "MB Bank" },
-    { value: "970418", label: "BIDV" },
-    { value: "970405", label: "Agribank" },
-    { value: "970448", label: "OCB" },
-    { value: "970432", label: "VPBank" },
-    { value: "970407", label: "Techcombank" },
-    { value: "970403", label: "Sacombank" },
-    { value: "970416", label: "ACB Bank" },
-    { value: "970419", label: "NCB Bank" },
+    { value: "970436", label: "Vietcombank", fullName: "Ngân hàng TMCP Ngoại thương Việt Nam" },
+    { value: "970415", label: "Vietinbank", fullName: "Ngân hàng TMCP Công Thương Việt Nam" },
+    { value: "970422", label: "MB Bank", fullName: "Ngân hàng TMCP Quân đội" },
+    { value: "970418", label: "BIDV", fullName: "Ngân hàng TMCP Đầu tư và Phát triển Việt Nam" },
+    { value: "970405", label: "Agribank", fullName: "Ngân hàng Nông nghiệp và Phát triển Nông thôn Việt Nam" },
+    { value: "970448", label: "OCB", fullName: "Ngân hàng TMCP Phương Đông" },
+    { value: "970432", label: "VPBank", fullName: "Ngân hàng TMCP Việt Nam Thịnh vượng" },
+    { value: "970407", label: "Techcombank", fullName: "Ngân hàng TMCP Kỹ thương Việt Nam" },
+    { value: "970403", label: "Sacombank", fullName: "Ngân hàng TMCP Sài Gòn Thương tín" },
+    { value: "970416", label: "ACB Bank", fullName: "Ngân hàng TMCP Á Châu" },
+    { value: "970419", label: "NCB Bank", fullName: "Ngân hàng TMCP Quốc dân" },
   ];
+
+  // Tự động điền tên ngân hàng khi chọn bank code
+  const handleBankCodeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const selectedBankCode = e.target.value;
+    const selectedBank = bankCodes.find(bank => bank.value === selectedBankCode);
+    
+    setForm(prev => ({
+      ...prev,
+      bankCode: selectedBankCode,
+      bankName: selectedBank ? selectedBank.fullName : ""
+    }));
+    setHasChanges(true);
+  };
+
+  // Tạo preview QR URL
+  const getPreviewQRUrl = () => {
+    if (!form.bankCode || !form.bankAccountNumber || !form.bankAccountHolder) {
+      return null;
+    }
+    
+    const template = form.qrTemplate || "compact";
+    const accountName = encodeURIComponent(form.bankAccountHolder);
+    return `https://api.vietqr.io/image/${form.bankCode}-${form.bankAccountNumber}-${template}.jpg?accountName=${accountName}&amount=100000`;
+  };
 
   return (
     <Card>
@@ -145,7 +169,7 @@ export function QRSettings() {
               <select
                 name="bankCode"
                 value={form.bankCode}
-                onChange={handleChange}
+                onChange={handleBankCodeChange}
                 className="w-full border rounded px-3 py-2"
                 required
               >
@@ -165,7 +189,9 @@ export function QRSettings() {
                 onChange={handleChange}
                 className="w-full border rounded px-3 py-2"
                 placeholder="Ví dụ: Ngân hàng TMCP Công Thương Việt Nam"
+                readOnly
               />
+              <p className="text-xs text-gray-500 mt-1">Tự động điền theo ngân hàng đã chọn</p>
             </div>
 
             <div>
@@ -248,6 +274,36 @@ export function QRSettings() {
               />
             </div>
           </div>
+
+          {/* Preview QR Code */}
+          {form.bankCode && form.bankAccountNumber && form.bankAccountHolder && (
+            <div className="border rounded-lg p-4 bg-green-50">
+              <h3 className="font-semibold mb-4 flex items-center gap-2">
+                <Eye className="w-5 h-5" /> Xem trước QR Code
+              </h3>
+              <div className="flex flex-col md:flex-row gap-4 items-center">
+                <div className="text-center">
+                  <img 
+                    src={getPreviewQRUrl() || ""}
+                    alt="Preview QR Code" 
+                    className="w-40 h-40 border rounded-lg mx-auto mb-2"
+                    onError={(e) => {
+                      e.currentTarget.src = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDIwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiBmaWxsPSIjRjNGNEY2Ii8+Cjx0ZXh0IHg9IjEwMCIgeT0iMTAwIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiM2QjczODAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIwLjNlbSI+TG9hZGluZy4uLjwvdGV4dD4KPC9zdmc+";
+                    }}
+                  />
+                  <p className="text-sm text-green-600 font-medium">QR Code mẫu - 100,000₫</p>
+                </div>
+                <div className="flex-1">
+                  <div className="space-y-2">
+                    <p><span className="font-medium">Ngân hàng:</span> {form.bankName}</p>
+                    <p><span className="font-medium">Số tài khoản:</span> {form.bankAccountNumber}</p>
+                    <p><span className="font-medium">Chủ tài khoản:</span> {form.bankAccountHolder}</p>
+                    <p><span className="font-medium">Template:</span> {form.qrTemplate}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* API Configuration cho VietQR */}
           {form.qrProvider === "vietqr" && (

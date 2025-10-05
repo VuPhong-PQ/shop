@@ -84,6 +84,29 @@ export default function OrdersPage() {
     },
   });
 
+  // Fetch QR settings
+  const { data: qrSettings } = useQuery({
+    queryKey: ["/api/QRSettings"],
+    queryFn: async () => {
+      const res = await apiRequest("/api/QRSettings", { method: "GET" });
+      return res;
+    },
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+  });
+
+  // Generate QR URL based on settings
+  const generateQRUrl = (amount: number) => {
+    if (!qrSettings?.isEnabled || !qrSettings?.bankCode || !qrSettings?.bankAccountNumber) {
+      return null;
+    }
+    
+    const template = qrSettings.qrTemplate || "compact";
+    const accountName = encodeURIComponent(qrSettings.bankAccountHolder || "");
+    const description = encodeURIComponent(qrSettings.defaultDescription || "Thanh toan hoa don");
+    
+    return `https://api.vietqr.io/image/${qrSettings.bankCode}-${qrSettings.bankAccountNumber}-${template}.jpg?accountName=${accountName}&amount=${amount}&addInfo=${description}`;
+  };
+
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
   // Helper functions để format trạng thái
@@ -437,16 +460,33 @@ export default function OrdersPage() {
             {(selectedOrder.paymentMethod === 'qr' || selectedOrder.paymentMethod === 'QR Code' || selectedOrder.paymentMethod?.toLowerCase().includes('qr')) && (
               <div className="mt-4 text-center border rounded-lg p-4 bg-purple-50">
                 <h4 className="font-semibold text-purple-800 mb-2">Mã QR Thanh toán</h4>
-                <div className="flex justify-center mb-2">
-                  <img 
-                    src={`https://api.vietqr.io/image/970436-0091000232791-3bYrdPX.jpg?accountName=NGUYEN%20VU%20PHONG&amount=${selectedOrder.totalAmount}`}
-                    alt="QR Code thanh toán" 
-                    className="w-32 h-32 border rounded-lg"
-                  />
-                </div>
-                <p className="text-xs text-gray-600">Vietcombank - 0091000232791</p>
-                <p className="text-xs text-gray-600">NGUYEN VU PHONG</p>
-                <p className="text-sm font-semibold text-purple-600">
+                
+                {generateQRUrl(selectedOrder.totalAmount) ? (
+                  <>
+                    <div className="flex justify-center mb-2">
+                      <img 
+                        src={generateQRUrl(selectedOrder.totalAmount) || ""}
+                        alt="QR Code thanh toán" 
+                        className="w-32 h-32 border rounded-lg"
+                        onError={(e) => {
+                          e.currentTarget.src = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTI4IiBoZWlnaHQ9IjEyOCIgdmlld0JveD0iMCAwIDEyOCAxMjgiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxMjgiIGhlaWdodD0iMTI4IiBmaWxsPSIjRjNGNEY2Ii8+Cjx0ZXh0IHg9IjY0IiB5PSI2NCIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjEwIiBmaWxsPSIjNkI3MzgwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkeT0iMC4zZW0iPkVycm9yPC90ZXh0Pgo8L3N2Zz4=";
+                        }}
+                      />
+                    </div>
+                    <div className="text-xs text-gray-600 space-y-1">
+                      <p><span className="font-medium">Ngân hàng:</span> {qrSettings?.bankName}</p>
+                      <p><span className="font-medium">Số TK:</span> {qrSettings?.bankAccountNumber}</p>
+                      <p><span className="font-medium">Chủ TK:</span> {qrSettings?.bankAccountHolder}</p>
+                    </div>
+                  </>
+                ) : (
+                  <div className="text-center text-orange-600 py-4">
+                    <p className="text-sm">QR Code chưa được cấu hình</p>
+                    <p className="text-xs">Vui lòng vào Settings &gt; QR Code để cấu hình</p>
+                  </div>
+                )}
+                
+                <p className="text-sm font-semibold text-purple-600 mt-2">
                   Số tiền: {Number(selectedOrder.totalAmount).toLocaleString('vi-VN')}₫
                 </p>
               </div>

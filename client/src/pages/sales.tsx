@@ -89,6 +89,16 @@ export default function Sales() {
     cacheTime: 0, // Don't cache
   });
 
+  // Fetch QR settings configuration
+  const { data: qrSettings } = useQuery({
+    queryKey: ["/api/QRSettings"],
+    queryFn: async () => {
+      const res = await apiRequest("/api/QRSettings", { method: "GET" });
+      return res;
+    },
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+  });
+
   // Set default payment method based on config
   useEffect(() => {
     if (paymentConfig?.defaultMethod && selectedPayment === "cash") {
@@ -388,14 +398,9 @@ export default function Sales() {
   // Generate QR Code mutation
   const generateQRMutation = useMutation({
     mutationFn: async ({ amount, description }: { amount: number, description?: string }) => {
-      return await apiRequest("/api/TestQR/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          accountName: "NGUYEN VU PHONG",
-          amount: amount,
-          description: description || "Thanh toan hoa don"
-        })
+      // Sử dụng QR settings endpoint thay vì hardcode
+      return await apiRequest(`/api/QRSettings/generate-url?amount=${amount}&description=${encodeURIComponent(description || "Thanh toan hoa don")}`, {
+        method: "GET"
       });
     },
     onSuccess: (data) => {
@@ -405,7 +410,7 @@ export default function Sales() {
     onError: (error: any) => {
       toast({
         title: "Lỗi tạo QR",
-        description: error.message || "Không thể tạo mã QR. Vui lòng kiểm tra cấu hình.",
+        description: error.message || "Không thể tạo mã QR. Vui lòng kiểm tra cấu hình trong Settings > QR Code.",
         variant: "destructive",
       });
     }
@@ -932,37 +937,31 @@ export default function Sales() {
                       Số tiền: <span className="font-bold">{total.toLocaleString('vi-VN')}₫</span>
                     </p>
                     
-                    {(qrCodeData.qrDataURL || qrCodeData.qrImageUrl) && (
+                    {qrCodeData.qrImageUrl && (
                       <div className="flex justify-center mb-3">
                         <img 
-                          src={qrCodeData.qrDataURL || qrCodeData.qrImageUrl} 
+                          src={qrCodeData.qrImageUrl} 
                           alt="QR Code thanh toán" 
                           className="w-48 h-48 border rounded-lg"
                         />
                       </div>
                     )}
                     
-                    {(qrCodeData.bankInfo || qrCodeData.accountNumber) && (
-                      <p className="text-xs text-gray-600">
-                        {qrCodeData.bankInfo || `${qrCodeData.accountNumber} - ${qrCodeData.accountName}`}
-                      </p>
-                    )}
-                    
-                    {generateQRMutation.isPending && (
-                      <div className="flex items-center justify-center gap-2 text-purple-600">
-                        <div className="animate-spin w-4 h-4 border-2 border-purple-600 border-t-transparent rounded-full"></div>
-                        <span className="text-sm">Đang tạo mã QR...</span>
-                      </div>
-                    )}
+                    <div className="text-xs text-gray-600 space-y-1">
+                      {qrCodeData.bankName && <p><span className="font-medium">Ngân hàng:</span> {qrCodeData.bankName}</p>}
+                      {qrCodeData.accountNumber && <p><span className="font-medium">Số TK:</span> {qrCodeData.accountNumber}</p>}
+                      {qrCodeData.accountHolder && <p><span className="font-medium">Chủ TK:</span> {qrCodeData.accountHolder}</p>}
+                    </div>
                   </div>
                 </div>
               )}
 
-              {selectedPayment === 'qr' && !showQRCode && !generateQRMutation.isPending && cart.length > 0 && (
-                <div className="space-y-3 border rounded-lg p-4 bg-red-50">
-                  <div className="text-center text-red-600">
-                    <p className="text-sm">Không thể tạo mã QR</p>
-                    <p className="text-xs">Vui lòng kiểm tra cấu hình QR trong Settings</p>
+              {/* QR Code không khả dụng */}
+              {selectedPayment === 'qr' && !qrSettings?.isEnabled && (
+                <div className="space-y-3 border rounded-lg p-4 bg-orange-50">
+                  <div className="text-center text-orange-600">
+                    <p className="text-sm font-medium">QR Code chưa được cấu hình</p>
+                    <p className="text-xs">Vui lòng vào Settings &gt; QR Code để cấu hình</p>
                   </div>
                 </div>
               )}
