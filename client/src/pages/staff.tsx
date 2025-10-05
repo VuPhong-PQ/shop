@@ -162,7 +162,17 @@ export default function Staff() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(staffData)
       });
-      if (!response.ok) throw new Error('Failed to create staff');
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to create staff: ${response.status} - ${errorText}`);
+      }
+      
+      // Handle 204 No Content response
+      if (response.status === 204) {
+        return null;
+      }
+      
       return response.json();
     },
     onSuccess: () => {
@@ -201,6 +211,13 @@ export default function Staff() {
         console.error('Update failed:', response.status, errorText);
         throw new Error(`Failed to update staff: ${response.status} - ${errorText}`);
       }
+      
+      // Handle 204 No Content response
+      if (response.status === 204) {
+        console.log('Success: 204 No Content');
+        return null;
+      }
+      
       return response.json();
     },
     onSuccess: () => {
@@ -228,6 +245,11 @@ export default function Staff() {
         method: 'DELETE'
       });
       if (!response.ok) throw new Error('Failed to delete staff');
+      
+      // Handle 204 No Content response
+      if (response.status === 204) {
+        return {};
+      }
       return response.json();
     },
     onSuccess: () => {
@@ -263,6 +285,11 @@ export default function Staff() {
         const errorText = await response.text();
         console.error('API Error:', response.status, errorText);
         throw new Error(`Failed to update permission: ${response.status}`);
+      }
+      
+      // Handle 204 No Content response
+      if (response.status === 204) {
+        return {};
       }
       return response.json();
     },

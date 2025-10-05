@@ -119,12 +119,23 @@ export default function Products() {
         stockQuantity: Number(productData.stockQuantity),
         minStockLevel: Number(productData.minStockLevel),
       };
-      const response = await apiRequest('/api/products', {
+      
+      const response = await fetch('/api/products', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formattedData)
       });
-      return typeof response === 'string' ? JSON.parse(response) : response;
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`HTTP ${response.status}: ${errorText}`);
+      }
+      
+      // Handle 204 No Content response
+      if (response.status === 204) {
+        return {};
+      }
+      return response.json();
     },
     onSuccess: () => {
       toast({
@@ -214,9 +225,19 @@ export default function Products() {
   // Delete product mutation
   const deleteProductMutation = useMutation({
     mutationFn: async (id: string) => {
-  const response = await apiRequest('DELETE', `/api/products/${id}`);
-  if (response.status === 204) return null;
-  return response.json();
+      const response = await fetch(`/api/products/${id}`, {
+        method: 'DELETE'
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to delete product');
+      }
+      
+      // Handle 204 No Content response
+      if (response.status === 204) {
+        return {};
+      }
+      return response.json();
     },
     onSuccess: () => {
       toast({
