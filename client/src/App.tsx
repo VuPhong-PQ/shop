@@ -25,57 +25,57 @@ function Router() {
         <Login />
       </Route>
       <Route path="/">
-        <ProtectedRoute>
+        <ProtectedRoute requiredPermission="ViewOrders">
           <Sales />
         </ProtectedRoute>
       </Route>
       <Route path="/sales">
-        <ProtectedRoute>
+        <ProtectedRoute requiredPermission="ViewOrders">
           <Sales />
         </ProtectedRoute>
       </Route>
       <Route path="/products">
-        <ProtectedRoute>
+        <ProtectedRoute requiredPermission="ViewProducts">
           <Products />
         </ProtectedRoute>
       </Route>
       <Route path="/product-groups">
-        <ProtectedRoute>
+        <ProtectedRoute requiredPermission="ViewProducts">
           <ProductGroups />
         </ProtectedRoute>
       </Route>
       <Route path="/customers">
-        <ProtectedRoute>
+        <ProtectedRoute requiredPermission="ViewCustomers">
           <Customers />
         </ProtectedRoute>
       </Route>
       <Route path="/inventory">
-        <ProtectedRoute>
+        <ProtectedRoute requiredPermission="ViewProducts">
           <Inventory />
         </ProtectedRoute>
       </Route>
       <Route path="/reports">
-        <ProtectedRoute>
+        <ProtectedRoute requiredPermission="ViewReports">
           <Reports />
         </ProtectedRoute>
       </Route>
       <Route path="/staff">
-        <ProtectedRoute>
+        <ProtectedRoute requiredPermission="ViewStaff">
           <Staff />
         </ProtectedRoute>
       </Route>
       <Route path="/settings">
-        <ProtectedRoute>
+        <ProtectedRoute requiredPermission="ViewSettings">
           <Settings />
         </ProtectedRoute>
       </Route>
       <Route path="/orders">
-        <ProtectedRoute>
+        <ProtectedRoute requiredPermission="ViewOrders">
           <OrdersPage />
         </ProtectedRoute>
       </Route>
       <Route path="/print-order/:orderId">
-        <ProtectedRoute>
+        <ProtectedRoute requiredPermission="ViewOrders">
           <PrintOrder />
         </ProtectedRoute>
       </Route>

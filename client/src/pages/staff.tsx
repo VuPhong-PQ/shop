@@ -246,17 +246,30 @@ export default function Staff() {
       });
       if (!response.ok) throw new Error('Failed to delete staff');
       
-      // Handle 204 No Content response
+      // Handle different response types
       if (response.status === 204) {
-        return {};
+        // Hard delete - no content
+        return { hardDelete: true };
+      } else if (response.status === 200) {
+        // Soft delete - staff deactivated
+        const data = await response.json();
+        return { hardDelete: false, ...data };
       }
-      return response.json();
+      return {};
     },
-    onSuccess: () => {
-      toast({
-        title: "Thành công",
-        description: "Nhân viên đã được xóa",
-      });
+    onSuccess: (data) => {
+      if (data?.hardDelete) {
+        toast({
+          title: "Thành công",
+          description: "Nhân viên đã được xóa hoàn toàn",
+        });
+      } else {
+        toast({
+          title: "Thành công", 
+          description: data?.message || "Nhân viên đã được đánh dấu không hoạt động",
+          variant: "default",
+        });
+      }
       queryClient.invalidateQueries({ queryKey: ['/api/staff'] });
     },
     onError: () => {

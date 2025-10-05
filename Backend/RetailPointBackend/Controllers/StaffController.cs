@@ -213,11 +213,24 @@ namespace RetailPointBackend.Controllers
                 return NotFound();
             }
 
-            // Soft delete - just set IsActive to false
-            staff.IsActive = false;
-            await _context.SaveChangesAsync();
+            // Check if staff has any related records
+            var hasOrders = await _context.Orders.AnyAsync(o => o.StaffId == id);
+            var hasInventoryTransactions = await _context.InventoryTransactions.AnyAsync(it => it.StaffId == id);
 
-            return NoContent();
+            if (hasOrders || hasInventoryTransactions)
+            {
+                // Soft delete if staff has related records to maintain data integrity
+                staff.IsActive = false;
+                await _context.SaveChangesAsync();
+                return Ok(new { message = "Nhân viên đã được đánh dấu không hoạt động do có dữ liệu liên quan", softDelete = true });
+            }
+            else
+            {
+                // Hard delete if no related records exist
+                _context.Staffs.Remove(staff);
+                await _context.SaveChangesAsync();
+                return NoContent();
+            }
         }
 
         // POST: api/Staff/login

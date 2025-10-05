@@ -1,5 +1,6 @@
 import { Link, useLocation } from "wouter";
 import { useState } from "react";
+import { useAuth } from "@/contexts/auth-context";
 import {
   ShoppingCart,
   Package,
@@ -19,26 +20,33 @@ import {
 import { cn } from "@/lib/utils";
 
 const navigation = [
-  { name: 'Bán hàng', href: '/', icon: ShoppingCart },
+  { name: 'Bán hàng', href: '/', icon: ShoppingCart, permission: 'ViewOrders' },
   { 
     name: 'Sản phẩm', 
     icon: Package,
+    permission: 'ViewProducts',
     submenu: [
-      { name: 'Danh sách sản phẩm', href: '/products', icon: Package },
-      { name: 'Nhóm sản phẩm', href: '/product-groups', icon: Folder }
+      { name: 'Danh sách sản phẩm', href: '/products', icon: Package, permission: 'ViewProducts' },
+      { name: 'Nhóm sản phẩm', href: '/product-groups', icon: Folder, permission: 'ViewProducts' }
     ]
   },
-  { name: 'Khách hàng', href: '/customers', icon: Users },
-  { name: 'Kho hàng', href: '/inventory', icon: Warehouse },
-  { name: 'Báo cáo', href: '/reports', icon: BarChart3 },
-  { name: 'Nhân viên', href: '/staff', icon: UserCheck },
-  { name: 'Cài đặt', href: '/settings', icon: Settings },
+  { name: 'Khách hàng', href: '/customers', icon: Users, permission: 'ViewCustomers' },
+  { name: 'Kho hàng', href: '/inventory', icon: Warehouse, permission: 'ViewProducts' },
+  { name: 'Báo cáo', href: '/reports', icon: BarChart3, permission: 'ViewReports' },
+  { name: 'Nhân viên', href: '/staff', icon: UserCheck, permission: 'ViewStaff' },
+  { name: 'Cài đặt', href: '/settings', icon: Settings, permission: 'ViewSettings' },
 ];
 
 export function Sidebar() {
   const [location] = useLocation();
+  const { hasPermission } = useAuth();
   const [expandedMenus, setExpandedMenus] = useState<string[]>(['Sản phẩm']);
   const [isHovered, setIsHovered] = useState(false);
+
+  // Filter navigation items based on permissions
+  const visibleNavigation = navigation.filter(item => 
+    !item.permission || hasPermission(item.permission)
+  );
 
   const toggleMenu = (menuName: string) => {
     setExpandedMenus(prev => 
@@ -84,13 +92,21 @@ export function Sidebar() {
       
       <nav className={cn("p-4 space-y-2", !isHovered && "px-2")}>
         <div className="space-y-1">
-          {navigation.map((item) => {
+          {visibleNavigation.map((item) => {
             const Icon = item.icon;
             
             // Handle menu items with submenu
             if (item.submenu) {
               const isExpanded = expandedMenus.includes(item.name);
-              const hasActiveSubmenu = item.submenu.some(subitem => location === subitem.href);
+              // Filter submenu items based on permissions
+              const visibleSubmenu = item.submenu.filter(subitem => 
+                !subitem.permission || hasPermission(subitem.permission)
+              );
+              
+              // Don't show menu if no visible submenu items
+              if (visibleSubmenu.length === 0) return null;
+              
+              const hasActiveSubmenu = visibleSubmenu.some(subitem => location === subitem.href);
               
               return (
                 <div key={item.name}>
@@ -119,7 +135,7 @@ export function Sidebar() {
                   
                   {isHovered && isExpanded && (
                     <div className="ml-6 mt-1 space-y-1">
-                      {item.submenu.map((subitem) => {
+                      {visibleSubmenu.map((subitem) => {
                         const isActive = location === subitem.href;
                         const SubIcon = subitem.icon;
                         

@@ -1,6 +1,7 @@
 import { useAuth } from "@/contexts/auth-context";
 import { useLocation } from "wouter";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { AccessDenied } from "./access-denied";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -10,6 +11,7 @@ interface ProtectedRouteProps {
 export function ProtectedRoute({ children, requiredPermission }: ProtectedRouteProps) {
   const { isAuthenticated, hasPermission } = useAuth();
   const [, setLocation] = useLocation();
+  const [showAccessDenied, setShowAccessDenied] = useState(false);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -18,18 +20,19 @@ export function ProtectedRoute({ children, requiredPermission }: ProtectedRouteP
     }
 
     if (requiredPermission && !hasPermission(requiredPermission)) {
-      // Có thể chuyển hướng đến trang không có quyền truy cập
-      setLocation("/");
+      setShowAccessDenied(true);
       return;
     }
+
+    setShowAccessDenied(false);
   }, [isAuthenticated, requiredPermission, hasPermission, setLocation]);
 
   if (!isAuthenticated) {
     return null;
   }
 
-  if (requiredPermission && !hasPermission(requiredPermission)) {
-    return null;
+  if (showAccessDenied) {
+    return <AccessDenied />;
   }
 
   return <>{children}</>;

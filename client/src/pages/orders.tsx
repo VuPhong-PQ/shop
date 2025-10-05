@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
+import { useAuth } from "@/contexts/auth-context";
 type StoreInfo = {
   name: string;
   address?: string;
@@ -51,6 +52,11 @@ type Order = {
 
 export default function OrdersPage() {
   const { toast } = useToast();
+  const { hasPermission } = useAuth();
+  
+  // Check if user can delete orders (only admin should have this permission)
+  const canDeleteOrders = hasPermission("DeleteOrders");
+  
   const { data: orders = [], isLoading, refetch } = useQuery<Order[]>({
     queryKey: ["/api/orders"],
     queryFn: async () => {
@@ -347,33 +353,35 @@ export default function OrdersPage() {
                         </AlertDialog>
                       )}
                       
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <button className="inline-flex items-center px-3 py-1.5 bg-red-600 text-white text-sm rounded-md hover:bg-red-700 transition-colors">
-                            <Trash2 className="w-4 h-4 mr-1" />
-                            Xóa
-                          </button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Xác nhận xóa đơn hàng</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              Bạn có chắc chắn muốn xóa đơn hàng #{order.orderId}? Hành động này không thể hoàn tác.
-                              <br /><br />
-                              <strong>Lưu ý:</strong> Hiện tại có vấn đề kỹ thuật với việc xóa đơn hàng. Khuyến nghị sử dụng "Đánh dấu hủy" thay thế.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Hủy</AlertDialogCancel>
-                            <AlertDialogAction 
-                              onClick={() => handleDeleteOrder(order.orderId)}
-                              className="bg-red-600 hover:bg-red-700"
-                            >
-                              Thử xóa
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
+                      {canDeleteOrders && (
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <button className="inline-flex items-center px-3 py-1.5 bg-red-600 text-white text-sm rounded-md hover:bg-red-700 transition-colors">
+                              <Trash2 className="w-4 h-4 mr-1" />
+                              Xóa
+                            </button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Xác nhận xóa đơn hàng</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Bạn có chắc chắn muốn xóa đơn hàng #{order.orderId}? Hành động này không thể hoàn tác.
+                                <br /><br />
+                                <strong>Lưu ý:</strong> Hiện tại có vấn đề kỹ thuật với việc xóa đơn hàng. Khuyến nghị sử dụng "Đánh dấu hủy" thay thế.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Hủy</AlertDialogCancel>
+                              <AlertDialogAction 
+                                onClick={() => handleDeleteOrder(order.orderId)}
+                                className="bg-red-600 hover:bg-red-700"
+                              >
+                                Thử xóa
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      )}
                     </div>
                   </div>
                   
