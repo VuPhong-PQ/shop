@@ -221,6 +221,42 @@ export default function Inventory() {
     }
   };
 
+  // Get transaction colors based on type and reason
+  const getTransactionColor = (transaction: InventoryTransaction) => {
+    if (transaction.type === 'OUT') {
+      // Màu đỏ cho xuất kho (bán hàng)
+      return {
+        background: 'bg-red-100',
+        text: 'text-red-600',
+        icon: TrendingDown
+      };
+    } else if (transaction.type === 'IN') {
+      // Kiểm tra lý do để phân biệt màu
+      if (transaction.reason === 'Nhập kho ban đầu' || transaction.reason.includes('ban đầu')) {
+        // Màu vàng cho sản phẩm mới tạo
+        return {
+          background: 'bg-yellow-100',
+          text: 'text-yellow-600',
+          icon: TrendingUp
+        };
+      } else {
+        // Màu xanh lá cho điều chỉnh số lượng thông thường
+        return {
+          background: 'bg-green-100',
+          text: 'text-green-600',
+          icon: TrendingUp
+        };
+      }
+    }
+    
+    // Default fallback
+    return {
+      background: 'bg-gray-100',
+      text: 'text-gray-600',
+      icon: TrendingUp
+    };
+  };
+
   // Calculate inventory metrics
   const totalProducts = products.length;
   const lowStockProducts = products.filter(p => p.stockQuantity <= p.minStockLevel).length;
@@ -715,9 +751,28 @@ export default function Inventory() {
                 </div>
                 
                 <div className="flex justify-between items-center mt-4">
-                  <p className="text-sm text-gray-600">
-                    Hiển thị {filteredTransactions.length} / {transactionsResponse?.totalCount || 0} giao dịch
-                  </p>
+                  <div className="flex items-center gap-4">
+                    <p className="text-sm text-gray-600">
+                      Hiển thị {filteredTransactions.length} / {transactionsResponse?.totalCount || 0} giao dịch
+                    </p>
+                    
+                    {/* Color Legend */}
+                    <div className="flex items-center gap-3 text-xs">
+                      <div className="flex items-center gap-1">
+                        <div className="w-3 h-3 rounded-full bg-yellow-100 border border-yellow-300"></div>
+                        <span className="text-yellow-600">Sản phẩm mới</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <div className="w-3 h-3 rounded-full bg-green-100 border border-green-300"></div>
+                        <span className="text-green-600">Điều chỉnh kho</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <div className="w-3 h-3 rounded-full bg-red-100 border border-red-300"></div>
+                        <span className="text-red-600">Bán hàng</span>
+                      </div>
+                    </div>
+                  </div>
+                  
                   <Button
                     variant="outline"
                     size="sm"
@@ -740,34 +795,34 @@ export default function Inventory() {
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {filteredTransactions.map((transaction) => (
-                      <div 
-                        key={transaction.transactionId} 
-                        className="flex items-center justify-between p-4 border rounded-lg"
-                        data-testid={`transaction-${transaction.transactionId}`}
-                      >
-                        <div className="flex items-center space-x-4 flex-1">
-                          <div className={`p-2 rounded-full ${
-                            transaction.type === 'IN' ? 'bg-green-100 text-green-600' :
-                            'bg-red-100 text-red-600'
-                          }`}>
-                            {transaction.type === 'IN' ? <TrendingUp className="w-4 h-4" /> :
-                             <TrendingDown className="w-4 h-4" />}
+                    {filteredTransactions.map((transaction) => {
+                      const colorScheme = getTransactionColor(transaction);
+                      const IconComponent = colorScheme.icon;
+                      
+                      return (
+                        <div 
+                          key={transaction.transactionId} 
+                          className="flex items-center justify-between p-4 border rounded-lg"
+                          data-testid={`transaction-${transaction.transactionId}`}
+                        >
+                          <div className="flex items-center space-x-4 flex-1">
+                            <div className={`p-2 rounded-full ${colorScheme.background} ${colorScheme.text}`}>
+                              <IconComponent className="w-4 h-4" />
+                            </div>
+                            <div className="flex-1">
+                              <p className="font-medium">{transaction.productName}</p>
+                              <p className="text-sm text-gray-500">{transaction.reason}</p>
+                              {transaction.notes && (
+                                <p className="text-xs text-gray-400">{transaction.notes}</p>
+                              )}
+                              {transaction.supplierName && (
+                                <p className="text-xs text-blue-600">NCC: {transaction.supplierName}</p>
+                              )}
+                              {transaction.referenceNumber && (
+                                <p className="text-xs text-gray-400">Ref: {transaction.referenceNumber}</p>
+                              )}
+                            </div>
                           </div>
-                          <div className="flex-1">
-                            <p className="font-medium">{transaction.productName}</p>
-                            <p className="text-sm text-gray-500">{transaction.reason}</p>
-                            {transaction.notes && (
-                              <p className="text-xs text-gray-400">{transaction.notes}</p>
-                            )}
-                            {transaction.supplierName && (
-                              <p className="text-xs text-blue-600">NCC: {transaction.supplierName}</p>
-                            )}
-                            {transaction.referenceNumber && (
-                              <p className="text-xs text-gray-400">Ref: {transaction.referenceNumber}</p>
-                            )}
-                          </div>
-                        </div>
                         <div className="flex items-center gap-4">
                           <div className="text-right">
                             <p className={`font-semibold ${
@@ -802,7 +857,8 @@ export default function Inventory() {
                           )}
                         </div>
                       </div>
-                    ))}
+                      );
+                    })}
                     {filteredTransactions.length === 0 && (
                       <div className="text-center py-8 text-gray-500">
                         <FileText className="w-12 h-12 mx-auto mb-2 opacity-50" />

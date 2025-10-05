@@ -1,6 +1,6 @@
 {
   "Version": 1,
-  "Hash": "2Eb0FOcCXYNVVc+fJuwIDNfq8FURd3wQsB2R/NLqid8=",
+  "Hash": "HFwkg3WSsMfV5MINZ9GqkC9u3BtPEGgIpxgyNR6ofvQ=",
   "Source": "RetailPointBackend",
   "BasePath": "_content/RetailPointBackend",
   "Mode": "Default",
@@ -981,6 +981,27 @@
       "CopyToOutputDirectory": "Never",
       "CopyToPublishDirectory": "PreserveNewest",
       "OriginalItemSpec": "wwwroot\\uploads\\c2c563ae-2d6a-4a45-a5e2-c33420b817a1.jpeg"
+    },
+    {
+      "Identity": "D:\\laptrinh\\thiekepm\\RetailPoint\\Backend\\RetailPointBackend\\wwwroot\\uploads\\c3831d8a-3c5c-4134-a81d-bc5c7c73b1c3.jpg",
+      "SourceId": "RetailPointBackend",
+      "SourceType": "Discovered",
+      "ContentRoot": "D:\\laptrinh\\thiekepm\\RetailPoint\\Backend\\RetailPointBackend\\wwwroot\\",
+      "BasePath": "_content/RetailPointBackend",
+      "RelativePath": "uploads/c3831d8a-3c5c-4134-a81d-bc5c7c73b1c3#[.{fingerprint}]?.jpg",
+      "AssetKind": "All",
+      "AssetMode": "All",
+      "AssetRole": "Primary",
+      "AssetMergeBehavior": "",
+      "AssetMergeSource": "",
+      "RelatedAsset": "",
+      "AssetTraitName": "",
+      "AssetTraitValue": "",
+      "Fingerprint": "v7s2nhbhnn",
+      "Integrity": "pbnQhN/XZde2ZxRPf13Uxct/clRKJlBX7qgN4j4IonY=",
+      "CopyToOutputDirectory": "Never",
+      "CopyToPublishDirectory": "PreserveNewest",
+      "OriginalItemSpec": "wwwroot\\uploads\\c3831d8a-3c5c-4134-a81d-bc5c7c73b1c3.jpg"
     },
     {
       "Identity": "D:\\laptrinh\\thiekepm\\RetailPoint\\Backend\\RetailPointBackend\\wwwroot\\uploads\\c9eaa530-358f-4204-8032-e13ed0827875.jpeg",
@@ -4879,6 +4900,88 @@
         {
           "Name": "integrity",
           "Value": "sha256-b0gRT9fVFCKLXV/LRV9tuIvXNAP4ZpLQ89dE5KEhGF8="
+        }
+      ]
+    },
+    {
+      "Route": "uploads/c3831d8a-3c5c-4134-a81d-bc5c7c73b1c3.jpg",
+      "AssetFile": "D:\\laptrinh\\thiekepm\\RetailPoint\\Backend\\RetailPointBackend\\wwwroot\\uploads\\c3831d8a-3c5c-4134-a81d-bc5c7c73b1c3.jpg",
+      "Selectors": [],
+      "ResponseHeaders": [
+        {
+          "Name": "Accept-Ranges",
+          "Value": "bytes"
+        },
+        {
+          "Name": "Content-Length",
+          "Value": "3290"
+        },
+        {
+          "Name": "Content-Type",
+          "Value": "image/jpeg"
+        },
+        {
+          "Name": "ETag",
+          "Value": "\"pbnQhN/XZde2ZxRPf13Uxct/clRKJlBX7qgN4j4IonY=\""
+        },
+        {
+          "Name": "Last-Modified",
+          "Value": "Sun, 05 Oct 2025 03:25:43 GMT"
+        },
+        {
+          "Name": "Cache-Control",
+          "Value": "max-age=3600, must-revalidate"
+        }
+      ],
+      "EndpointProperties": [
+        {
+          "Name": "integrity",
+          "Value": "sha256-pbnQhN/XZde2ZxRPf13Uxct/clRKJlBX7qgN4j4IonY="
+        }
+      ]
+    },
+    {
+      "Route": "uploads/c3831d8a-3c5c-4134-a81d-bc5c7c73b1c3.v7s2nhbhnn.jpg",
+      "AssetFile": "D:\\laptrinh\\thiekepm\\RetailPoint\\Backend\\RetailPointBackend\\wwwroot\\uploads\\c3831d8a-3c5c-4134-a81d-bc5c7c73b1c3.jpg",
+      "Selectors": [],
+      "ResponseHeaders": [
+        {
+          "Name": "Accept-Ranges",
+          "Value": "bytes"
+        },
+        {
+          "Name": "Content-Length",
+          "Value": "3290"
+        },
+        {
+          "Name": "Content-Type",
+          "Value": "image/jpeg"
+        },
+        {
+          "Name": "ETag",
+          "Value": "\"pbnQhN/XZde2ZxRPf13Uxct/clRKJlBX7qgN4j4IonY=\""
+        },
+        {
+          "Name": "Last-Modified",
+          "Value": "Sun, 05 Oct 2025 03:25:43 GMT"
+        },
+        {
+          "Name": "Cache-Control",
+          "Value": "max-age=31536000, immutable"
+        }
+      ],
+      "EndpointProperties": [
+        {
+          "Name": "fingerprint",
+          "Value": "v7s2nhbhnn"
+        },
+        {
+          "Name": "label",
+          "Value": "uploads/c3831d8a-3c5c-4134-a81d-bc5c7c73b1c3.jpg"
+        },
+        {
+          "Name": "integrity",
+          "Value": "sha256-pbnQhN/XZde2ZxRPf13Uxct/clRKJlBX7qgN4j4IonY="
         }
       ]
     },

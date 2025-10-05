@@ -828,6 +828,24 @@
       <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
       <OriginalItemSpec>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\staticwebassets\uploads\c2c563ae-2d6a-4a45-a5e2-c33420b817a1.jpeg'))</OriginalItemSpec>
     </StaticWebAsset>
+    <StaticWebAsset Include="$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\staticwebassets\uploads\c3831d8a-3c5c-4134-a81d-bc5c7c73b1c3.jpg'))">
+      <SourceType>Package</SourceType>
+      <SourceId>RetailPointBackend</SourceId>
+      <ContentRoot>$(MSBuildThisFileDirectory)..\staticwebassets\</ContentRoot>
+      <BasePath>_content/RetailPointBackend</BasePath>
+      <RelativePath>uploads/c3831d8a-3c5c-4134-a81d-bc5c7c73b1c3.jpg</RelativePath>
+      <AssetKind>All</AssetKind>
+      <AssetMode>All</AssetMode>
+      <AssetRole>Primary</AssetRole>
+      <RelatedAsset></RelatedAsset>
+      <AssetTraitName></AssetTraitName>
+      <AssetTraitValue></AssetTraitValue>
+      <Fingerprint>v7s2nhbhnn</Fingerprint>
+      <Integrity>pbnQhN/XZde2ZxRPf13Uxct/clRKJlBX7qgN4j4IonY=</Integrity>
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+      <OriginalItemSpec>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\staticwebassets\uploads\c3831d8a-3c5c-4134-a81d-bc5c7c73b1c3.jpg'))</OriginalItemSpec>
+    </StaticWebAsset>
     <StaticWebAsset Include="$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\staticwebassets\uploads\c9eaa530-358f-4204-8032-e13ed0827875.jpeg'))">
       <SourceType>Package</SourceType>
       <SourceId>RetailPointBackend</SourceId>
