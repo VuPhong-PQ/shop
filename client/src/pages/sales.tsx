@@ -139,10 +139,9 @@ export default function Sales() {
   useEffect(() => {
     if (selectedPayment === 'qr' && cart.length > 0) {
       const total = cart.reduce((sum, item) => sum + item.totalPrice, 0);
-      const customerName = selectedCustomer?.name || "khách vãng lai";
+      // Không truyền description để sử dụng mặc định, sẽ được cập nhật với orderId sau khi tạo đơn hàng
       generateQRMutation.mutate({
-        amount: total,
-        description: `Thanh toan hoa don - ${customerName}`
+        amount: total
       });
     } else {
       setShowQRCode(false);
@@ -287,14 +286,35 @@ export default function Sales() {
       console.log('Gửi đơn hàng lên backend:', formData);
       return await apiRequest('/api/orders', { method: 'POST', body: formData });
     },
-    onSuccess: () => {
+    onSuccess: (response) => {
       toast({
         title: "Thành công",
         description: "Đơn hàng đã được tạo thành công",
       });
-      setCart([]);
-      setSelectedCustomer(null);
-      setShowPayment(false);
+      
+      // Nếu là thanh toán QR và có orderId, tạo lại QR code với mã đơn hàng
+      if (selectedPayment === 'qr' && response?.orderId) {
+        const total = cart.reduce((sum, item) => sum + item.totalPrice, 0);
+        generateQRMutation.mutate({
+          amount: total,
+          orderId: response.orderId.toString()
+        });
+        
+        // Hiển thị QR với orderId trong vài giây trước khi chuyển trang
+        setTimeout(() => {
+          setCart([]);
+          setSelectedCustomer(null);
+          setShowPayment(false);
+          navigate('/orders');
+        }, 3000); // 3 giây để người dùng thấy QR code mới
+      } else {
+        // Nếu không phải QR payment, chuyển trang ngay
+        setCart([]);
+        setSelectedCustomer(null);
+        setShowPayment(false);
+        navigate('/orders');
+      }
+      
       // Refetch tất cả dữ liệu liên quan
       queryClient.invalidateQueries({ queryKey: ['/api/orders'] });
       queryClient.invalidateQueries({ queryKey: ['/api/notifications'] });
@@ -302,8 +322,6 @@ export default function Sales() {
       
       // Dispatch event để cập nhật reports real-time
       window.dispatchEvent(new CustomEvent('newOrderCreated'));
-      
-      navigate('/orders');
     },
     onError: () => {
       toast({
@@ -397,11 +415,17 @@ export default function Sales() {
 
   // Generate QR Code mutation
   const generateQRMutation = useMutation({
-    mutationFn: async ({ amount, description }: { amount: number, description?: string }) => {
-      // Sử dụng QR settings endpoint thay vì hardcode
-      return await apiRequest(`/api/QRSettings/generate-url?amount=${amount}&description=${encodeURIComponent(description || "Thanh toan hoa don")}`, {
-        method: "GET"
-      });
+    mutationFn: async ({ amount, orderId, description }: { amount: number, orderId?: string, description?: string }) => {
+      // Tạo URL với orderId để có format "thanh toan chuyen khoan don hang [mã]"
+      let url = `/api/QRSettings/generate-url?amount=${amount}`;
+      
+      if (orderId) {
+        url += `&orderId=${encodeURIComponent(orderId)}`;
+      } else if (description) {
+        url += `&description=${encodeURIComponent(description)}`;
+      }
+      
+      return await apiRequest(url, { method: "GET" });
     },
     onSuccess: (data) => {
       setQrCodeData(data);
@@ -942,7 +966,10 @@ export default function Sales() {
                         <img 
                           src={qrCodeData.qrImageUrl} 
                           alt="QR Code thanh toán" 
-                          className="w-48 h-48 border rounded-lg"
+                          className="w-72 h-72 border-2 border-purple-300 rounded-lg shadow-lg max-w-full"
+                          onError={(e) => {
+                            e.currentTarget.src = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjg4IiBoZWlnaHQ9IjI4OCIgdmlld0JveD0iMCAwIDI4OCAyODgiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyODgiIGhlaWdodD0iMjg4IiBmaWxsPSIjRjNGNEY2Ii8+Cjx0ZXh0IHg9IjE0NCIgeT0iMTQ0IiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTgiIGZpbGw9IiM2QjczODAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIwLjNlbSI+UVIgTG9hZCBFcnJvcjwvdGV4dD4KPHN2Zz4=";
+                          }}
                         />
                       </div>
                     )}
@@ -951,6 +978,17 @@ export default function Sales() {
                       {qrCodeData.bankName && <p><span className="font-medium">Ngân hàng:</span> {qrCodeData.bankName}</p>}
                       {qrCodeData.accountNumber && <p><span className="font-medium">Số TK:</span> {qrCodeData.accountNumber}</p>}
                       {qrCodeData.accountHolder && <p><span className="font-medium">Chủ TK:</span> {qrCodeData.accountHolder}</p>}
+                      {qrCodeData.description && (
+                        <p className="mt-2 p-2 bg-green-100 rounded">
+                          <span className="font-medium text-green-800">Nội dung CK:</span> 
+                          <span className="text-green-700"> {qrCodeData.description}</span>
+                          {qrCodeData.description.includes('don hang') && (
+                            <span className="block text-xs text-green-600 mt-1">
+                              ✓ QR đã cập nhật với mã đơn hàng
+                            </span>
+                          )}
+                        </p>
+                      )}
                     </div>
                   </div>
                 </div>

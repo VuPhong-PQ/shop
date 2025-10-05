@@ -95,16 +95,26 @@ export default function OrdersPage() {
   });
 
   // Generate QR URL based on settings
-  const generateQRUrl = (amount: number) => {
+  const generateQRUrl = (amount: number, orderId?: number) => {
     if (!qrSettings?.isEnabled || !qrSettings?.bankCode || !qrSettings?.bankAccountNumber) {
       return null;
     }
     
     const template = qrSettings.qrTemplate || "compact";
     const accountName = encodeURIComponent(qrSettings.bankAccountHolder || "");
-    const description = encodeURIComponent(qrSettings.defaultDescription || "Thanh toan hoa don");
     
-    return `https://api.vietqr.io/image/${qrSettings.bankCode}-${qrSettings.bankAccountNumber}-${template}.jpg?accountName=${accountName}&amount=${amount}&addInfo=${description}`;
+    // Sử dụng orderId nếu có, để tạo mô tả "thanh toan chuyen khoan don hang [mã]"
+    let url = `https://api.vietqr.io/image/${qrSettings.bankCode}-${qrSettings.bankAccountNumber}-${template}.jpg?accountName=${accountName}&amount=${amount}`;
+    
+    if (orderId) {
+      const description = encodeURIComponent(`thanh toan don hang theo hoa don ${orderId}`);
+      url += `&addInfo=${description}`;
+    } else {
+      const description = encodeURIComponent(qrSettings.defaultDescription || "Thanh toan hoa don");
+      url += `&addInfo=${description}`;
+    }
+    
+    return url;
   };
 
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
@@ -461,15 +471,15 @@ export default function OrdersPage() {
               <div className="mt-4 text-center border rounded-lg p-4 bg-purple-50">
                 <h4 className="font-semibold text-purple-800 mb-2">Mã QR Thanh toán</h4>
                 
-                {generateQRUrl(selectedOrder.totalAmount) ? (
+                {generateQRUrl(selectedOrder.totalAmount, selectedOrder.orderId) ? (
                   <>
-                    <div className="flex justify-center mb-2">
+                    <div className="flex justify-center mb-3">
                       <img 
-                        src={generateQRUrl(selectedOrder.totalAmount) || ""}
+                        src={generateQRUrl(selectedOrder.totalAmount, selectedOrder.orderId) || ""}
                         alt="QR Code thanh toán" 
-                        className="w-32 h-32 border rounded-lg"
+                        className="w-80 h-80 border-2 border-purple-300 rounded-lg shadow-lg max-w-full"
                         onError={(e) => {
-                          e.currentTarget.src = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTI4IiBoZWlnaHQ9IjEyOCIgdmlld0JveD0iMCAwIDEyOCAxMjgiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxMjgiIGhlaWdodD0iMTI4IiBmaWxsPSIjRjNGNEY2Ii8+Cjx0ZXh0IHg9IjY0IiB5PSI2NCIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjEwIiBmaWxsPSIjNkI3MzgwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkeT0iMC4zZW0iPkVycm9yPC90ZXh0Pgo8L3N2Zz4=";
+                          e.currentTarget.src = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIwIiBoZWlnaHQ9IjMyMCIgdmlld0JveD0iMCAwIDMyMCAzMjAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIzMjAiIGhlaWdodD0iMzIwIiBmaWxsPSIjRjNGNEY2Ii8+Cjx0ZXh0IHg9IjE2MCIgeT0iMTYwIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTgiIGZpbGw9IiM2QjczODAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIwLjNlbSI+UVIgTG9hZCBFcnJvcjwvdGV4dD4KPHN2Zz4=";
                         }}
                       />
                     </div>
@@ -517,12 +527,13 @@ export default function OrdersPage() {
             <div className="mt-2 text-right">
               {(() => {
                 const subtotal = selectedOrder.items?.reduce((sum, item) => sum + (Number(item.totalPrice) || 0), 0) || 0;
-                const vatRate = 0.1; // Nếu cần lấy động, có thể lấy từ storeInfo hoặc taxConfig
-                const vatAmount = subtotal * vatRate;
+                const taxAmount = Number(selectedOrder.taxAmount) || 0;
                 return (
                   <>
                     <div>Tạm tính: <b>{subtotal.toLocaleString('vi-VN')}₫</b></div>
-                    <div>VAT 10%: <b>{vatAmount.toLocaleString('vi-VN')}₫</b></div>
+                    {taxAmount > 0 && (
+                      <div>VAT 10%: <b>{taxAmount.toLocaleString('vi-VN')}₫</b></div>
+                    )}
                   </>
                 );
               })()}

@@ -144,20 +144,19 @@ namespace RetailPointBackend.Controllers
                     AccountNumber = settings.BankAccountNumber,
                     AccountHolder = settings.BankAccountHolder,
                     Amount = request.Amount,
-                    Description = !string.IsNullOrEmpty(request.Description) 
-                        ? request.Description 
-                        : settings.DefaultDescription
+                    Description = GetQRDescription(request.Description, request.OrderId, settings.DefaultDescription)
                 };
 
                 // Gọi VietQR Image API trực tiếp
                 var qrImageUrl = "";
                 if (settings.QRProvider.ToLower() == "vietqr")
                 {
-                    // Sử dụng VietQR Image API
+                    // Sử dụng VietQR Image API với kích thước lớn hơn
                     var template = !string.IsNullOrEmpty(settings.QRTemplate) ? settings.QRTemplate : "compact";
                     qrImageUrl = $"https://api.vietqr.io/image/{settings.BankCode}-{settings.BankAccountNumber}-{template}.jpg" +
                                $"?accountName={Uri.EscapeDataString(settings.BankAccountHolder)}" +
-                               $"&amount={request.Amount}";
+                               $"&amount={request.Amount}" +
+                               $"&size=512";  // Thêm kích thước 512x512 để QR rõ nét hơn
                     
                     if (!string.IsNullOrEmpty(qrRequest.Description))
                     {
@@ -183,7 +182,7 @@ namespace RetailPointBackend.Controllers
 
         // GET: api/QRSettings/generate-url - Tạo QR URL đơn giản
         [HttpGet("generate-url")]
-        public async Task<IActionResult> GenerateQRUrl(decimal amount, string? description = null)
+        public async Task<IActionResult> GenerateQRUrl(decimal amount, string? description = null, string? orderId = null)
         {
             try
             {
@@ -194,17 +193,33 @@ namespace RetailPointBackend.Controllers
                     return BadRequest(new { message = "QR Code chưa được cấu hình hoặc bị tắt" });
                 }
 
+                // Tạo mô tả với format mới
+                var qrDescription = "";
+                if (!string.IsNullOrEmpty(orderId))
+                {
+                    qrDescription = $"thanh toan don hang theo hoa don {orderId}";
+                }
+                else if (!string.IsNullOrEmpty(description))
+                {
+                    qrDescription = description;
+                }
+                else
+                {
+                    qrDescription = settings.DefaultDescription ?? "Thanh toan hoa don";
+                }
+
                 var qrImageUrl = "";
                 if (settings.QRProvider.ToLower() == "vietqr")
                 {
                     var template = !string.IsNullOrEmpty(settings.QRTemplate) ? settings.QRTemplate : "compact";
                     qrImageUrl = $"https://api.vietqr.io/image/{settings.BankCode}-{settings.BankAccountNumber}-{template}.jpg" +
                                $"?accountName={Uri.EscapeDataString(settings.BankAccountHolder)}" +
-                               $"&amount={amount}";
+                               $"&amount={amount}" +
+                               $"&size=512";  // Thêm kích thước 512x512 để QR rõ nét hơn
                     
-                    if (!string.IsNullOrEmpty(description))
+                    if (!string.IsNullOrEmpty(qrDescription))
                     {
-                        qrImageUrl += $"&addInfo={Uri.EscapeDataString(description)}";
+                        qrImageUrl += $"&addInfo={Uri.EscapeDataString(qrDescription)}";
                     }
                 }
 
@@ -213,12 +228,30 @@ namespace RetailPointBackend.Controllers
                     bankName = settings.BankName,
                     accountNumber = settings.BankAccountNumber,
                     accountHolder = settings.BankAccountHolder,
-                    amount = amount
+                    amount = amount,
+                    description = qrDescription
                 });
             }
             catch (Exception ex)
             {
                 return StatusCode(500, new { message = "Lỗi khi tạo QR URL", error = ex.Message });
+            }
+        }
+
+        // Helper method để tạo mô tả QR theo format mới
+        private string GetQRDescription(string? description, string? orderId, string? defaultDescription)
+        {
+            if (!string.IsNullOrEmpty(orderId))
+            {
+                return $"thanh toan don hang theo hoa don {orderId}";
+            }
+            else if (!string.IsNullOrEmpty(description))
+            {
+                return description;
+            }
+            else
+            {
+                return defaultDescription ?? "Thanh toan hoa don";
             }
         }
     }
