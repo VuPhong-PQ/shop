@@ -164,10 +164,32 @@ export default function Products() {
         imageUrl: data.image, // map image (frontend) -> imageUrl (backend)
         description: data.description,
       };
-      const response = await apiRequest('PUT', `/api/products/${id}`, mappedData);
-      // Nếu response là 204 No Content thì trả về null, vẫn coi là thành công
-      if (response.status === 204) return null;
-      return response.json();
+      
+      try {
+        const response = await fetch(`/api/products/${id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(mappedData)
+        });
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`HTTP ${response.status}: ${errorText}`);
+        }
+        
+        // Nếu response là 204 No Content thì trả về null, vẫn coi là thành công
+        if (response.status === 204) {
+          return null;
+        }
+        
+        const result = await response.json();
+        return result;
+      } catch (error) {
+        console.error('API Request failed:', error);
+        throw error;
+      }
     },
     onSuccess: () => {
       toast({
@@ -297,9 +319,6 @@ export default function Products() {
 
   // Handle form submission
   const onSubmit = (data: ProductFormData) => {
-  console.log('onSubmit called');
-  console.log('Form submitted with data:', data);
-  console.log('Form errors:', form.formState.errors);
     if (editingProduct) {
       // Đảm bảo lấy đúng id (string hoặc số đều được, backend nhận uuid hoặc int)
       const productId = editingProduct.id || editingProduct.productId || editingProduct._id;
@@ -307,14 +326,11 @@ export default function Products() {
         toast({ title: 'Lỗi', description: 'Không xác định được ID sản phẩm để cập nhật', variant: 'destructive' });
         return;
       }
-      console.log('Editing product:', editingProduct, 'id:', productId);
       editProductMutation.mutate({ id: String(productId), data });
     } else {
-      console.log('Adding new product');
       // Loại bỏ categoryId nếu không cần thiết, ép productGroupId về số
       const { categoryId, ...rest } = data;
       const payload = { ...rest, productGroupId: Number(data.productGroupId) };
-      console.log('Submit payload:', payload);
       addProductMutation.mutate(payload);
     }
   };
@@ -649,10 +665,17 @@ export default function Products() {
                       Hủy
                     </Button>
                     <Button
-                      type="submit"
+                      type="button"
                       disabled={addProductMutation.isPending || editProductMutation.isPending}
                       data-testid="button-save-product"
-                      onClick={() => console.log('Submit button clicked')}
+                      onClick={() => {
+                        const formData = form.getValues();
+                        form.trigger().then(isValid => {
+                          if (isValid) {
+                            onSubmit(formData);
+                          }
+                        });
+                      }}
                     >
                       {addProductMutation.isPending || editProductMutation.isPending 
                         ? "Đang lưu..." 

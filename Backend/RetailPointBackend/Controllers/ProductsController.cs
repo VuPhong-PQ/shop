@@ -10,8 +10,8 @@ namespace RetailPointBackend.Controllers
     [Route("api/[controller]")]
     public class ProductsController : ControllerBase
     {
-        private readonly RetailPointContext _context;
-        public ProductsController(RetailPointContext context)
+        private readonly AppDbContext _context;
+        public ProductsController(AppDbContext context)
         {
             _context = context;
         }
@@ -83,27 +83,60 @@ namespace RetailPointBackend.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateProduct(int id, [FromBody] Product updatedProduct)
         {
-            if (id != updatedProduct.ProductId)
-            {
-                return BadRequest();
-            }
-            _context.Entry(updatedProduct).State = EntityState.Modified;
             try
             {
+                Console.WriteLine($"[UpdateProduct] Updating product ID: {id}");
+                Console.WriteLine($"[UpdateProduct] Product data: {System.Text.Json.JsonSerializer.Serialize(updatedProduct)}");
+                
+                if (id != updatedProduct.ProductId)
+                {
+                    Console.WriteLine($"[UpdateProduct] ID mismatch: {id} != {updatedProduct.ProductId}");
+                    return BadRequest(new { message = "ID không khớp" });
+                }
+
+                var existingProduct = await _context.Products.FindAsync(id);
+                if (existingProduct == null)
+                {
+                    Console.WriteLine($"[UpdateProduct] Product not found: {id}");
+                    return NotFound(new { message = "Sản phẩm không tồn tại" });
+                }
+
+                // Update properties
+                existingProduct.Name = updatedProduct.Name;
+                existingProduct.Barcode = updatedProduct.Barcode;
+                existingProduct.CategoryId = updatedProduct.CategoryId;
+                existingProduct.ProductGroupId = updatedProduct.ProductGroupId;
+                existingProduct.Price = updatedProduct.Price;
+                existingProduct.CostPrice = updatedProduct.CostPrice;
+                existingProduct.StockQuantity = updatedProduct.StockQuantity;
+                existingProduct.MinStockLevel = updatedProduct.MinStockLevel;
+                existingProduct.Unit = updatedProduct.Unit;
+                existingProduct.ImageUrl = updatedProduct.ImageUrl;
+                existingProduct.Description = updatedProduct.Description;
+
                 await _context.SaveChangesAsync();
+                Console.WriteLine($"[UpdateProduct] Successfully updated product: {id}");
+                
+                return Ok(new { message = "Cập nhật sản phẩm thành công", product = existingProduct });
             }
-            catch (DbUpdateConcurrencyException)
+            catch (DbUpdateConcurrencyException ex)
             {
+                Console.WriteLine($"[UpdateProduct] Concurrency error: {ex.Message}");
                 if (!_context.Products.Any(e => e.ProductId == id))
                 {
-                    return NotFound();
+                    return NotFound(new { message = "Sản phẩm không tồn tại" });
                 }
                 else
                 {
-                    throw;
+                    return StatusCode(500, new { message = "Lỗi đồng thời", error = ex.Message });
                 }
             }
-            return NoContent();
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[UpdateProduct] Error: {ex.Message}");
+                Console.WriteLine($"[UpdateProduct] Stack trace: {ex.StackTrace}");
+                return StatusCode(500, new { message = "Không thể cập nhật sản phẩm", error = ex.Message });
+            }
         }
 
         // DELETE: api/products/{id}

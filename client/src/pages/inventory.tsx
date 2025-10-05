@@ -16,31 +16,27 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { z } from "zod";
-import type { Product } from "@/types/backend-types";
+import type { 
+  Product, 
+  InventoryTransaction, 
+  InventoryTransactionResponse, 
+  InventorySummary,
+  CreateInboundTransactionDto,
+  CreateOutboundTransactionDto
+} from "@/types/backend-types";
 
 const stockAdjustmentSchema = z.object({
   productId: z.string().min(1, "Vui lòng chọn sản phẩm"),
-  type: z.enum(["adjustment", "stock_in", "stock_out"]),
+  type: z.enum(["inbound", "outbound"]),
   quantity: z.number().min(1, "Số lượng phải lớn hơn 0"),
+  unitPrice: z.number().min(0, "Giá phải lớn hơn hoặc bằng 0").optional(),
   reason: z.string().min(1, "Vui lòng nhập lý do"),
   notes: z.string().optional(),
+  supplierName: z.string().optional(),
+  referenceNumber: z.string().optional(),
 });
 
 type StockAdjustmentData = z.infer<typeof stockAdjustmentSchema>;
-
-interface StockMovement {
-  id: string;
-  productId: string;
-  productName: string;
-  type: "adjustment" | "stock_in" | "stock_out";
-  quantity: number;
-  previousStock: number;
-  newStock: number;
-  reason: string;
-  notes?: string;
-  createdAt: Date;
-  userId: string;
-}
 
 export default function Inventory() {
   const { toast } = useToast();
@@ -61,84 +57,69 @@ export default function Inventory() {
     queryKey: ['/api/products'],
   });
 
-  // Debug: Log products data
-  console.log('Products data:', products);
-  if (products.length > 0) {
-    console.log('First product structure:', products[0]);
-    console.log('Product ID field:', products[0].productId);
-  }
+  // Fetch inventory transactions
+  const { data: transactionsResponse, isLoading: isLoadingTransactions } = useQuery<InventoryTransactionResponse>({
+    queryKey: ['/api/inventory/transactions'],
+    queryFn: () => apiRequest('/api/inventory/transactions'),
+  });
 
-  // Mock stock movements - in real app this would come from API
-  const stockMovements: StockMovement[] = [
-    {
-      id: "1",
-      productId: "prod-1",
-      productName: "iPhone 13",
-      type: "stock_in",
-      quantity: 50,
-      previousStock: 20,
-      newStock: 70,
-      reason: "Nhập hàng mới",
-      createdAt: new Date(),
-      userId: "user-1"
-    },
-    {
-      id: "2",
-      productId: "prod-2",
-      productName: "Samsung Galaxy S21",
-      type: "stock_out",
-      quantity: 5,
-      previousStock: 15,
-      newStock: 10,
-      reason: "Bán hàng",
-      createdAt: new Date(),
-      userId: "user-1"
-    }
-  ];
+  // Fetch inventory summary
+  const { data: inventorySummary = [], isLoading: isLoadingSummary } = useQuery<InventorySummary[]>({
+    queryKey: ['/api/inventory/summary'],
+    queryFn: () => apiRequest('/api/inventory/summary'),
+  });
 
   // Form for stock adjustment
   const form = useForm<StockAdjustmentData>({
     resolver: zodResolver(stockAdjustmentSchema),
     defaultValues: {
       productId: "",
-      type: "adjustment",
+      type: "inbound",
       quantity: 1,
+      unitPrice: 0,
       reason: "",
       notes: "",
+      supplierName: "",
+      referenceNumber: "",
     },
   });
 
   // Stock adjustment mutation
   const adjustStockMutation = useMutation({
     mutationFn: async (data: StockAdjustmentData) => {
-      // Calculate new quantity based on type
-      const product = products.find(p => p.productId.toString() === data.productId);
-      if (!product) {
-        throw new Error('Sản phẩm không tồn tại');
+      const productId = parseInt(data.productId);
+      
+      if (data.type === 'inbound') {
+        const payload: CreateInboundTransactionDto = {
+          productId,
+          quantity: data.quantity,
+          unitPrice: data.unitPrice || 0,
+          reason: data.reason,
+          notes: data.notes,
+          supplierName: data.supplierName,
+          referenceNumber: data.referenceNumber,
+        };
+        
+        return apiRequest('/api/inventory/inbound', {
+          method: 'POST',
+          body: JSON.stringify(payload),
+          headers: { 'Content-Type': 'application/json' }
+        });
+      } else {
+        const payload: CreateOutboundTransactionDto = {
+          productId,
+          quantity: data.quantity,
+          reason: data.reason,
+          notes: data.notes,
+          referenceNumber: data.referenceNumber,
+        };
+        
+        return apiRequest('/api/inventory/outbound', {
+          method: 'POST',
+          body: JSON.stringify(payload),
+          headers: { 'Content-Type': 'application/json' }
+        });
       }
-
-      let newQuantity = product.stockQuantity;
-      if (data.type === 'stock_in') {
-        newQuantity += data.quantity;
-      } else if (data.type === 'stock_out') {
-        newQuantity -= data.quantity;
-        if (newQuantity < 0) newQuantity = 0;
-      } else if (data.type === 'adjustment') {
-        newQuantity = data.quantity;
-      }
-
-      const requestBody = {
-        newQuantity: newQuantity,
-        reason: data.reason + (data.notes ? ` (${data.notes})` : '')
-      };
-
-      return apiRequest(`/api/products/${data.productId}/adjust-stock`, {
-        method: 'POST',
-        body: JSON.stringify(requestBody),
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      });
     },
     onSuccess: () => {
       toast({
@@ -146,6 +127,8 @@ export default function Inventory() {
         description: "Đã cập nhật tồn kho",
       });
       queryClient.invalidateQueries({ queryKey: ['/api/products'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/inventory/transactions'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/inventory/summary'] });
       setIsAdjustmentDialogOpen(false);
       form.reset();
     },
@@ -363,20 +346,19 @@ export default function Inventory() {
                         name="type"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Loại điều chỉnh *</FormLabel>
+                            <FormLabel>Loại giao dịch *</FormLabel>
                             <Select onValueChange={(value) => {
                               console.log('Type selected:', value);
                               field.onChange(value);
                             }} value={field.value}>
                               <FormControl>
                                 <SelectTrigger data-testid="select-adjustment-type" className="w-full">
-                                  <SelectValue placeholder="Kiểm kê điều chỉnh" />
+                                  <SelectValue placeholder="Chọn loại giao dịch" />
                                 </SelectTrigger>
                               </FormControl>
                               <SelectContent className="z-50" position="popper">
-                                <SelectItem value="stock_in">Nhập kho (cộng thêm)</SelectItem>
-                                <SelectItem value="stock_out">Xuất kho (trừ đi)</SelectItem>
-                                <SelectItem value="adjustment">Kiểm kê điều chỉnh (đặt số lượng mới)</SelectItem>
+                                <SelectItem value="inbound">Nhập kho</SelectItem>
+                                <SelectItem value="outbound">Xuất kho</SelectItem>
                               </SelectContent>
                             </Select>
                             <FormMessage />
@@ -403,6 +385,27 @@ export default function Inventory() {
                         )}
                       />
 
+                      {form.watch("type") === "inbound" && (
+                        <FormField
+                          control={form.control}
+                          name="unitPrice"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Giá nhập</FormLabel>
+                              <FormControl>
+                                <Input 
+                                  {...field} 
+                                  type="number" 
+                                  onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                                  data-testid="input-unit-price"
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      )}
+
                       <FormField
                         control={form.control}
                         name="reason"
@@ -411,6 +414,36 @@ export default function Inventory() {
                             <FormLabel>Lý do *</FormLabel>
                             <FormControl>
                               <Input {...field} data-testid="input-adjustment-reason" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      {form.watch("type") === "inbound" && (
+                        <FormField
+                          control={form.control}
+                          name="supplierName"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Nhà cung cấp</FormLabel>
+                              <FormControl>
+                                <Input {...field} data-testid="input-supplier-name" />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      )}
+
+                      <FormField
+                        control={form.control}
+                        name="referenceNumber"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Số chứng từ</FormLabel>
+                            <FormControl>
+                              <Input {...field} data-testid="input-reference-number" />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -584,56 +617,70 @@ export default function Inventory() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  {stockMovements.map((movement) => (
-                    <div 
-                      key={movement.id} 
-                      className="flex items-center justify-between p-4 border rounded-lg"
-                      data-testid={`movement-${movement.id}`}
-                    >
-                      <div className="flex items-center space-x-4">
-                        <div className={`p-2 rounded-full ${
-                          movement.type === 'stock_in' ? 'bg-green-100 text-green-600' :
-                          movement.type === 'stock_out' ? 'bg-red-100 text-red-600' :
-                          'bg-blue-100 text-blue-600'
-                        }`}>
-                          {movement.type === 'stock_in' ? <TrendingUp className="w-4 h-4" /> :
-                           movement.type === 'stock_out' ? <TrendingDown className="w-4 h-4" /> :
-                           <Package className="w-4 h-4" />}
+                {isLoadingTransactions ? (
+                  <div className="text-center py-8">
+                    <p>Đang tải dữ liệu...</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {transactionsResponse?.data.map((transaction) => (
+                      <div 
+                        key={transaction.transactionId} 
+                        className="flex items-center justify-between p-4 border rounded-lg"
+                        data-testid={`transaction-${transaction.transactionId}`}
+                      >
+                        <div className="flex items-center space-x-4">
+                          <div className={`p-2 rounded-full ${
+                            transaction.type === 'IN' ? 'bg-green-100 text-green-600' :
+                            'bg-red-100 text-red-600'
+                          }`}>
+                            {transaction.type === 'IN' ? <TrendingUp className="w-4 h-4" /> :
+                             <TrendingDown className="w-4 h-4" />}
+                          </div>
+                          <div>
+                            <p className="font-medium">{transaction.productName}</p>
+                            <p className="text-sm text-gray-500">{transaction.reason}</p>
+                            {transaction.notes && (
+                              <p className="text-xs text-gray-400">{transaction.notes}</p>
+                            )}
+                            {transaction.supplierName && (
+                              <p className="text-xs text-blue-600">NCC: {transaction.supplierName}</p>
+                            )}
+                            {transaction.referenceNumber && (
+                              <p className="text-xs text-gray-400">Ref: {transaction.referenceNumber}</p>
+                            )}
+                          </div>
                         </div>
-                        <div>
-                          <p className="font-medium">{movement.productName}</p>
-                          <p className="text-sm text-gray-500">{movement.reason}</p>
-                          {movement.notes && (
-                            <p className="text-xs text-gray-400">{movement.notes}</p>
-                          )}
+                        <div className="text-right">
+                          <p className={`font-semibold ${
+                            transaction.type === 'IN' ? 'text-green-600' : 'text-red-600'
+                          }`}>
+                            {transaction.type === 'IN' ? '+' : ''}
+                            {transaction.quantity}
+                          </p>
+                          <p className="text-sm text-gray-500">
+                            {transaction.stockBefore} → {transaction.stockAfter}
+                          </p>
+                          <p className="text-xs text-gray-400">
+                            {new Date(transaction.transactionDate).toLocaleDateString('vi-VN')}
+                          </p>
+                          <p className="text-xs text-green-600">
+                            {new Intl.NumberFormat('vi-VN', { 
+                              style: 'currency', 
+                              currency: 'VND' 
+                            }).format(Math.abs(transaction.totalValue))}
+                          </p>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <p className={`font-semibold ${
-                          movement.type === 'stock_in' ? 'text-green-600' :
-                          movement.type === 'stock_out' ? 'text-red-600' :
-                          'text-blue-600'
-                        }`}>
-                          {movement.type === 'stock_in' ? '+' : movement.type === 'stock_out' ? '-' : '±'}
-                          {movement.quantity}
-                        </p>
-                        <p className="text-sm text-gray-500">
-                          {movement.previousStock} → {movement.newStock}
-                        </p>
-                        <p className="text-xs text-gray-400">
-                          {movement.createdAt.toLocaleDateString('vi-VN')}
-                        </p>
+                    ))}
+                    {(!transactionsResponse?.data || transactionsResponse.data.length === 0) && (
+                      <div className="text-center py-8 text-gray-500">
+                        <FileText className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                        <p>Chưa có hoạt động xuất nhập kho nào</p>
                       </div>
-                    </div>
-                  ))}
-                  {stockMovements.length === 0 && (
-                    <div className="text-center py-8 text-gray-500">
-                      <FileText className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                      <p>Chưa có hoạt động xuất nhập kho nào</p>
-                    </div>
-                  )}
-                </div>
+                    )}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
