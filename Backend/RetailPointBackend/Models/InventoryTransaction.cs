@@ -111,7 +111,7 @@ namespace RetailPointBackend.Models
         public string ProductCode { get; set; } = string.Empty;
         public int StaffId { get; set; }
         public string StaffName { get; set; } = string.Empty;
-        public TransactionType Type { get; set; }
+        public string Type { get; set; } = string.Empty; // Changed from TransactionType to string
         public string TypeName { get; set; } = string.Empty;
         public int Quantity { get; set; }
         public decimal UnitPrice { get; set; }

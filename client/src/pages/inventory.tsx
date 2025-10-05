@@ -60,13 +60,17 @@ export default function Inventory() {
   // Fetch inventory transactions
   const { data: transactionsResponse, isLoading: isLoadingTransactions } = useQuery<InventoryTransactionResponse>({
     queryKey: ['/api/inventory/transactions'],
-    queryFn: () => apiRequest('/api/inventory/transactions'),
+    queryFn: () => apiRequest('/api/inventory/transactions', { method: 'GET' }),
   });
+
+  // Debug log
+  console.log('Transactions Response:', transactionsResponse);
+  console.log('Is Loading Transactions:', isLoadingTransactions);
 
   // Fetch inventory summary
   const { data: inventorySummary = [], isLoading: isLoadingSummary } = useQuery<InventorySummary[]>({
     queryKey: ['/api/inventory/summary'],
-    queryFn: () => apiRequest('/api/inventory/summary'),
+    queryFn: () => apiRequest('/api/inventory/summary', { method: 'GET' }),
   });
 
   // Form for stock adjustment
