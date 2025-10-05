@@ -145,10 +145,17 @@ namespace RetailPointBackend.Controllers
                 // Khách hàng mới trong kỳ (nếu có trường CreatedAt)
                 var newCustomers = 0; // Tạm thời = 0 vì Customer model chưa có CreatedAt
 
-                // Khách hàng có đơn hàng trong kỳ
-                var activeCustomers = await _context.Orders
+                // Tổng số đơn hàng trong kỳ (bao gồm cả khách lẻ)
+                var totalOrdersInPeriod = await _context.Orders
                     .Where(o => o.CreatedAt >= start && o.CreatedAt < end && 
                                (o.PaymentStatus == "paid" || o.PaymentStatus == "completed"))
+                    .CountAsync();
+
+                // Khách hàng có đơn hàng trong kỳ (chỉ tính những đơn có CustomerId)
+                var activeCustomers = await _context.Orders
+                    .Where(o => o.CreatedAt >= start && o.CreatedAt < end && 
+                               (o.PaymentStatus == "paid" || o.PaymentStatus == "completed") && 
+                               o.CustomerId.HasValue)
                     .Select(o => o.CustomerId)
                     .Distinct()
                     .CountAsync();
@@ -165,11 +172,11 @@ namespace RetailPointBackend.Controllers
                     .Where(o => o.CreatedAt >= start && o.CreatedAt < end && 
                                (o.PaymentStatus == "paid" || o.PaymentStatus == "completed") && o.CustomerId.HasValue)
                     .Include(o => o.Customer)
-                    .GroupBy(o => new { o.CustomerId, o.Customer.HoTen })
+                    .GroupBy(o => new { o.CustomerId, CustomerName = o.Customer != null ? o.Customer.HoTen : null })
                     .Select(g => new
                     {
                         customerId = g.Key.CustomerId,
-                        name = g.Key.HoTen ?? "Khách hàng #" + g.Key.CustomerId,
+                        name = g.Key.CustomerName ?? "Khách hàng #" + g.Key.CustomerId,
                         orders = g.Count(),
                         totalSpent = g.Sum(o => o.TotalAmount)
                     })
@@ -177,13 +184,10 @@ namespace RetailPointBackend.Controllers
                     .Take(5)
                     .ToListAsync();
 
-                // Trung bình đơn hàng trên khách
-                var averageOrdersPerCustomer = activeCustomers > 0 
-                    ? Math.Round((double)await _context.Orders
-                        .Where(o => o.CreatedAt >= start && o.CreatedAt < end && 
-                                   (o.PaymentStatus == "paid" || o.PaymentStatus == "completed"))
-                        .CountAsync() / activeCustomers, 1)
-                    : 0;
+                // Trung bình đơn hàng trên khách (tính cả khách lẻ)
+                var averageOrdersPerCustomer = totalCustomers > 0 
+                    ? Math.Round((double)totalOrdersInPeriod / Math.Max(totalCustomers, 1), 1)
+                    : totalOrdersInPeriod;
 
                 var formattedTopCustomers = topCustomers.Select(c => new
                 {
@@ -197,6 +201,8 @@ namespace RetailPointBackend.Controllers
                     totalCustomers = totalCustomers,
                     newCustomers = newCustomers,
                     returningCustomers = returningCustomers,
+                    activeCustomers = activeCustomers, // Thêm số khách hàng có đơn hàng trong kỳ
+                    totalOrdersInPeriod = totalOrdersInPeriod, // Thêm tổng số đơn hàng
                     averageOrdersPerCustomer = averageOrdersPerCustomer.ToString("F1"),
                     topCustomers = formattedTopCustomers
                 };

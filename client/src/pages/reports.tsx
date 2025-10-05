@@ -520,19 +520,27 @@ export default function Reports() {
                   <CardContent className="space-y-4">
                     <div className="flex justify-between items-center">
                       <span>Tổng khách hàng:</span>
-                      <Badge variant="outline">{customerAnalytics?.totalCustomers}</Badge>
+                      <Badge variant="outline">{customerAnalytics?.totalCustomers || 0}</Badge>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span>Khách mua hàng trong kỳ:</span>
+                      <Badge className="bg-purple-100 text-purple-800">{customerAnalytics?.activeCustomers || 0}</Badge>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span>Tổng đơn hàng trong kỳ:</span>
+                      <Badge className="bg-orange-100 text-orange-800">{customerAnalytics?.totalOrdersInPeriod || 0}</Badge>
                     </div>
                     <div className="flex justify-between items-center">
                       <span>Khách hàng mới:</span>
-                      <Badge className="bg-green-100 text-green-800">{customerAnalytics?.newCustomers}</Badge>
+                      <Badge className="bg-green-100 text-green-800">{customerAnalytics?.newCustomers || 0}</Badge>
                     </div>
                     <div className="flex justify-between items-center">
                       <span>Khách hàng quay lại:</span>
-                      <Badge className="bg-blue-100 text-blue-800">{customerAnalytics?.returningCustomers}</Badge>
+                      <Badge className="bg-blue-100 text-blue-800">{customerAnalytics?.returningCustomers || 0}</Badge>
                     </div>
                     <div className="flex justify-between items-center">
                       <span>Trung bình đơn/khách:</span>
-                      <Badge variant="outline">{customerAnalytics?.averageOrdersPerCustomer}</Badge>
+                      <Badge variant="outline">{customerAnalytics?.averageOrdersPerCustomer || '0.0'}</Badge>
                     </div>
                   </CardContent>
                 </Card>
