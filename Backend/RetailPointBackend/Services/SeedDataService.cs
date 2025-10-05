@@ -143,17 +143,19 @@ namespace RetailPointBackend.Services
 
         private async Task SeedDefaultStaffAsync()
         {
-            // Create default admin if not exists
-            if (!await _context.Staffs.AnyAsync(s => s.Username == "admin"))
+            // Create or update default admin
+            var adminRole = await _context.Roles.FirstOrDefaultAsync(r => r.RoleName == "Admin");
+            if (adminRole != null)
             {
-                var adminRole = await _context.Roles.FirstOrDefaultAsync(r => r.RoleName == "Admin");
-                if (adminRole != null)
+                var existingAdmin = await _context.Staffs.FirstOrDefaultAsync(s => s.Username == "admin");
+                if (existingAdmin == null)
                 {
+                    // Create new admin
                     var adminStaff = new Staff
                     {
                         FullName = "Quản trị viên",
                         Username = "admin",
-                        PasswordHash = BCrypt.Net.BCrypt.HashPassword("admin123"),
+                        PasswordHash = BCrypt.Net.BCrypt.HashPassword("vuphong"),
                         Email = "admin@retailpoint.com",
                         RoleId = adminRole.RoleId,
                         IsActive = true,
@@ -161,6 +163,13 @@ namespace RetailPointBackend.Services
                     };
 
                     _context.Staffs.Add(adminStaff);
+                }
+                else
+                {
+                    // Update existing admin password
+                    existingAdmin.PasswordHash = BCrypt.Net.BCrypt.HashPassword("vuphong");
+                    existingAdmin.IsActive = true;
+                    _context.Staffs.Update(existingAdmin);
                 }
             }
 

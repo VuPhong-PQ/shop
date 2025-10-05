@@ -3,7 +3,10 @@ import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { AuthProvider } from "@/contexts/auth-context";
+import { ProtectedRoute } from "@/components/auth/protected-route";
 import NotFound from "@/pages/not-found";
+import Login from "@/pages/login";
 import Sales from "@/pages/sales";
 import Products from "@/pages/products";
 import ProductGroups from "@/pages/product-groups";
@@ -18,18 +21,67 @@ import PrintOrder from "@/pages/print-order";
 function Router() {
   return (
     <Switch>
-      <Route path="/" component={Sales} />
-      <Route path="/sales" component={Sales} />
-      <Route path="/products" component={Products} />
-      <Route path="/product-groups" component={ProductGroups} />
-      <Route path="/customers" component={Customers} />
-      <Route path="/inventory" component={Inventory} />
-      <Route path="/reports" component={Reports} />
-      <Route path="/staff" component={Staff} />
-      <Route path="/settings" component={Settings} />
-      <Route path="/orders" component={OrdersPage} />
-      <Route path="/print-order/:orderId" component={PrintOrder} />
-      <Route component={NotFound} />
+      <Route path="/login">
+        <Login />
+      </Route>
+      <Route path="/">
+        <ProtectedRoute>
+          <Sales />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/sales">
+        <ProtectedRoute>
+          <Sales />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/products">
+        <ProtectedRoute>
+          <Products />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/product-groups">
+        <ProtectedRoute>
+          <ProductGroups />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/customers">
+        <ProtectedRoute>
+          <Customers />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/inventory">
+        <ProtectedRoute>
+          <Inventory />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/reports">
+        <ProtectedRoute>
+          <Reports />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/staff">
+        <ProtectedRoute>
+          <Staff />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/settings">
+        <ProtectedRoute>
+          <Settings />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/orders">
+        <ProtectedRoute>
+          <OrdersPage />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/print-order/:orderId">
+        <ProtectedRoute>
+          <PrintOrder />
+        </ProtectedRoute>
+      </Route>
+      <Route>
+        <NotFound />
+      </Route>
     </Switch>
   );
 }
@@ -37,10 +89,12 @@ function Router() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Router />
-      </TooltipProvider>
+      <AuthProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Router />
+        </TooltipProvider>
+      </AuthProvider>
     </QueryClientProvider>
   );
 }

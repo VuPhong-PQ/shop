@@ -1,8 +1,17 @@
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
-import { Bell, Plus } from "lucide-react";
+import { Bell, Plus, User, LogOut, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useNotifications } from "@/hooks/use-notifications";
+import { useAuth } from "@/contexts/auth-context";
 
 interface HeaderProps {
   title: string;
@@ -14,6 +23,7 @@ export function Header({ title, onToggleNotifications, isWebSocketConnected }: H
   const [currentTime, setCurrentTime] = useState(new Date());
   const [, navigate] = useLocation();
   const { unreadCount } = useNotifications();
+  const { user, logout } = useAuth();
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -22,6 +32,11 @@ export function Header({ title, onToggleNotifications, isWebSocketConnected }: H
 
     return () => clearInterval(timer);
   }, []);
+
+  const handleLogout = () => {
+    logout();
+    navigate("/login");
+  };
 
   return (
     <header className="bg-white shadow-sm border-b border-gray-200 p-6" data-testid="header">
@@ -71,6 +86,32 @@ export function Header({ title, onToggleNotifications, isWebSocketConnected }: H
             <Plus className="w-4 h-4 mr-2" />
             Bán hàng nhanh
           </Button>
+
+          {user && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="flex items-center space-x-2">
+                  <User className="h-4 w-4" />
+                  <span className="hidden md:inline">{user.fullName}</span>
+                  <ChevronDown className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel>
+                  <div className="flex flex-col space-y-1">
+                    <p className="text-sm font-medium">{user.fullName}</p>
+                    <p className="text-xs text-gray-500">{user.email || user.username}</p>
+                    <p className="text-xs text-gray-500">Vai trò: {user.roleName}</p>
+                  </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleLogout} className="text-red-600">
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Đăng xuất
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
         </div>
       </div>
     </header>
