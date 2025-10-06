@@ -1119,28 +1119,28 @@ export default function Sales() {
             </button>
             
             {/* Thông tin cửa hàng in đầu bill */}
-            <div className="text-center border-b pb-2 mb-2">
-              <div className="font-bold text-lg">{storeInfo?.name || "[Tên cửa hàng]"}</div>
-              {storeInfo?.address && <div className="text-sm">Đ/c: {storeInfo.address}</div>}
-              {storeInfo?.taxCode && <div className="text-sm">MST: {storeInfo.taxCode}</div>}
-              {storeInfo?.phone && <div className="text-sm">ĐT: {storeInfo.phone}</div>}
-              {storeInfo?.email && <div className="text-sm">Email: {storeInfo.email}</div>}
+            <div className="text-center border-b pb-2 mb-2 print:pl-4">
+              <div className="font-bold text-lg print:text-sm">{storeInfo?.name || "[Tên cửa hàng]"}</div>
+              {storeInfo?.address && <div className="text-sm print:text-xs">Đ/c: {storeInfo.address}</div>}
+              {storeInfo?.taxCode && <div className="text-sm print:text-xs">MST: {storeInfo.taxCode}</div>}
+              {storeInfo?.phone && <div className="text-sm print:text-xs">ĐT: {storeInfo.phone}</div>}
+              {storeInfo?.email && <div className="text-sm print:text-xs">Email: {storeInfo.email}</div>}
             </div>
             
-            <h2 className="text-xl font-bold mb-2">Đơn hàng #{orderDetailData.orderId}</h2>
-            <div>Khách hàng: {orderDetailData.customerName || "Khách lẻ"}</div>
-            <div>Ngày tạo: {new Date(orderDetailData.createdAt).toLocaleDateString('vi-VN')}</div>
-            <div>Giờ tạo: {new Date(orderDetailData.createdAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</div>
+            <h2 className="text-xl font-bold mb-2 print:text-sm print:mb-1 print:pl-4">Đơn hàng #{orderDetailData.orderId}</h2>
+            <div className="print:text-xs print:pl-4">Khách hàng: {orderDetailData.customerName || "Khách lẻ"}</div>
+            <div className="print:text-xs print:pl-4">Ngày tạo: {new Date(orderDetailData.createdAt).toLocaleDateString('vi-VN')}</div>
+            <div className="print:text-xs print:pl-4">Giờ tạo: {new Date(orderDetailData.createdAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</div>
             
             {/* Trạng thái đơn hàng */}
-            <div className="flex gap-2 my-2">
-              <Badge className="bg-green-100 text-green-800 border-green-200">Đã thanh toán</Badge>
-              <Badge className="bg-blue-100 text-blue-800 border-blue-200">Hoàn thành</Badge>
+            <div className="flex gap-2 my-2 print:my-1 print:pl-4">
+              <Badge className="bg-green-100 text-green-800 border-green-200 print:text-xs print:px-1 print:py-0">Đã thanh toán</Badge>
+              <Badge className="bg-blue-100 text-blue-800 border-blue-200 print:text-xs print:px-1 print:py-0">Hoàn thành</Badge>
             </div>
             
             {/* Thông tin bổ sung */}
-            <div>Hình thức thanh toán: <b>{orderDetailData.paymentMethod || "Tiền mặt"}</b></div>
-            <div>Thu Ngân: <b>{orderDetailData.cashierName || "Admin"}</b></div>
+            <div className="print:text-xs print:pl-4">Hình thức thanh toán: <b>{orderDetailData.paymentMethod || "Tiền mặt"}</b></div>
+            <div className="print:text-xs print:pl-4">Thu Ngân: <b>{orderDetailData.cashierName || "Admin"}</b></div>
             
             <div className="mt-4 print:no-break">
               <table className="w-full border print:no-break">
@@ -1221,12 +1221,6 @@ export default function Sales() {
                     <p className="text-xs">Vui lòng vào Settings &gt; QR Code để cấu hình</p>
                   </div>
                 )}
-                
-                <div className="mt-3 p-2 bg-purple-100 rounded-lg print:bg-transparent print:border print:border-black print:p-1 print:mt-1">
-                  <p className="text-sm font-bold text-purple-800 print:text-black print:text-xs">
-                    Số tiền: {Number(orderDetailData.totalAmount).toLocaleString('vi-VN')}₫
-                  </p>
-                </div>
               </div>
             )}
             
