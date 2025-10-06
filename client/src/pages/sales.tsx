@@ -87,6 +87,7 @@ export default function Sales() {
   
   // State for e-invoice
   const [showEInvoiceForm, setShowEInvoiceForm] = useState(false);
+  const [isCreateOrderWithEInvoice, setIsCreateOrderWithEInvoice] = useState(false);
   const [eInvoiceData, setEInvoiceData] = useState({
     buyerTaxCode: "",
     buyerName: "",
@@ -109,7 +110,7 @@ export default function Sales() {
       return res;
     },
     staleTime: 0, // Always refetch to get latest config
-    cacheTime: 0, // Don't cache
+    gcTime: 0, // Don't cache (replaced cacheTime)
   });
 
   // Fetch QR settings configuration
@@ -775,23 +776,142 @@ export default function Sales() {
       });
     }
 
+    setIsCreateOrderWithEInvoice(false);
     setShowEInvoiceForm(true);
   };
 
   const submitEInvoice = () => {
-    if (!orderDetailData?.orderId) {
+    if (isCreateOrderWithEInvoice) {
+      // Create order with e-invoice
+      handleEInvoiceSubmit();
+    } else {
+      // Create e-invoice for existing order
+      if (!orderDetailData?.orderId) {
+        toast({
+          title: "Lỗi",
+          description: "Không tìm thấy thông tin đơn hàng",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      createEInvoiceMutation.mutate({
+        orderId: orderDetailData.orderId,
+        buyerInfo: eInvoiceData
+      });
+    }
+  };
+
+  // Handle payment with e-invoice
+  const processPaymentWithEInvoice = () => {
+    if (cart.length === 0) {
       toast({
         title: "Lỗi",
-        description: "Không tìm thấy thông tin đơn hàng",
+        description: "Giỏ hàng trống",
         variant: "destructive",
       });
       return;
     }
 
-    createEInvoiceMutation.mutate({
-      orderId: orderDetailData.orderId,
-      buyerInfo: eInvoiceData
-    });
+    // Pre-fill invoice data with customer info if available
+    if (selectedCustomer) {
+      setEInvoiceData({
+        buyerTaxCode: "",
+        buyerName: selectedCustomer.name || "",
+        buyerAddress: selectedCustomer.address || "",
+        buyerPhone: selectedCustomer.phone || "",
+        buyerEmail: selectedCustomer.email || "",
+        notes: ""
+      });
+    }
+
+    // Set flag to indicate this is for creating new order with e-invoice
+    setIsCreateOrderWithEInvoice(true);
+    setShowEInvoiceForm(true);
+  };
+
+  // Modified function to handle e-invoice submission with order creation
+  const handleEInvoiceSubmit = async () => {
+    try {
+      console.log('=== Creating order with e-invoice ===');
+      console.log('Cart:', cart);
+      console.log('Selected customer:', selectedCustomer);
+      console.log('E-invoice data:', eInvoiceData);
+      
+      // First create the order
+      const formData = new FormData();
+      formData.append('customerId', selectedCustomer?.id || '0');
+      formData.append('cashierId', "550e8400-e29b-41d4-a716-446655440001");
+      formData.append('storeId', "550e8400-e29b-41d4-a716-446655440002");
+      formData.append('subtotal', subtotal.toString());
+      formData.append('taxAmount', taxAmount.toString());
+      formData.append('discountAmount', "0");
+      formData.append('total', total.toString());
+      formData.append('paymentMethod', selectedPayment);
+      formData.append('paymentStatus', "completed");
+      formData.append('status', "completed");
+      
+      cart.forEach((item, idx) => {
+        const productId = item.productId?.toString() || "";
+        formData.append(`items[${idx}].productId`, productId);
+        formData.append(`items[${idx}].productName`, item.name || "");
+        formData.append(`items[${idx}].quantity`, item.quantity?.toString() || "1");
+        formData.append(`items[${idx}].unitPrice`, item.price?.toString() || "0");
+        formData.append(`items[${idx}].totalPrice`, item.totalPrice?.toString() || "0");
+      });
+
+      console.log('Order FormData:', Array.from(formData.entries()));
+
+      // Create order and get order ID
+      const orderResponse = await apiRequest('/api/orders', { 
+        method: 'POST', 
+        body: formData 
+      });
+
+      console.log('Order response:', orderResponse);
+
+      if (orderResponse && orderResponse.orderId) {
+        console.log('Creating e-invoice for order:', orderResponse.orderId);
+        
+        // Then create e-invoice for the order
+        const eInvoicePayload = {
+          orderId: orderResponse.orderId,
+          buyerInfo: eInvoiceData
+        };
+        
+        console.log('E-invoice payload:', eInvoicePayload);
+        
+        await createEInvoiceMutation.mutateAsync({
+          orderId: orderResponse.orderId,
+          buyerInfo: eInvoiceData
+        });
+
+        // Clear cart and show success
+        setCart([]);
+        setSelectedCustomer(null);
+        setCheckLocalStorage(prev => prev + 1);
+        
+        toast({
+          title: "Thành công! 🎉",
+          description: "Đơn hàng và hóa đơn điện tử đã được tạo thành công",
+        });
+
+        // Show order detail
+        setOrderDetailData(orderResponse);
+        setShowOrderDetail(true);
+        setShowEInvoiceForm(false);
+      } else {
+        console.error('Order response invalid:', orderResponse);
+        throw new Error('Không thể tạo đơn hàng');
+      }
+    } catch (error: any) {
+      console.error('Error in handleEInvoiceSubmit:', error);
+      toast({
+        title: "Lỗi",
+        description: error.message || "Có lỗi xảy ra khi tạo đơn hàng và hóa đơn",
+        variant: "destructive",
+      });
+    }
   };
 
   // Save order for later payment
@@ -1191,6 +1311,16 @@ export default function Sales() {
                 </Button>
                 
                 <Button
+                  className="w-full h-11 text-lg bg-green-600 hover:bg-green-700"
+                  onClick={processPaymentWithEInvoice}
+                  disabled={cart.length === 0 || createOrderMutation.isPending || createEInvoiceMutation.isPending}
+                  data-testid="button-payment-with-einvoice"
+                >
+                  <FileText className="w-5 h-5 mr-2" />
+                  {createOrderMutation.isPending || createEInvoiceMutation.isPending ? "Đang xử lý..." : "Xuất hóa đơn"}
+                </Button>
+                
+                <Button
                   variant="outline"
                   className="w-full h-10 text-sm"
                   onClick={saveOrderForLater}
@@ -1364,7 +1494,7 @@ export default function Sales() {
             <div className="p-6">
               <h3 className="text-lg font-semibold mb-4 flex items-center">
                 <FileText className="w-5 h-5 mr-2 text-blue-600" />
-                Tạo hóa đơn điện tử
+                {isCreateOrderWithEInvoice ? "Thanh toán & Xuất hóa đơn điện tử" : "Tạo hóa đơn điện tử"}
               </h3>
               
               <div className="space-y-4">
@@ -1445,7 +1575,10 @@ export default function Sales() {
               
               <div className="mt-6 flex justify-end gap-3">
                 <Button 
-                  onClick={() => setShowEInvoiceForm(false)} 
+                  onClick={() => {
+                    setShowEInvoiceForm(false);
+                    setIsCreateOrderWithEInvoice(false);
+                  }} 
                   variant="outline"
                   disabled={createEInvoiceMutation.isPending}
                 >
@@ -1457,7 +1590,8 @@ export default function Sales() {
                   className="bg-blue-600 hover:bg-blue-700"
                 >
                   <Send className="w-4 h-4 mr-2" />
-                  {createEInvoiceMutation.isPending ? "Đang tạo..." : "Tạo hóa đơn"}
+                  {createEInvoiceMutation.isPending ? "Đang xử lý..." : 
+                    (isCreateOrderWithEInvoice ? "Thanh toán & Xuất hóa đơn" : "Tạo hóa đơn")}
                 </Button>
               </div>
             </div>
