@@ -56,6 +56,12 @@ builder.Services.AddScoped<SeedDataService>();
 // Đăng ký FixEncodingService
 builder.Services.AddScoped<FixEncodingService>();
 
+// Đăng ký EInvoiceService
+// Sử dụng VNPT service cho production
+builder.Services.AddHttpClient<IEInvoiceService, VNPTEInvoiceService>();
+// Hoặc sử dụng MockEInvoiceService cho testing
+// builder.Services.AddScoped<IEInvoiceService, MockEInvoiceService>();
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.

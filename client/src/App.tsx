@@ -17,6 +17,8 @@ import Staff from "@/pages/staff";
 import Settings from "@/pages/settings";
 import OrdersPage from "@/pages/orders";
 import PrintOrder from "@/pages/print-order";
+import EInvoiceSettings from "@/pages/einvoice-settings";
+import VNPTTest from "@/pages/vnpt-test";
 
 function Router() {
   return (
@@ -77,6 +79,16 @@ function Router() {
       <Route path="/print-order/:orderId">
         <ProtectedRoute requiredPermission="ViewOrders">
           <PrintOrder />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/einvoice-settings">
+        <ProtectedRoute requiredPermission="ViewSettings">
+          <EInvoiceSettings />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/vnpt-test">
+        <ProtectedRoute requiredPermission="ViewSettings">
+          <VNPTTest />
         </ProtectedRoute>
       </Route>
       <Route>

@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { useNotificationSound } from "@/hooks/use-notification-sound";
 import { queryClient, apiRequest } from "@/lib/queryClient";
-import { Search, Plus, Minus, Trash2, ShoppingCart, CreditCard, Banknote, QrCode, Smartphone, AlertTriangle } from "lucide-react";
+import { Search, Plus, Minus, Trash2, ShoppingCart, CreditCard, Banknote, QrCode, Smartphone, AlertTriangle, FileText, Send } from "lucide-react";
 import { cn, normalizeSearchText } from "@/lib/utils";
 import type { Product, Customer } from "@/types/backend-types";
 
@@ -84,6 +84,17 @@ export default function Sales() {
   // State for order detail popup
   const [showOrderDetail, setShowOrderDetail] = useState(false);
   const [orderDetailData, setOrderDetailData] = useState<any>(null);
+  
+  // State for e-invoice
+  const [showEInvoiceForm, setShowEInvoiceForm] = useState(false);
+  const [eInvoiceData, setEInvoiceData] = useState({
+    buyerTaxCode: "",
+    buyerName: "",
+    buyerAddress: "",
+    buyerPhone: "",
+    buyerEmail: "",
+    notes: ""
+  });
   
   // Initialize hooks
   const { toast } = useToast();
@@ -322,6 +333,57 @@ export default function Sales() {
       const res = await apiRequest("/api/StoreInfo", { method: "GET" });
       if (res.status === 404) return null;
       return typeof res === "string" ? JSON.parse(res) : res;
+    },
+  });
+
+  // Fetch e-invoice config
+  const { data: eInvoiceConfig } = useQuery({
+    queryKey: ["/api/EInvoice/config"],
+    queryFn: async () => {
+      return await apiRequest("/api/EInvoice/config", { method: "GET" });
+    },
+  });
+
+  // Create e-invoice mutation
+  const createEInvoiceMutation = useMutation({
+    mutationFn: async (data: { orderId: number; buyerInfo: any }) => {
+      return await apiRequest('/api/EInvoice/create-from-order', { 
+        method: 'POST', 
+        body: JSON.stringify({
+          orderId: data.orderId,
+          buyerTaxCode: data.buyerInfo.buyerTaxCode,
+          buyerName: data.buyerInfo.buyerName,
+          buyerAddress: data.buyerInfo.buyerAddress,
+          buyerPhone: data.buyerInfo.buyerPhone,
+          buyerEmail: data.buyerInfo.buyerEmail,
+          notes: data.buyerInfo.notes
+        }),
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+    },
+    onSuccess: (response) => {
+      toast({
+        title: "Thành công",
+        description: "Hóa đơn điện tử đã được tạo thành công",
+      });
+      setShowEInvoiceForm(false);
+      setEInvoiceData({
+        buyerTaxCode: "",
+        buyerName: "",
+        buyerAddress: "",
+        buyerPhone: "",
+        buyerEmail: "",
+        notes: ""
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Lỗi",
+        description: error.message || "Không thể tạo hóa đơn điện tử",
+        variant: "destructive",
+      });
     },
   });
 
@@ -688,6 +750,48 @@ export default function Sales() {
     });
     console.log('FormData gửi lên:', Array.from(formData.entries()));
     createOrderMutation.mutate(formData);
+  };
+
+  // Handle e-invoice creation
+  const handleCreateEInvoice = () => {
+    if (!orderDetailData?.orderId) {
+      toast({
+        title: "Lỗi",
+        description: "Không tìm thấy thông tin đơn hàng",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Pre-fill form with customer data if available
+    if (selectedCustomer) {
+      setEInvoiceData({
+        buyerTaxCode: "",
+        buyerName: selectedCustomer.name || "",
+        buyerAddress: selectedCustomer.address || "",
+        buyerPhone: selectedCustomer.phone || "",
+        buyerEmail: selectedCustomer.email || "",
+        notes: ""
+      });
+    }
+
+    setShowEInvoiceForm(true);
+  };
+
+  const submitEInvoice = () => {
+    if (!orderDetailData?.orderId) {
+      toast({
+        title: "Lỗi",
+        description: "Không tìm thấy thông tin đơn hàng",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    createEInvoiceMutation.mutate({
+      orderId: orderDetailData.orderId,
+      buyerInfo: eInvoiceData
+    });
   };
 
   // Save order for later payment
@@ -1232,12 +1336,130 @@ export default function Sales() {
               <Button onClick={() => window.print()} variant="outline">
                 In đơn hàng
               </Button>
+              {eInvoiceConfig?.isEnabled && (
+                <Button 
+                  onClick={handleCreateEInvoice} 
+                  variant="outline"
+                  className="text-blue-600 border-blue-600 hover:bg-blue-50"
+                >
+                  <FileText className="w-4 h-4 mr-2" />
+                  Xuất hóa đơn điện tử
+                </Button>
+              )}
               <Button onClick={() => {
                 setShowOrderDetail(false);
                 navigate('/orders');
               }} variant="secondary">
                 Xem danh sách đơn hàng
               </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* E-Invoice Form Modal */}
+      {showEInvoiceForm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <h3 className="text-lg font-semibold mb-4 flex items-center">
+                <FileText className="w-5 h-5 mr-2 text-blue-600" />
+                Tạo hóa đơn điện tử
+              </h3>
+              
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Mã số thuế người mua
+                    </label>
+                    <Input
+                      value={eInvoiceData.buyerTaxCode}
+                      onChange={(e) => setEInvoiceData(prev => ({ ...prev, buyerTaxCode: e.target.value }))}
+                      placeholder="Nhập mã số thuế"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Tên người mua *
+                    </label>
+                    <Input
+                      value={eInvoiceData.buyerName}
+                      onChange={(e) => setEInvoiceData(prev => ({ ...prev, buyerName: e.target.value }))}
+                      placeholder="Nhập tên người mua"
+                      required
+                    />
+                  </div>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Địa chỉ người mua
+                  </label>
+                  <Input
+                    value={eInvoiceData.buyerAddress}
+                    onChange={(e) => setEInvoiceData(prev => ({ ...prev, buyerAddress: e.target.value }))}
+                    placeholder="Nhập địa chỉ"
+                  />
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Số điện thoại
+                    </label>
+                    <Input
+                      value={eInvoiceData.buyerPhone}
+                      onChange={(e) => setEInvoiceData(prev => ({ ...prev, buyerPhone: e.target.value }))}
+                      placeholder="Nhập số điện thoại"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Email
+                    </label>
+                    <Input
+                      type="email"
+                      value={eInvoiceData.buyerEmail}
+                      onChange={(e) => setEInvoiceData(prev => ({ ...prev, buyerEmail: e.target.value }))}
+                      placeholder="Nhập email"
+                    />
+                  </div>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Ghi chú
+                  </label>
+                  <textarea
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    rows={3}
+                    value={eInvoiceData.notes}
+                    onChange={(e) => setEInvoiceData(prev => ({ ...prev, notes: e.target.value }))}
+                    placeholder="Nhập ghi chú (tùy chọn)"
+                  />
+                </div>
+              </div>
+              
+              <div className="mt-6 flex justify-end gap-3">
+                <Button 
+                  onClick={() => setShowEInvoiceForm(false)} 
+                  variant="outline"
+                  disabled={createEInvoiceMutation.isPending}
+                >
+                  Hủy
+                </Button>
+                <Button 
+                  onClick={submitEInvoice}
+                  disabled={createEInvoiceMutation.isPending || !eInvoiceData.buyerName}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  <Send className="w-4 h-4 mr-2" />
+                  {createEInvoiceMutation.isPending ? "Đang tạo..." : "Tạo hóa đơn"}
+                </Button>
+              </div>
             </div>
           </div>
         </div>

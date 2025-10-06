@@ -4,11 +4,12 @@ import { apiRequest } from "../lib/utils";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { AppLayout } from "@/components/layout/app-layout";
-import { Store, Printer, CreditCard, Calculator, QrCode } from "lucide-react";
+import { Store, Printer, CreditCard, Calculator, QrCode, FileText } from "lucide-react";
 import { TaxSettings } from "./tax-settings";
 import { PaymentSettings } from "./payment-settings";
 import { PrintSettings } from "./print-settings";
 import { QRSettings } from "./qr-settings";
+import { useLocation } from "wouter";
 
 type StoreInfo = {
   name: string;
@@ -24,6 +25,13 @@ type StoreInfo = {
 
 export default function SettingsPage() {
   const [tab, setTab] = useState("store");
+  const [, navigate] = useLocation();
+  
+  // Handle e-invoice tab click
+  const handleEInvoiceTab = () => {
+    navigate("/einvoice-settings");
+  };
+  
   // --- Store Info logic ---
   const queryClient = useQueryClient();
   const { data: storeInfo } = useQuery<StoreInfo | null>({
@@ -98,6 +106,12 @@ export default function SettingsPage() {
             onClick={() => setTab("qr")}
           >
             <QrCode className="w-5 h-5" /> QR Code
+          </button>
+          <button
+            className={`flex-1 py-3 flex items-center justify-center gap-2 font-medium transition ${tab === "einvoice" ? "bg-white shadow text-primary" : "text-gray-700"}`}
+            onClick={handleEInvoiceTab}
+          >
+            <FileText className="w-5 h-5" /> Hóa đơn điện tử
           </button>
           <button
             className={`flex-1 py-3 flex items-center justify-center gap-2 font-medium transition ${tab === "print" ? "bg-white shadow text-primary" : "text-gray-700"}`}
