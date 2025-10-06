@@ -432,10 +432,15 @@ export default function OrdersPage() {
 
       {/* Modal xem & in đơn hàng */}
       {selectedOrder && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4 print:bg-white print:p-0">
           <div
-            className="bg-white rounded-lg shadow-lg p-6 w-full max-w-lg relative print:w-full print:max-w-full max-h-[90vh] overflow-y-auto"
-            style={{ width: '80mm', maxWidth: '80mm', minWidth: '80mm', fontSize: '14px' }}
+            className="bg-white rounded-lg shadow-lg p-6 w-full max-w-lg relative print:w-full print:max-w-full max-h-[90vh] overflow-y-auto print:overflow-visible print:max-h-none print:shadow-none print:rounded-none print:relative print:block print:no-break"
+            style={{ 
+              width: '80mm', 
+              maxWidth: '80mm', 
+              minWidth: '80mm', 
+              fontSize: '14px'
+            }}
           >
             <button
               className="absolute top-2 right-2 text-gray-500 hover:text-black"
@@ -466,8 +471,8 @@ export default function OrdersPage() {
             <div>Hình thức thanh toán: <b>{selectedOrder.paymentMethod || "Tiền mặt"}</b></div>
             <div>Thu Ngân: <b>{selectedOrder.cashierName || "Admin"}</b></div>
             
-            <div className="mt-4">
-              <table className="w-full border">
+            <div className="mt-4 print:no-break">
+              <table className="w-full border print:no-break">
                 <thead>
                   <tr>
                     <th className="border px-2 py-1">Sản phẩm</th>
@@ -503,34 +508,29 @@ export default function OrdersPage() {
               })()}
             </div>
             </div>
-            <div className="mt-4 text-right font-bold text-lg border-t pt-2">
+            <div className="mt-4 text-right font-bold text-lg border-t pt-2 print:no-break">
               Tổng cộng: {Number(selectedOrder.totalAmount).toLocaleString('vi-VN')}₫
             </div>
             
             {/* QR Code cho thanh toán QR - Đặt sau tổng cộng */}
             {(selectedOrder.paymentMethod === 'qr' || selectedOrder.paymentMethod === 'QR Code' || selectedOrder.paymentMethod?.toLowerCase().includes('qr')) && (
-              <div className="mt-6 text-center border rounded-lg p-4 bg-gradient-to-br from-purple-50 to-blue-50 border-purple-200">
-                <h4 className="font-semibold text-purple-800 mb-3 text-base">Mã QR Thanh toán</h4>
+              <div className="mt-4 text-center print:mt-2 print:border-0 print:p-0 print:bg-white border rounded-lg p-4 bg-gradient-to-br from-purple-50 to-blue-50 border-purple-200 print:no-break">
+                <h4 className="font-semibold text-purple-800 mb-3 text-base print:text-black print:text-sm print:mb-1 print:font-bold">Mã QR Thanh toán</h4>
                 
                 {generateQRUrl(selectedOrder.totalAmount, selectedOrder.orderId) ? (
                   <>
-                    <div className="flex justify-center mb-4">
-                      <div className="p-2 bg-white rounded-xl shadow-lg border-2 border-purple-200 w-full max-w-full">
+                    <div className="flex justify-center mb-4 print:mb-1">
+                      <div className="p-2 bg-white rounded-xl shadow-lg border-2 border-purple-200 w-full max-w-full print:p-0 print:shadow-none print:border-0 print:rounded-none print:bg-transparent">
                         <img 
                           src={generateQRUrl(selectedOrder.totalAmount, selectedOrder.orderId) || ""}
                           alt="QR Code thanh toán" 
-                          className="w-full h-auto object-contain mx-auto"
+                          className="w-full h-auto object-contain mx-auto print:w-full print:h-auto"
                           style={{ width: '100%', height: 'auto', minWidth: '200px', minHeight: '200px', maxWidth: '300px', display: 'block' }}
                           onError={(e) => {
                             e.currentTarget.src = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjUwIiBoZWlnaHQ9IjI1MCIgdmlld0JveD0iMCAwIDI1MCAyNTAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyNTAiIGhlaWdodD0iMjUwIiBmaWxsPSIjRjNGNEY2Ii8+Cjx0ZXh0IHg9IjEyNSIgeT0iMTI1IiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiM2QjczODAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIwLjNlbSI+UVIgRXJyb3I8L3RleHQ+Cjwvc3ZnPg==";
                           }}
                         />
                       </div>
-                    </div>
-                    <div className="bg-white rounded-lg p-3 border border-purple-100 text-xs text-gray-700 space-y-1">
-                      <p><span className="font-medium text-purple-700">Ngân hàng:</span> {qrSettings?.bankName}</p>
-                      <p><span className="font-medium text-purple-700">Số TK:</span> {qrSettings?.bankAccountNumber}</p>
-                      <p><span className="font-medium text-purple-700">Chủ TK:</span> {qrSettings?.bankAccountHolder}</p>
                     </div>
                   </>
                 ) : (
@@ -543,8 +543,8 @@ export default function OrdersPage() {
                   </div>
                 )}
                 
-                <div className="mt-3 p-2 bg-purple-100 rounded-lg">
-                  <p className="text-sm font-bold text-purple-800">
+                <div className="mt-3 p-2 bg-purple-100 rounded-lg print:bg-transparent print:border print:border-black print:p-1 print:mt-1">
+                  <p className="text-sm font-bold text-purple-800 print:text-black print:text-xs">
                     Số tiền: {Number(selectedOrder.totalAmount).toLocaleString('vi-VN')}₫
                   </p>
                 </div>

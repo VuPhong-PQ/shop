@@ -139,3 +139,34 @@
     background-color: var(--error);
   }
 }
+
+/* Print styles for receipt */
+@media print {
+  @page {
+    size: 80mm auto;
+    margin: 5mm;
+  }
+  
+  body, html {
+    height: auto !important;
+    overflow: visible !important;
+  }
+  
+  /* Hide everything except the modal content when printing */
+  .fixed.inset-0 > div:not(.print\\:block) {
+    page-break-inside: avoid;
+  }
+  
+  /* Prevent page breaks in important sections */
+  .print\\:no-break {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+  
+  /* Force single page */
+  * {
+    page-break-after: avoid !important;
+    page-break-before: avoid !important;
+    page-break-inside: avoid !important;
+  }
+}

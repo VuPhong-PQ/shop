@@ -15,6 +15,14 @@ import { Search, Plus, Minus, Trash2, ShoppingCart, CreditCard, Banknote, QrCode
 import { cn, normalizeSearchText } from "@/lib/utils";
 import type { Product, Customer } from "@/types/backend-types";
 
+type StoreInfo = {
+  name: string;
+  address?: string;
+  taxCode?: string;
+  phone?: string;
+  email?: string;
+};
+
 interface CartItem extends Product {
   quantity: number;
   totalPrice: number;
@@ -72,6 +80,10 @@ export default function Sales() {
   const [checkLocalStorage, setCheckLocalStorage] = useState(0); // Counter to trigger localStorage check
   const [qrCodeData, setQrCodeData] = useState<any>(null);
   const [showQRCode, setShowQRCode] = useState(false);
+  
+  // State for order detail popup
+  const [showOrderDetail, setShowOrderDetail] = useState(false);
+  const [orderDetailData, setOrderDetailData] = useState<any>(null);
   
   // Initialize hooks
   const { toast } = useToast();
@@ -134,6 +146,29 @@ export default function Sales() {
   useEffect(() => {
     console.log('Available payment methods updated:', availablePaymentMethods);
   }, [availablePaymentMethods]);
+
+  // Generate QR URL based on settings
+  const generateQRUrl = (amount: number, orderId?: number) => {
+    if (!qrSettings?.isEnabled || !qrSettings?.bankCode || !qrSettings?.bankAccountNumber) {
+      return null;
+    }
+    
+    const template = qrSettings.qrTemplate || "compact";
+    const accountName = encodeURIComponent(qrSettings.bankAccountHolder || "");
+    
+    // Sử dụng orderId nếu có, để tạo mô tả "thanh toan chuyen khoan don hang [mã]"
+    let url = `https://api.vietqr.io/image/${qrSettings.bankCode}-${qrSettings.bankAccountNumber}-${template}.jpg?accountName=${accountName}&amount=${amount}`;
+    
+    if (orderId) {
+      const description = encodeURIComponent(`thanh toan don hang theo hoa don ${orderId}`);
+      url += `&addInfo=${description}`;
+    } else {
+      const description = encodeURIComponent(qrSettings.defaultDescription || "Thanh toan hoa don");
+      url += `&addInfo=${description}`;
+    }
+    
+    return url;
+  };
 
   // Auto-generate QR code when QR payment is selected and cart has items
   useEffect(() => {
@@ -280,6 +315,16 @@ export default function Sales() {
     })),
   });
 
+  // Fetch store info
+  const { data: storeInfo } = useQuery<StoreInfo | null>({
+    queryKey: ["/api/StoreInfo"],
+    queryFn: async () => {
+      const res = await apiRequest("/api/StoreInfo", { method: "GET" });
+      if (res.status === 404) return null;
+      return typeof res === "string" ? JSON.parse(res) : res;
+    },
+  });
+
   // Create order mutation
   const createOrderMutation = useMutation({
     mutationFn: async (formData: FormData) => {
@@ -292,28 +337,33 @@ export default function Sales() {
         description: "Đơn hàng đã được tạo thành công",
       });
       
-      // Nếu là thanh toán QR và có orderId, tạo lại QR code với mã đơn hàng
-      if (selectedPayment === 'qr' && response?.orderId) {
-        const total = cart.reduce((sum, item) => sum + item.totalPrice, 0);
-        generateQRMutation.mutate({
-          amount: total,
-          orderId: response.orderId.toString()
-        });
-        
-        // Hiển thị QR với orderId trong vài giây trước khi chuyển trang
-        setTimeout(() => {
-          setCart([]);
-          setSelectedCustomer(null);
-          setShowPayment(false);
-          navigate('/orders');
-        }, 3000); // 3 giây để người dùng thấy QR code mới
-      } else {
-        // Nếu không phải QR payment, chuyển trang ngay
-        setCart([]);
-        setSelectedCustomer(null);
-        setShowPayment(false);
-        navigate('/orders');
-      }
+      // Tạo object order detail để hiển thị trong popup
+      const orderDetail = {
+        orderId: response?.orderId,
+        customerName: selectedCustomer?.name || "Khách lẻ",
+        createdAt: new Date().toISOString(),
+        totalAmount: cart.reduce((sum, item) => sum + item.totalPrice, 0),
+        items: cart.map(item => ({
+          productName: item.name,
+          quantity: item.quantity,
+          price: item.price,
+          totalPrice: item.totalPrice
+        })),
+        taxAmount: taxAmount,
+        paymentMethod: availablePaymentMethods.find(m => m.id === selectedPayment)?.name || selectedPayment,
+        paymentStatus: 'paid',
+        status: 'completed',
+        cashierName: 'Admin'
+      };
+      
+      // Hiển thị popup chi tiết hóa đơn
+      setOrderDetailData(orderDetail);
+      setShowOrderDetail(true);
+      
+      // Clear cart và state
+      setCart([]);
+      setSelectedCustomer(null);
+      setShowPayment(false);
       
       // Refetch tất cả dữ liệu liên quan
       queryClient.invalidateQueries({ queryKey: ['/api/orders'] });
@@ -388,6 +438,29 @@ export default function Sales() {
       // Phát âm thanh thông báo
       playNotificationSound();
       
+      // Tạo object order detail để hiển thị trong popup
+      const orderDetail = {
+        orderId: currentReopenedOrder?.orderId,
+        customerName: selectedCustomer?.name || currentReopenedOrder?.customerName || "Khách lẻ",
+        createdAt: currentReopenedOrder?.createdAt || new Date().toISOString(),
+        totalAmount: cart.reduce((sum, item) => sum + item.totalPrice, 0),
+        items: cart.map(item => ({
+          productName: item.name,
+          quantity: item.quantity,
+          price: item.price,
+          totalPrice: item.totalPrice
+        })),
+        taxAmount: taxAmount,
+        paymentMethod: availablePaymentMethods.find(m => m.id === selectedPayment)?.name || selectedPayment,
+        paymentStatus: 'paid',
+        status: 'completed',
+        cashierName: 'Admin'
+      };
+      
+      // Hiển thị popup chi tiết hóa đơn
+      setOrderDetailData(orderDetail);
+      setShowOrderDetail(true);
+      
       // Clear state
       setCart([]);
       setSelectedCustomer(null);
@@ -401,8 +474,6 @@ export default function Sales() {
       
       // Dispatch event để cập nhật reports real-time
       window.dispatchEvent(new CustomEvent('newOrderCreated'));
-      
-      navigate('/orders');
     },
     onError: () => {
       toast({
@@ -1029,6 +1100,154 @@ export default function Sales() {
           </Card>
         </div>
       </div>
+
+      {/* Modal chi tiết hóa đơn sau thanh toán */}
+      {showOrderDetail && orderDetailData && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4 print:bg-white print:p-0">
+          <div
+            className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md sm:max-w-lg md:max-w-xl relative max-h-[90vh] overflow-y-auto print:w-[80mm] print:max-w-[80mm] print:min-w-[80mm] print:rounded-none print:shadow-none print:p-2 print:overflow-visible print:max-h-none print:relative print:block print:no-break"
+            style={{ 
+              width: 'min(90vw, 450px)', 
+              fontSize: '14px'
+            }}
+          >
+            <button
+              className="absolute top-2 right-2 text-gray-500 hover:text-black print:hidden"
+              onClick={() => setShowOrderDetail(false)}
+            >
+              Đóng
+            </button>
+            
+            {/* Thông tin cửa hàng in đầu bill */}
+            <div className="text-center border-b pb-2 mb-2">
+              <div className="font-bold text-lg">{storeInfo?.name || "[Tên cửa hàng]"}</div>
+              {storeInfo?.address && <div className="text-sm">Đ/c: {storeInfo.address}</div>}
+              {storeInfo?.taxCode && <div className="text-sm">MST: {storeInfo.taxCode}</div>}
+              {storeInfo?.phone && <div className="text-sm">ĐT: {storeInfo.phone}</div>}
+              {storeInfo?.email && <div className="text-sm">Email: {storeInfo.email}</div>}
+            </div>
+            
+            <h2 className="text-xl font-bold mb-2">Đơn hàng #{orderDetailData.orderId}</h2>
+            <div>Khách hàng: {orderDetailData.customerName || "Khách lẻ"}</div>
+            <div>Ngày tạo: {new Date(orderDetailData.createdAt).toLocaleDateString('vi-VN')}</div>
+            <div>Giờ tạo: {new Date(orderDetailData.createdAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</div>
+            
+            {/* Trạng thái đơn hàng */}
+            <div className="flex gap-2 my-2">
+              <Badge className="bg-green-100 text-green-800 border-green-200">Đã thanh toán</Badge>
+              <Badge className="bg-blue-100 text-blue-800 border-blue-200">Hoàn thành</Badge>
+            </div>
+            
+            {/* Thông tin bổ sung */}
+            <div>Hình thức thanh toán: <b>{orderDetailData.paymentMethod || "Tiền mặt"}</b></div>
+            <div>Thu Ngân: <b>{orderDetailData.cashierName || "Admin"}</b></div>
+            
+            <div className="mt-4 print:no-break">
+              <table className="w-full border print:no-break">
+                <thead>
+                  <tr>
+                    <th className="border px-2 py-1">Sản phẩm</th>
+                    <th className="border px-2 py-1">SL</th>
+                    <th className="border px-2 py-1">Đơn giá</th>
+                    <th className="border px-2 py-1">Thành tiền</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {orderDetailData.items?.map((item: any, idx: number) => (
+                    <tr key={idx}>
+                      <td className="border px-2 py-1">{item.productName}</td>
+                      <td className="border px-2 py-1 text-center">{item.quantity}</td>
+                      <td className="border px-2 py-1 text-right">{Number(item.price).toLocaleString('vi-VN')}₫</td>
+                      <td className="border px-2 py-1 text-right">{Number(item.totalPrice).toLocaleString('vi-VN')}₫</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {/* Tính lại tạm tính và VAT từ items */}
+              <div className="mt-2 text-right">
+                {(() => {
+                  const subtotal = orderDetailData.items?.reduce((sum: number, item: any) => sum + (Number(item.totalPrice) || 0), 0) || 0;
+                  const taxAmount = Number(orderDetailData.taxAmount) || 0;
+                  return (
+                    <>
+                      <div>Tạm tính: <b>{subtotal.toLocaleString('vi-VN')}₫</b></div>
+                      {taxAmount > 0 && (
+                        <div>VAT 10%: <b>{taxAmount.toLocaleString('vi-VN')}₫</b></div>
+                      )}
+                    </>
+                  );
+                })()}
+              </div>
+            </div>
+            
+            <div className="mt-4 text-right font-bold text-lg border-t pt-2 print:no-break">
+              Tổng cộng: {Number(orderDetailData.totalAmount).toLocaleString('vi-VN')}₫
+            </div>
+            
+            {/* QR Code cho thanh toán QR - Đặt sau tổng cộng */}
+            {(orderDetailData.paymentMethod === 'qr' || orderDetailData.paymentMethod === 'QR Code' || orderDetailData.paymentMethod?.toLowerCase().includes('qr')) && (
+              <div className="mt-4 text-center print:mt-2 print:border-0 print:p-0 print:bg-white border rounded-lg p-4 bg-gradient-to-br from-purple-50 to-blue-50 border-purple-200 print:no-break">
+                <h4 className="font-semibold text-purple-800 mb-3 text-base print:text-black print:text-sm print:mb-1 print:font-bold">Mã QR Thanh toán</h4>
+                
+                {generateQRUrl(orderDetailData.totalAmount, orderDetailData.orderId) ? (
+                  <>
+                    <div className="flex justify-center mb-4 print:mb-1">
+                      <div className="p-2 bg-white rounded-xl shadow-lg border-2 border-purple-200 w-full max-w-full print:p-0 print:shadow-none print:border-0 print:rounded-none print:bg-transparent">
+                        <img 
+                          src={generateQRUrl(orderDetailData.totalAmount, orderDetailData.orderId) || ""}
+                          alt="QR Code thanh toán" 
+                          className="w-full h-auto object-contain mx-auto print:w-full print:h-auto"
+                          style={{ 
+                            width: '100%', 
+                            height: 'auto', 
+                            minWidth: '200px', 
+                            minHeight: '200px', 
+                            maxWidth: '300px', 
+                            display: 'block' 
+                          }}
+                          onError={(e) => {
+                            e.currentTarget.src = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjUwIiBoZWlnaHQ9IjI1MCIgdmlld0JveD0iMCAwIDI1MCAyNTAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyNTAiIGhlaWdodD0iMjUwIiBmaWxsPSIjRjNGNEY2Ii8+Cjx0ZXh0IHg9IjEyNSIgeT0iMTI1IiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiM2QjczODAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIwLjNlbSI+UVIgRXJyb3I8L3RleHQ+Cjwvc3ZnPg==";
+                          }}
+                        />
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <div className="text-center text-orange-600 py-6">
+                    <div className="w-full h-48 mx-auto bg-orange-100 rounded-xl flex items-center justify-center mb-3">
+                      <span className="text-orange-500 text-sm font-medium">QR không khả dụng</span>
+                    </div>
+                    <p className="text-sm font-medium">QR Code chưa được cấu hình</p>
+                    <p className="text-xs">Vui lòng vào Settings &gt; QR Code để cấu hình</p>
+                  </div>
+                )}
+                
+                <div className="mt-3 p-2 bg-purple-100 rounded-lg print:bg-transparent print:border print:border-black print:p-1 print:mt-1">
+                  <p className="text-sm font-bold text-purple-800 print:text-black print:text-xs">
+                    Số tiền: {Number(orderDetailData.totalAmount).toLocaleString('vi-VN')}₫
+                  </p>
+                </div>
+              </div>
+            )}
+            
+            <div className="mt-6 text-center font-semibold text-gray-700">
+              Cảm ơn - Hẹn gặp lại
+            </div>
+            
+            <div className="mt-4 flex justify-end gap-2 print:hidden">
+              <Button onClick={() => window.print()} variant="outline">
+                In đơn hàng
+              </Button>
+              <Button onClick={() => {
+                setShowOrderDetail(false);
+                navigate('/orders');
+              }} variant="secondary">
+                Xem danh sách đơn hàng
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </AppLayout>
   );
 }
