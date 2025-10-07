@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using RetailPointBackend.Models;
 
@@ -11,9 +12,11 @@ using RetailPointBackend.Models;
 namespace RetailPointBackend.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251007050120_AddStaffGroups")]
+    partial class AddStaffGroups
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1035,32 +1038,6 @@ namespace RetailPointBackend.Migrations
                     b.ToTable("StaffGroups");
                 });
 
-            modelBuilder.Entity("RetailPointBackend.Models.StaffGroupRole", b =>
-                {
-                    b.Property<int>("StaffGroupRoleId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("StaffGroupRoleId"));
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("RoleId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("StaffGroupId")
-                        .HasColumnType("int");
-
-                    b.HasKey("StaffGroupRoleId");
-
-                    b.HasIndex("RoleId");
-
-                    b.HasIndex("StaffGroupId");
-
-                    b.ToTable("StaffGroupRoles");
-                });
-
             modelBuilder.Entity("RetailPointBackend.Models.StoreInfo", b =>
                 {
                     b.Property<int>("Id")
@@ -1291,25 +1268,6 @@ namespace RetailPointBackend.Migrations
                     b.Navigation("StaffGroup");
                 });
 
-            modelBuilder.Entity("RetailPointBackend.Models.StaffGroupRole", b =>
-                {
-                    b.HasOne("RetailPointBackend.Models.Role", "Role")
-                        .WithMany("StaffGroupRoles")
-                        .HasForeignKey("RoleId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("RetailPointBackend.Models.StaffGroup", "StaffGroup")
-                        .WithMany("StaffGroupRoles")
-                        .HasForeignKey("StaffGroupId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Role");
-
-                    b.Navigation("StaffGroup");
-                });
-
             modelBuilder.Entity("RetailPointBackend.Models.Customer", b =>
                 {
                     b.Navigation("OrderItems");
@@ -1336,15 +1294,11 @@ namespace RetailPointBackend.Migrations
                 {
                     b.Navigation("RolePermissions");
 
-                    b.Navigation("StaffGroupRoles");
-
                     b.Navigation("Staffs");
                 });
 
             modelBuilder.Entity("RetailPointBackend.Models.StaffGroup", b =>
                 {
-                    b.Navigation("StaffGroupRoles");
-
                     b.Navigation("Staffs");
                 });
 #pragma warning restore 612, 618

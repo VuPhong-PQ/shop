@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using RetailPointBackend.Models;
 
@@ -11,9 +12,11 @@ using RetailPointBackend.Models;
 namespace RetailPointBackend.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251006090709_FixEInvoiceDecimalPrecision")]
+    partial class FixEInvoiceDecimalPrecision
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -983,9 +986,6 @@ namespace RetailPointBackend.Migrations
                     b.Property<int>("RoleId")
                         .HasColumnType("int");
 
-                    b.Property<int?>("StaffGroupId")
-                        .HasColumnType("int");
-
                     b.Property<string>("Username")
                         .IsRequired()
                         .HasMaxLength(50)
@@ -995,70 +995,7 @@ namespace RetailPointBackend.Migrations
 
                     b.HasIndex("RoleId");
 
-                    b.HasIndex("StaffGroupId");
-
                     b.ToTable("Staffs");
-                });
-
-            modelBuilder.Entity("RetailPointBackend.Models.StaffGroup", b =>
-                {
-                    b.Property<int>("StaffGroupId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("StaffGroupId"));
-
-                    b.Property<string>("Color")
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Description")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<string>("GroupName")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("StaffGroupId");
-
-                    b.ToTable("StaffGroups");
-                });
-
-            modelBuilder.Entity("RetailPointBackend.Models.StaffGroupRole", b =>
-                {
-                    b.Property<int>("StaffGroupRoleId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("StaffGroupRoleId"));
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("RoleId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("StaffGroupId")
-                        .HasColumnType("int");
-
-                    b.HasKey("StaffGroupRoleId");
-
-                    b.HasIndex("RoleId");
-
-                    b.HasIndex("StaffGroupId");
-
-                    b.ToTable("StaffGroupRoles");
                 });
 
             modelBuilder.Entity("RetailPointBackend.Models.StoreInfo", b =>
@@ -1282,32 +1219,7 @@ namespace RetailPointBackend.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("RetailPointBackend.Models.StaffGroup", "StaffGroup")
-                        .WithMany("Staffs")
-                        .HasForeignKey("StaffGroupId");
-
                     b.Navigation("Role");
-
-                    b.Navigation("StaffGroup");
-                });
-
-            modelBuilder.Entity("RetailPointBackend.Models.StaffGroupRole", b =>
-                {
-                    b.HasOne("RetailPointBackend.Models.Role", "Role")
-                        .WithMany("StaffGroupRoles")
-                        .HasForeignKey("RoleId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("RetailPointBackend.Models.StaffGroup", "StaffGroup")
-                        .WithMany("StaffGroupRoles")
-                        .HasForeignKey("StaffGroupId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Role");
-
-                    b.Navigation("StaffGroup");
                 });
 
             modelBuilder.Entity("RetailPointBackend.Models.Customer", b =>
@@ -1335,15 +1247,6 @@ namespace RetailPointBackend.Migrations
             modelBuilder.Entity("RetailPointBackend.Models.Role", b =>
                 {
                     b.Navigation("RolePermissions");
-
-                    b.Navigation("StaffGroupRoles");
-
-                    b.Navigation("Staffs");
-                });
-
-            modelBuilder.Entity("RetailPointBackend.Models.StaffGroup", b =>
-                {
-                    b.Navigation("StaffGroupRoles");
 
                     b.Navigation("Staffs");
                 });

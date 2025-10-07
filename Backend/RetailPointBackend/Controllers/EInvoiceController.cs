@@ -71,7 +71,7 @@ namespace RetailPointBackend.Controllers
 
         // GET: api/EInvoice/5
         [HttpGet("{id}")]
-        public async Task<ActionResult<EInvoice>> GetEInvoice(int id)
+        public async Task<ActionResult<object>> GetEInvoice(int id)
         {
             var eInvoice = await _context.EInvoices
                 .Include(e => e.Items!)
@@ -86,7 +86,62 @@ namespace RetailPointBackend.Controllers
                 return NotFound();
             }
 
-            return eInvoice;
+            Console.WriteLine($"GetEInvoice {id}: Items count = {eInvoice.Items?.Count ?? 0}");
+            if (eInvoice.Items != null)
+            {
+                foreach (var item in eInvoice.Items)
+                {
+                    Console.WriteLine($"  Item: {item.ItemName}, Qty: {item.Quantity}, Price: {item.UnitPrice}");
+                }
+            }
+
+            // Trả về DTO để tránh circular reference
+            var result = new
+            {
+                eInvoiceId = eInvoice.EInvoiceId,
+                invoiceNumber = eInvoice.InvoiceNumber,
+                invoiceTemplate = eInvoice.InvoiceTemplate,
+                invoiceSymbol = eInvoice.InvoiceSymbol,
+                issueDate = eInvoice.IssueDate,
+                sellerTaxCode = eInvoice.SellerTaxCode,
+                sellerName = eInvoice.SellerName,
+                sellerAddress = eInvoice.SellerAddress,
+                buyerName = eInvoice.BuyerName,
+                buyerTaxCode = eInvoice.BuyerTaxCode,
+                buyerAddress = eInvoice.BuyerAddress,
+                subTotal = eInvoice.SubTotal,
+                taxAmount = eInvoice.TaxAmount,
+                discountAmount = eInvoice.DiscountAmount,
+                totalAmount = eInvoice.TotalAmount,
+                status = eInvoice.Status,
+                paymentMethod = eInvoice.PaymentMethod,
+                notes = eInvoice.Notes,
+                orderId = eInvoice.OrderId,
+                items = eInvoice.Items?.Select(item => new
+                {
+                    eInvoiceItemId = item.EInvoiceItemId,
+                    lineNumber = item.LineNumber,
+                    itemName = item.ItemName,
+                    unit = item.Unit,
+                    quantity = item.Quantity,
+                    unitPrice = item.UnitPrice,
+                    lineTotal = item.LineTotal,
+                    taxRate = item.TaxRate,
+                    taxAmount = item.TaxAmount,
+                    totalAmount = item.TotalAmount,
+                    discountAmount = item.DiscountAmount,
+                    productId = item.ProductId
+                }).ToList(),
+                customer = eInvoice.Order?.Customer != null ? new
+                {
+                    customerId = eInvoice.Order.Customer.CustomerId,
+                    name = eInvoice.Order.Customer.HoTen,
+                    phone = eInvoice.Order.Customer.SoDienThoai,
+                    address = eInvoice.Order.Customer.DiaChi
+                } : null
+            };
+
+            return result;
         }
 
         // POST: api/EInvoice/create-from-order
@@ -108,6 +163,13 @@ namespace RetailPointBackend.Controllers
                     return NotFound("Không tìm thấy đơn hàng");
                 }
 
+                Console.WriteLine($"Found order: {order.OrderId}, Items count: {order.Items?.Count ?? 0}");
+                
+                if (order.Items == null || !order.Items.Any())
+                {
+                    return BadRequest("Đơn hàng không có sản phẩm nào");
+                }
+
                 // Kiểm tra đã có hóa đơn điện tử chưa
                 var existingInvoice = await _context.EInvoices
                     .FirstOrDefaultAsync(e => e.OrderId == request.OrderId);
@@ -119,9 +181,31 @@ namespace RetailPointBackend.Controllers
 
                 // Lấy cấu hình hóa đơn điện tử
                 var config = await _context.EInvoiceConfigs.FirstOrDefaultAsync();
-                if (config == null || !config.IsEnabled)
+                if (config == null)
                 {
-                    return BadRequest("Chưa cấu hình hóa đơn điện tử hoặc hóa đơn điện tử bị tắt");
+                    // Tạo cấu hình mặc định cho testing
+                    config = new EInvoiceConfig
+                    {
+                        IsEnabled = true,
+                        Provider = "VNPT",
+                        ApiUrl = "http://localhost:8080",
+                        Username = "admin",
+                        Password = "123456",
+                        CompanyTaxCode = "0123456789",
+                        CompanyName = "Công ty TNHH ABC",
+                        CompanyAddress = "Hà Nội",
+                        CompanyPhone = "0123456789",
+                        CompanyEmail = "admin@company.com",
+                        DefaultTemplate = "1/E-HOA_DON",
+                        DefaultSymbol = "E23TEA"
+                    };
+                    _context.EInvoiceConfigs.Add(config);
+                    await _context.SaveChangesAsync();
+                }
+                
+                if (!config.IsEnabled)
+                {
+                    return BadRequest("Hóa đơn điện tử đã bị tắt. Vui lòng vào cấu hình để bật lại.");
                 }
 
                 // Tạo số hóa đơn mới
@@ -172,6 +256,9 @@ namespace RetailPointBackend.Controllers
                 var lineNumber = 1;
                 foreach (var orderItem in order.Items)
                 {
+                    Console.WriteLine($"Processing OrderItem: {orderItem.OrderItemId}, ProductId: {orderItem.ProductId}, ProductName: {orderItem.ProductName}, Quantity: {orderItem.Quantity}, Price: {orderItem.Price}");
+                    Console.WriteLine($"Product info: {orderItem.Product?.Name ?? "NULL"}, Barcode: {orderItem.Product?.Barcode ?? "NULL"}");
+                    
                     var eInvoiceItem = new EInvoiceItem
                     {
                         EInvoiceId = eInvoice.EInvoiceId,
@@ -182,21 +269,27 @@ namespace RetailPointBackend.Controllers
                         Quantity = orderItem.Quantity,
                         UnitPrice = orderItem.Price,
                         LineTotal = orderItem.Quantity * orderItem.Price,
-                        TaxRate = config.DefaultTaxRate,
-                        TaxAmount = orderItem.Quantity * orderItem.Price * GetTaxRateValue(config.DefaultTaxRate) / 100,
+                        TaxRate = config.DefaultTaxRate ?? "10%",
+                        TaxAmount = orderItem.Quantity * orderItem.Price * GetTaxRateValue(config.DefaultTaxRate ?? "10%") / 100,
                         TotalAmount = orderItem.TotalPrice,
                         ProductId = orderItem.ProductId,
                         OrderItemId = orderItem.OrderItemId
                     };
 
+                    Console.WriteLine($"Created EInvoiceItem: ItemCode={eInvoiceItem.ItemCode}, ItemName={eInvoiceItem.ItemName}, Quantity={eInvoiceItem.Quantity}, UnitPrice={eInvoiceItem.UnitPrice}");
                     _context.EInvoiceItems.Add(eInvoiceItem);
                 }
 
                 await _context.SaveChangesAsync();
 
-                // Trả về hóa đơn vừa tạo
-                var result = await GetEInvoice(eInvoice.EInvoiceId);
-                return CreatedAtAction(nameof(GetEInvoice), new { id = eInvoice.EInvoiceId }, result.Value);
+                // Trả về thông tin cơ bản của hóa đơn vừa tạo
+                return Ok(new { 
+                    success = true,
+                    eInvoiceId = eInvoice.EInvoiceId,
+                    invoiceNumber = eInvoice.InvoiceNumber,
+                    status = eInvoice.Status,
+                    message = "Hóa đơn điện tử đã được tạo thành công"
+                });
             }
             catch (Exception ex)
             {
@@ -800,6 +893,46 @@ namespace RetailPointBackend.Controllers
         }
 
         #endregion
+
+        // DEBUG: Check order items
+        [HttpGet("debug/order/{orderId}")]
+        public async Task<ActionResult> DebugOrder(int orderId)
+        {
+            var order = await _context.Orders
+                .Include(o => o.Items)
+                    .ThenInclude(oi => oi.Product)
+                .FirstOrDefaultAsync(o => o.OrderId == orderId);
+
+            if (order == null)
+            {
+                return NotFound($"Order {orderId} not found");
+            }
+
+            var result = new
+            {
+                orderId = order.OrderId,
+                orderNumber = order.OrderNumber,
+                totalAmount = order.TotalAmount,
+                itemsCount = order.Items?.Count ?? 0,
+                items = order.Items?.Select(item => new
+                {
+                    orderItemId = item.OrderItemId,
+                    productId = item.ProductId,
+                    productName = item.ProductName,
+                    quantity = item.Quantity,
+                    price = item.Price,
+                    totalPrice = item.TotalPrice,
+                    product = item.Product != null ? new
+                    {
+                        name = item.Product.Name,
+                        barcode = item.Product.Barcode,
+                        unit = item.Product.Unit
+                    } : null
+                }).ToList()
+            };
+
+            return Ok(result);
+        }
     }
 
     #region Request Models
