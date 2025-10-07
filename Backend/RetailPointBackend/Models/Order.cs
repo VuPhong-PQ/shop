@@ -18,6 +18,7 @@ namespace RetailPointBackend.Models
         public string? PaymentMethod { get; set; } = "cash"; // cash, card, qr, ewallet
         public string? PaymentStatus { get; set; } = "pending"; // paid, pending, failed - default pending
         public string? Status { get; set; } = "pending"; // completed, pending, cancelled - default pending
+        public string? CancellationReason { get; set; } // Lý do hủy đơn hàng
         public string? OrderNumber { get; set; }
         public int? StaffId { get; set; } // Foreign Key to Staff
         public string? StoreId { get; set; }

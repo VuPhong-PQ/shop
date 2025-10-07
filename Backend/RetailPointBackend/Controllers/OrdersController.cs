@@ -317,10 +317,16 @@ namespace RetailPointBackend.Controllers
             if (!string.IsNullOrEmpty(updatedOrder.PaymentStatus)) order.PaymentStatus = updatedOrder.PaymentStatus;
             if (!string.IsNullOrEmpty(updatedOrder.PaymentMethod)) order.PaymentMethod = updatedOrder.PaymentMethod;
             
-            Console.WriteLine($"Updating order {id}: Status = {updatedOrder.Status}");
+            // Cập nhật lý do hủy nếu trạng thái là cancelled
+            if (!string.IsNullOrEmpty(updatedOrder.CancellationReason)) 
+            {
+                order.CancellationReason = updatedOrder.CancellationReason;
+            }
+            
+            Console.WriteLine($"Updating order {id}: Status = {updatedOrder.Status}, CancellationReason = {updatedOrder.CancellationReason}");
             _context.SaveChanges();
             
-            return Ok(new { order.OrderId, Status = "Updated", NewStatus = order.Status });
+            return Ok(new { order.OrderId, Status = "Updated", NewStatus = order.Status, CancellationReason = order.CancellationReason });
         }
 
         // Xóa đơn hàng

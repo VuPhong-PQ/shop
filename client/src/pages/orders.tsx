@@ -47,6 +47,7 @@ type Order = {
   status?: string;
   cashierName?: string;
   subtotal?: number;
+  cancellationReason?: string;
 };
 
 
@@ -56,6 +57,9 @@ export default function OrdersPage() {
   
   // Check if user can delete orders (only admin should have this permission)
   const canDeleteOrders = hasPermission("DeleteOrders");
+  
+  // State for cancellation reason
+  const [cancellationReason, setCancellationReason] = useState("");
   
   const { data: orders = [], isLoading, refetch } = useQuery<Order[]>({
     queryKey: ["/api/orders"],
@@ -223,12 +227,19 @@ export default function OrdersPage() {
       await apiRequest(`/api/orders/${orderId}`, { 
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ Status: "cancelled" }) // Uppercase S để match với model
+        body: JSON.stringify({ 
+          Status: "cancelled",
+          CancellationReason: cancellationReason || "Không có lý do"
+        })
       });
       toast({
         title: "Thành công",
         description: "Đã đánh dấu đơn hàng là đã hủy"
       });
+      
+      // Reset cancellation reason after successful cancellation
+      setCancellationReason("");
+      
       refetch(); // Refresh danh sách
     } catch (error: any) {
       toast({
@@ -356,6 +367,16 @@ export default function OrdersPage() {
                       {getOrderStatusBadge(order.status)}
                     </div>
                     
+                    {/* Hiển thị lý do hủy nếu đơn hàng đã bị hủy */}
+                    {order.status === 'cancelled' && order.cancellationReason && (
+                      <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-md">
+                        <div className="text-sm">
+                          <span className="font-medium text-red-700">Lý do hủy:</span>
+                          <p className="text-red-600 mt-1">{order.cancellationReason}</p>
+                        </div>
+                      </div>
+                    )}
+                    
                     {/* Nút hành động */}
                     <div className="flex gap-2 mt-3">
                       {order.paymentStatus === 'pending' && (
@@ -383,11 +404,34 @@ export default function OrdersPage() {
                                 Bạn có chắc chắn muốn đánh dấu đơn hàng #{order.orderId} là đã hủy? Đơn hàng sẽ được giữ lại trong hệ thống với trạng thái "Đã hủy".
                               </AlertDialogDescription>
                             </AlertDialogHeader>
+                            
+                            {/* Cancellation Reason Input */}
+                            <div className="py-4">
+                              <label htmlFor="cancellation-reason" className="block text-sm font-medium text-gray-700 mb-2">
+                                Lý do hủy đơn hàng <span className="text-red-500">*</span>
+                              </label>
+                              <textarea
+                                id="cancellation-reason"
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                                rows={3}
+                                value={cancellationReason}
+                                onChange={(e) => setCancellationReason(e.target.value)}
+                                placeholder="Nhập lý do hủy đơn hàng (bắt buộc)"
+                                maxLength={500}
+                              />
+                              <div className="text-xs text-gray-500 mt-1">
+                                {cancellationReason.length}/500 ký tự
+                              </div>
+                            </div>
+                            
                             <AlertDialogFooter>
-                              <AlertDialogCancel>Không</AlertDialogCancel>
+                              <AlertDialogCancel onClick={() => setCancellationReason("")}>
+                                Không
+                              </AlertDialogCancel>
                               <AlertDialogAction 
                                 onClick={() => handleCancelOrder(order.orderId)}
                                 className="bg-orange-600 hover:bg-orange-700"
+                                disabled={!cancellationReason.trim()}
                               >
                                 Đánh dấu hủy
                               </AlertDialogAction>

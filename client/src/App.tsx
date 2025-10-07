@@ -13,6 +13,7 @@ import ProductGroups from "@/pages/product-groups";
 import Customers from "@/pages/customers";
 import Inventory from "@/pages/inventory";
 import Reports from "@/pages/reports";
+import CancelledOrdersReport from "@/pages/cancelled-orders-report";
 import Staff from "@/pages/staff";
 import Settings from "@/pages/settings";
 import OrdersPage from "@/pages/orders";
@@ -59,6 +60,11 @@ function Router() {
       <Route path="/reports">
         <ProtectedRoute requiredPermission="ViewReports">
           <Reports />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/cancelled-orders-report">
+        <ProtectedRoute requiredPermission="ViewReports">
+          <CancelledOrdersReport />
         </ProtectedRoute>
       </Route>
       <Route path="/staff">

@@ -27,13 +27,13 @@ namespace RetailPointBackend.Controllers
 
                 // Tính toán doanh thu hôm nay
                 var todayOrders = _context.Orders
-                    .Where(o => o.CreatedAt.Date == today && o.PaymentStatus == "paid")
+                    .Where(o => o.CreatedAt.Date == today && o.PaymentStatus == "paid" && o.Status != "cancelled")
                     .ToList();
                 var todayRevenue = todayOrders.Sum(o => o.TotalAmount);
 
                 // Tính toán doanh thu hôm qua để so sánh
                 var yesterdayOrders = _context.Orders
-                    .Where(o => o.CreatedAt.Date == yesterday && o.PaymentStatus == "paid")
+                    .Where(o => o.CreatedAt.Date == yesterday && o.PaymentStatus == "paid" && o.Status != "cancelled")
                     .ToList();
                 var yesterdayRevenue = yesterdayOrders.Sum(o => o.TotalAmount);
 
@@ -62,13 +62,13 @@ namespace RetailPointBackend.Controllers
 
                 // Tính doanh thu tháng này
                 var thisMonthOrders = _context.Orders
-                    .Where(o => o.CreatedAt >= thisMonth && o.PaymentStatus == "paid")
+                    .Where(o => o.CreatedAt >= thisMonth && o.PaymentStatus == "paid" && o.Status != "cancelled")
                     .ToList();
                 var thisMonthRevenue = thisMonthOrders.Sum(o => o.TotalAmount);
 
                 // Tính doanh thu tháng trước
                 var lastMonthOrders = _context.Orders
-                    .Where(o => o.CreatedAt >= lastMonth && o.CreatedAt < thisMonth && o.PaymentStatus == "paid")
+                    .Where(o => o.CreatedAt >= lastMonth && o.CreatedAt < thisMonth && o.PaymentStatus == "paid" && o.Status != "cancelled")
                     .ToList();
                 var lastMonthRevenue = lastMonthOrders.Sum(o => o.TotalAmount);
 

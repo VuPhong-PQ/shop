@@ -26,7 +26,7 @@ namespace RetailPointBackend.Controllers
                 var startDate = fromDate ?? DateTime.Now.AddDays(-30).Date;
                 var endDate = toDate ?? DateTime.Now.Date.AddDays(1).AddTicks(-1);
 
-                // Lấy các đơn hàng đã hoàn thành trong khoảng thời gian với items
+                // Lấy các đơn hàng đã hoàn thành trong khoảng thời gian với items (loại trừ đơn hàng đã hủy)
                 var orders = await _context.Orders
                     .Include(o => o.Items)
                     .Where(o => o.Status == "completed" && 

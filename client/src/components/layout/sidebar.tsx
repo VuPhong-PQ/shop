@@ -15,12 +15,15 @@ import {
   ChevronRight,
   Folder,
   Tag,
-  ClipboardList
+  ClipboardList,
+  FileX,
+  TrendingUp
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navigation = [
   { name: 'Bán hàng', href: '/', icon: ShoppingCart, permission: 'ViewOrders' },
+  { name: 'Đơn hàng', href: '/orders', icon: ClipboardList, permission: 'ViewOrders' },
   { 
     name: 'Sản phẩm', 
     icon: Package,
@@ -32,7 +35,15 @@ const navigation = [
   },
   { name: 'Khách hàng', href: '/customers', icon: Users, permission: 'ViewCustomers' },
   { name: 'Kho hàng', href: '/inventory', icon: Warehouse, permission: 'ViewProducts' },
-  { name: 'Báo cáo', href: '/reports', icon: BarChart3, permission: 'ViewReports' },
+  { 
+    name: 'Báo cáo', 
+    icon: BarChart3,
+    permission: 'ViewReports',
+    submenu: [
+      { name: 'Báo cáo tổng hợp', href: '/reports', icon: TrendingUp, permission: 'ViewReports' },
+      { name: 'Báo cáo hủy hàng', href: '/cancelled-orders-report', icon: FileX, permission: 'ViewReports' }
+    ]
+  },
   { name: 'Nhân viên', href: '/staff', icon: UserCheck, permission: 'ViewStaff' },
   { name: 'Cài đặt', href: '/settings', icon: Settings, permission: 'ViewSettings' },
 ];
