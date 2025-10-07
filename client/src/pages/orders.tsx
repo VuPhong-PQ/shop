@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useLocation } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
-import { Trash2, RotateCcw, AlertTriangle, X } from "lucide-react";
+import { Trash2, RotateCcw, AlertTriangle, X, Printer } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
   AlertDialog,
@@ -89,6 +89,16 @@ export default function OrdersPage() {
     queryKey: ["/api/QRSettings"],
     queryFn: async () => {
       const res = await apiRequest("/api/QRSettings", { method: "GET" });
+      return res;
+    },
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+  });
+
+  // Fetch print configuration
+  const { data: printConfig } = useQuery({
+    queryKey: ["/api/PrintConfig"],
+    queryFn: async () => {
+      const res = await apiRequest("/api/PrintConfig", { method: "GET" });
       return res;
     },
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes
@@ -553,10 +563,36 @@ export default function OrdersPage() {
             <div className="mt-6 text-center font-semibold text-gray-700">
               Cảm ơn - Hẹn gặp lại
             </div>
-            <div className="mt-4 flex justify-end gap-2 print:hidden">
-              <Button onClick={() => window.print()} variant="outline">
-                In đơn hàng
-              </Button>
+            <div className="mt-4 flex flex-col sm:flex-row justify-end gap-2 print:hidden">
+              {/* Print Buttons Group */}
+              <div className="flex gap-2">
+                {/* Main Print Button - Primary and prominent */}
+                <Button 
+                  onClick={() => window.print()} 
+                  className="bg-green-600 hover:bg-green-700 text-white flex items-center justify-center"
+                  size="lg"
+                >
+                  <Printer className="w-4 h-4 mr-2" />
+                  In đơn hàng
+                </Button>
+                
+                {/* Print Multiple Copies Button */}
+                {printConfig?.printCopies && printConfig.printCopies > 1 && (
+                  <Button 
+                    onClick={() => {
+                      for (let i = 0; i < (printConfig.printCopies || 1); i++) {
+                        setTimeout(() => window.print(), i * 1000);
+                      }
+                    }}
+                    variant="outline"
+                    size="sm"
+                    className="text-green-600 border-green-600 hover:bg-green-50"
+                  >
+                    In {printConfig.printCopies} bản
+                  </Button>
+                )}
+              </div>
+              
               <Button onClick={() => setSelectedOrder(null)} variant="secondary">
                 Đóng
               </Button>

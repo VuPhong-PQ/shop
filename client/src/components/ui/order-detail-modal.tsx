@@ -262,7 +262,7 @@ export function OrderDetailModal({ orderId, show, onClose, onReopenOrder }: Orde
               </div>
 
               {/* Action Buttons */}
-              <div className="flex justify-end space-x-3 pt-4 border-t">
+              <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-3 pt-4 border-t">
                 <Button variant="outline" onClick={onClose}>
                   Đóng
                 </Button>
@@ -271,7 +271,7 @@ export function OrderDetailModal({ orderId, show, onClose, onReopenOrder }: Orde
                 {orderDetail.paymentStatus === 'pending' && onReopenOrder && (
                   <Button 
                     onClick={handleReopenOrder}
-                    className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600"
+                    className="flex items-center justify-center gap-2 bg-orange-500 hover:bg-orange-600"
                   >
                     <Receipt className="h-4 w-4" />
                     Mở lại đơn hàng
@@ -281,7 +281,8 @@ export function OrderDetailModal({ orderId, show, onClose, onReopenOrder }: Orde
                 <Button 
                   onClick={handlePrint} 
                   disabled={isPrinting}
-                  className="flex items-center gap-2"
+                  className="flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white"
+                  size="lg"
                 >
                   <Printer className="h-4 w-4" />
                   {isPrinting ? 'Đang in...' : 'In đơn hàng'}

@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { useNotificationSound } from "@/hooks/use-notification-sound";
 import { queryClient, apiRequest } from "@/lib/queryClient";
-import { Search, Plus, Minus, Trash2, ShoppingCart, CreditCard, Banknote, QrCode, Smartphone, AlertTriangle, FileText, Send } from "lucide-react";
+import { Search, Plus, Minus, Trash2, ShoppingCart, CreditCard, Banknote, QrCode, Smartphone, AlertTriangle, FileText, Send, Printer } from "lucide-react";
 import { cn, normalizeSearchText } from "@/lib/utils";
 import type { Product, Customer } from "@/types/backend-types";
 
@@ -118,6 +118,16 @@ export default function Sales() {
     queryKey: ["/api/QRSettings"],
     queryFn: async () => {
       const res = await apiRequest("/api/QRSettings", { method: "GET" });
+      return res;
+    },
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+  });
+
+  // Fetch print configuration
+  const { data: printConfig } = useQuery({
+    queryKey: ["/api/PrintConfig"],
+    queryFn: async () => {
+      const res = await apiRequest("/api/PrintConfig", { method: "GET" });
       return res;
     },
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes
@@ -422,6 +432,18 @@ export default function Sales() {
       // Hiển thị popup chi tiết hóa đơn
       setOrderDetailData(orderDetail);
       setShowOrderDetail(true);
+      
+      // Auto print if enabled
+      if (printConfig?.autoPrintBill || printConfig?.autoPrintOnOrder) {
+        toast({
+          title: "In tự động",
+          description: "Đang in đơn hàng...",
+          duration: 2000,
+        });
+        setTimeout(() => {
+          window.print();
+        }, 1000); // Delay 1 giây để popup hiển thị đầy đủ
+      }
       
       // Clear cart và state
       setCart([]);
@@ -1462,26 +1484,49 @@ export default function Sales() {
               Cảm ơn - Hẹn gặp lại
             </div>
             
-            <div className="mt-4 flex justify-end gap-2 print:hidden">
-              <Button onClick={() => window.print()} variant="outline">
-                In đơn hàng
-              </Button>
-              {eInvoiceConfig?.isEnabled && (
-                <Button 
-                  onClick={handleCreateEInvoice} 
-                  variant="outline"
-                  className="text-blue-600 border-blue-600 hover:bg-blue-50"
-                >
-                  <FileText className="w-4 h-4 mr-2" />
-                  Xuất hóa đơn điện tử
-                </Button>
-              )}
-              <Button onClick={() => {
-                setShowOrderDetail(false);
-                navigate('/orders');
-              }} variant="secondary">
-                Xem danh sách đơn hàng
-              </Button>
+            {/* Auto print status indicator */}
+            {(printConfig?.autoPrintBill || printConfig?.autoPrintOnOrder) && (
+              <div className="mt-2 text-center text-xs text-green-600 print:hidden">
+                <Printer className="w-3 h-3 inline mr-1" />
+                In tự động đã được kích hoạt
+              </div>
+            )}
+            
+            <div className="mt-4 print:hidden">
+              {/* Other Actions */}
+              <div className="flex flex-col gap-3 w-full">
+                {/* Hàng trên: Xuất hóa đơn và In đơn hàng */}
+                <div className="flex gap-3">
+                  {eInvoiceConfig?.isEnabled && (
+                    <Button 
+                      onClick={handleCreateEInvoice} 
+                      variant="outline"
+                      className="text-blue-600 border-blue-600 hover:bg-blue-50 flex-1"
+                    >
+                      <FileText className="w-4 h-4 mr-2" />
+                      Xuất hóa đơn điện tử
+                    </Button>
+                  )}
+                  <Button 
+                    onClick={() => window.print()} 
+                    className="bg-green-600 hover:bg-green-700 text-white flex-1"
+                  >
+                    <Printer className="w-4 h-4 mr-2" />
+                    In đơn hàng
+                  </Button>
+                </div>
+                
+                {/* Hàng dưới: Đóng */}
+                <div className="flex justify-center">
+                  <Button 
+                    onClick={() => setShowOrderDetail(false)}
+                    variant="outline"
+                    className="px-8"
+                  >
+                    Đóng
+                  </Button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
