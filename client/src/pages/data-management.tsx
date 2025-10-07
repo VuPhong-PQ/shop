@@ -62,8 +62,9 @@ const DataManagement: React.FC = () => {
     setBackupProgress(0);
     
     try {
+      console.log('Backup Path being sent:', customBackupPath);
       const result = await dataManagementApi.backupDatabase({
-        backupPath: customBackupPath || undefined
+        backupPath: customBackupPath?.trim() || undefined
       });
       
       setBackupProgress(100);
@@ -255,15 +256,50 @@ const DataManagement: React.FC = () => {
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label>Đường dẫn sao lưu (tùy chọn)</Label>
-              <Input
-                placeholder="Ví dụ: C:\Backups"
-                value={customBackupPath}
-                onChange={(e) => setCustomBackupPath(e.target.value)}
-                disabled={isLoading}
-              />
-              <p className="text-sm text-gray-600">
-                Để trống sẽ sử dụng đường dẫn mặc định: C:\temp
-              </p>
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Ví dụ: C:\Backups"
+                  value={customBackupPath}
+                  onChange={(e) => setCustomBackupPath(e.target.value)}
+                  disabled={isLoading}
+                  className="flex-1"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    // Create a temporary input element to select directory
+                    const input = document.createElement('input');
+                    input.type = 'file';
+                    input.webkitdirectory = true;
+                    input.onchange = (e: any) => {
+                      const files = e.target.files;
+                      if (files && files.length > 0) {
+                        // Get the directory path from the first file
+                        const firstFile = files[0];
+                        const path = firstFile.webkitRelativePath;
+                        const dirPath = path.substring(0, path.lastIndexOf('/'));
+                        // On Windows, we need to construct the full path
+                        // This is a simplified approach - in production you'd want better path handling
+                        const fullPath = firstFile.path ? firstFile.path.substring(0, firstFile.path.lastIndexOf('\\')) : `C:\\${dirPath.replace(/\//g, '\\')}`;
+                        setCustomBackupPath(fullPath);
+                      }
+                    };
+                    input.click();
+                  }}
+                  disabled={isLoading}
+                >
+                  Chọn Thư Mục
+                </Button>
+              </div>
+              <div className="space-y-1">
+                <p className="text-sm text-gray-600">
+                  Để trống sẽ sử dụng đường dẫn mặc định: <code className="bg-gray-100 px-1 rounded">C:\temp</code>
+                </p>
+                <p className="text-xs text-blue-600">
+                  💡 Tên file sẽ được tự động tạo theo định dạng: database_backup_YYYYMMDD_HHMMSS.bak
+                </p>
+              </div>
             </div>
 
             {backupProgress > 0 && (
@@ -336,12 +372,42 @@ const DataManagement: React.FC = () => {
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <Label>Đường dẫn file backup (.bak)</Label>
-                    <Input
-                      placeholder="Ví dụ: C:\Backups\database_backup_20241007_120000.bak"
-                      value={restoreFilePath}
-                      onChange={(e) => setRestoreFilePath(e.target.value)}
-                      disabled={isLoading}
-                    />
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="Ví dụ: C:\Backups\database_backup_20241007_120000.bak"
+                        value={restoreFilePath}
+                        onChange={(e) => setRestoreFilePath(e.target.value)}
+                        disabled={isLoading}
+                        className="flex-1"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => {
+                          // Create a temporary input element to select backup file
+                          const input = document.createElement('input');
+                          input.type = 'file';
+                          input.accept = '.bak,.sql';
+                          input.onchange = (e: any) => {
+                            const file = e.target.files[0];
+                            if (file) {
+                              // For web browsers, we can only get the file name
+                              // In a desktop app, you'd have access to full path
+                              const filePath = file.path || `C:\\Temp\\${file.name}`;
+                              setRestoreFilePath(filePath);
+                            }
+                          };
+                          input.click();
+                        }}
+                        disabled={isLoading}
+                      >
+                        <FileText className="h-4 w-4 mr-1" />
+                        Chọn File
+                      </Button>
+                    </div>
+                    <p className="text-sm text-gray-600">
+                      Chọn file backup (.bak) để phục hồi database
+                    </p>
                   </div>
 
                   {restoreProgress > 0 && (

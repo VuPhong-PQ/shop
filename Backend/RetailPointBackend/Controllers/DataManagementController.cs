@@ -4,6 +4,7 @@ using Microsoft.Data.SqlClient;
 using RetailPointBackend.Models;
 using RetailPointBackend.Services;
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 
 namespace RetailPointBackend.Controllers
 {
@@ -25,6 +26,18 @@ namespace RetailPointBackend.Controllers
             _permissionService = permissionService;
         }
 
+        // Debug endpoint để kiểm tra request
+        [HttpPost("debug-backup-path")]
+        public IActionResult DebugBackupPath([FromBody] BackupRequestDto request)
+        {
+            return Ok(new { 
+                receivedPath = request.BackupPath,
+                isNull = request.BackupPath == null,
+                isEmpty = string.IsNullOrEmpty(request.BackupPath),
+                length = request.BackupPath?.Length ?? -1
+            });
+        }
+
         // Backup toàn bộ database
         [HttpPost("backup")]
         public async Task<IActionResult> BackupDatabase([FromBody] BackupRequestDto request)
@@ -38,6 +51,9 @@ namespace RetailPointBackend.Controllers
                 {
                     return Forbid("Bạn không có quyền sao lưu dữ liệu");
                 }
+                
+                _logger.LogInformation($"Backup request received - BackupPath: '{request.BackupPath}'");
+                
                 var connectionString = _configuration.GetConnectionString("DefaultConnection");
                 var sqlConnectionStringBuilder = new SqlConnectionStringBuilder(connectionString);
                 var databaseName = sqlConnectionStringBuilder.InitialCatalog;
@@ -47,6 +63,8 @@ namespace RetailPointBackend.Controllers
                 var timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
                 var backupFileName = $"{databaseName}_backup_{timestamp}.bak";
                 var backupPath = Path.Combine(request.BackupPath ?? @"C:\temp", backupFileName);
+                
+                _logger.LogInformation($"Final backup path: '{backupPath}'");
 
                 // Tạo thư mục nếu chưa tồn tại
                 Directory.CreateDirectory(Path.GetDirectoryName(backupPath)!);
@@ -373,6 +391,7 @@ namespace RetailPointBackend.Controllers
     // DTOs
     public class BackupRequestDto
     {
+        [JsonPropertyName("backupPath")]
         public string? BackupPath { get; set; }
     }
 
