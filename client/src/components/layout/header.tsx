@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useNotifications } from "@/hooks/use-notifications";
 import { useAuth } from "@/contexts/auth-context";
+import { RefreshPermissionsButton } from "@/components/debug/refresh-permissions-button";
 
 interface HeaderProps {
   title: string;
@@ -65,6 +66,8 @@ export function Header({ title, onToggleNotifications, isWebSocketConnected }: H
         </div>
         
         <div className="flex items-center space-x-4">
+          <RefreshPermissionsButton />
+          
           <button
             className="relative p-2 text-gray-600 hover:bg-gray-100 rounded-lg"
             onClick={onToggleNotifications}

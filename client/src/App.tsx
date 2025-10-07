@@ -20,6 +20,7 @@ import OrdersPage from "@/pages/orders";
 import PrintOrder from "@/pages/print-order";
 import EInvoiceSettings from "@/pages/einvoice-settings";
 import VNPTTest from "@/pages/vnpt-test";
+import DataManagement from "@/pages/data-management";
 
 function Router() {
   return (
@@ -95,6 +96,11 @@ function Router() {
       <Route path="/vnpt-test">
         <ProtectedRoute requiredPermission="ViewSettings">
           <VNPTTest />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/data-management">
+        <ProtectedRoute requiredPermission="ViewDataManagement">
+          <DataManagement />
         </ProtectedRoute>
       </Route>
       <Route>

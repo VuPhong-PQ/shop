@@ -276,6 +276,38 @@ namespace RetailPointBackend.Controllers
             return Ok(response);
         }
 
+        // GET: api/Staff/refresh-permissions/{staffId}
+        [HttpGet("refresh-permissions/{staffId}")]
+        public async Task<ActionResult<object>> RefreshPermissions(int staffId)
+        {
+            var staff = await _context.Staffs
+                .Include(s => s.Role)
+                .ThenInclude(r => r.RolePermissions)
+                .ThenInclude(rp => rp.Permission)
+                .FirstOrDefaultAsync(s => s.StaffId == staffId && s.IsActive);
+
+            if (staff == null)
+            {
+                return NotFound("Nhân viên không tồn tại hoặc không hoạt động");
+            }
+
+            var permissions = staff.Role.RolePermissions
+                .Select(rp => rp.Permission.PermissionName)
+                .ToList();
+
+            return Ok(new
+            {
+                staffId = staff.StaffId,
+                fullName = staff.FullName,
+                username = staff.Username,
+                email = staff.Email,
+                roleId = staff.RoleId,
+                roleName = staff.Role.RoleName,
+                permissions = permissions,
+                lastLogin = staff.LastLogin
+            });
+        }
+
         private bool StaffExists(int id)
         {
             return _context.Staffs.Any(e => e.StaffId == id);

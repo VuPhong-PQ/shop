@@ -17,6 +17,7 @@ interface AuthContextType {
   login: (userData: User) => void;
   logout: () => void;
   hasPermission: (permission: string) => boolean;
+  refreshPermissions: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -62,12 +63,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return user.permissions.includes(permission);
   };
 
+  const refreshPermissions = async (): Promise<void> => {
+    if (!user) return;
+    
+    try {
+      const response = await fetch(`/api/Staff/refresh-permissions/${user.staffId}`);
+      if (response.ok) {
+        const userData = await response.json();
+        const updatedUser: User = {
+          staffId: userData.staffId,
+          fullName: userData.fullName,
+          username: userData.username,
+          email: userData.email,
+          roleId: userData.roleId,
+          roleName: userData.roleName,
+          permissions: userData.permissions,
+          lastLogin: userData.lastLogin
+        };
+        
+        setUser(updatedUser);
+        localStorage.setItem("user", JSON.stringify(updatedUser));
+      }
+    } catch (error) {
+      console.error("Error refreshing permissions:", error);
+    }
+  };
+
   const value: AuthContextType = {
     user,
     isAuthenticated,
     login,
     logout,
     hasPermission,
+    refreshPermissions,
   };
 
   return (

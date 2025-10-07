@@ -56,6 +56,9 @@ builder.Services.AddScoped<INotificationService, NotificationService>();
 // Đăng ký SeedDataService
 builder.Services.AddScoped<SeedDataService>();
 
+// Đăng ký PermissionService
+builder.Services.AddScoped<IPermissionService, PermissionService>();
+
 // Đăng ký FixEncodingService
 builder.Services.AddScoped<FixEncodingService>();
 

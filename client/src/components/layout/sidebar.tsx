@@ -17,7 +17,8 @@ import {
   Tag,
   ClipboardList,
   FileX,
-  TrendingUp
+  TrendingUp,
+  Database
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -46,6 +47,7 @@ const navigation = [
   },
   { name: 'Nhân viên', href: '/staff', icon: UserCheck, permission: 'ViewStaff' },
   { name: 'Cài đặt', href: '/settings', icon: Settings, permission: 'ViewSettings' },
+  { name: 'Quản lý dữ liệu', href: '/data-management', icon: Database, permission: 'ViewDataManagement' },
 ];
 
 export function Sidebar() {
