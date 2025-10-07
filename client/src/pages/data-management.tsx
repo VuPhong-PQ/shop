@@ -267,29 +267,54 @@ const DataManagement: React.FC = () => {
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => {
-                    // Create a temporary input element to select directory
-                    const input = document.createElement('input');
-                    input.type = 'file';
-                    input.webkitdirectory = true;
-                    input.onchange = (e: any) => {
-                      const files = e.target.files;
-                      if (files && files.length > 0) {
-                        // Get the directory path from the first file
-                        const firstFile = files[0];
-                        const path = firstFile.webkitRelativePath;
-                        const dirPath = path.substring(0, path.lastIndexOf('/'));
-                        // On Windows, we need to construct the full path
-                        // This is a simplified approach - in production you'd want better path handling
-                        const fullPath = firstFile.path ? firstFile.path.substring(0, firstFile.path.lastIndexOf('\\')) : `C:\\${dirPath.replace(/\//g, '\\')}`;
-                        setCustomBackupPath(fullPath);
+                  onClick={async () => {
+                    try {
+                      // Sử dụng File System Access API (nếu hỗ trợ)
+                      if ('showDirectoryPicker' in window) {
+                        const dirHandle = await (window as any).showDirectoryPicker();
+                        // Lấy đường dẫn từ handle (có thể cần xử lý khác tùy browser)
+                        setCustomBackupPath(dirHandle.name ? `C:\\${dirHandle.name}` : dirHandle.name);
+                      } else {
+                        // Fallback: Tạo input file với directory selection
+                        const input = document.createElement('input');
+                        input.type = 'file';
+                        input.webkitdirectory = true;
+                        input.multiple = false;
+                        
+                        input.onchange = (e: any) => {
+                          const files = e.target.files;
+                          if (files && files.length > 0) {
+                            const file = files[0];
+                            // Lấy đường dẫn thư mục từ webkitRelativePath
+                            const relativePath = file.webkitRelativePath;
+                            const folderName = relativePath.split('/')[0];
+                            
+                            // Prompt user để nhập đường dẫn đầy đủ
+                            const fullPath = window.prompt(
+                              `Thư mục được chọn: ${folderName}\n\nVui lòng nhập đường dẫn đầy đủ đến thư mục này:`,
+                              `C:\\${folderName}`
+                            );
+                            
+                            if (fullPath) {
+                              setCustomBackupPath(fullPath);
+                            }
+                          }
+                        };
+                        
+                        input.click();
                       }
-                    };
-                    input.click();
+                    } catch (error) {
+                      console.error('Error selecting directory:', error);
+                      // Fallback to manual input
+                      const path = window.prompt('Nhập đường dẫn thư mục để lưu backup:', customBackupPath || 'C:\\Backups');
+                      if (path) {
+                        setCustomBackupPath(path);
+                      }
+                    }
                   }}
                   disabled={isLoading}
                 >
-                  Chọn Thư Mục
+                  📁 Browse
                 </Button>
               </div>
               <div className="space-y-1">
@@ -299,6 +324,20 @@ const DataManagement: React.FC = () => {
                 <p className="text-xs text-blue-600">
                   💡 Tên file sẽ được tự động tạo theo định dạng: database_backup_YYYYMMDD_HHMMSS.bak
                 </p>
+                <div className="flex flex-wrap gap-1 mt-2">
+                  <span className="text-xs text-gray-500">Đường dẫn phổ biến:</span>
+                  {['C:\\Backups', 'D:\\Backups', 'C:\\temp\\backups'].map((path) => (
+                    <button
+                      key={path}
+                      type="button"
+                      onClick={() => setCustomBackupPath(path)}
+                      className="text-xs bg-gray-100 hover:bg-gray-200 px-2 py-1 rounded border text-gray-700"
+                      disabled={isLoading}
+                    >
+                      {path}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
 
@@ -383,31 +422,91 @@ const DataManagement: React.FC = () => {
                       <Button
                         type="button"
                         variant="outline"
-                        onClick={() => {
-                          // Create a temporary input element to select backup file
-                          const input = document.createElement('input');
-                          input.type = 'file';
-                          input.accept = '.bak,.sql';
-                          input.onchange = (e: any) => {
-                            const file = e.target.files[0];
-                            if (file) {
-                              // For web browsers, we can only get the file name
-                              // In a desktop app, you'd have access to full path
-                              const filePath = file.path || `C:\\Temp\\${file.name}`;
-                              setRestoreFilePath(filePath);
+                        onClick={async () => {
+                          try {
+                            // Sử dụng File System Access API (nếu hỗ trợ)
+                            if ('showOpenFilePicker' in window) {
+                              const [fileHandle] = await (window as any).showOpenFilePicker({
+                                types: [
+                                  {
+                                    description: 'Backup files',
+                                    accept: {
+                                      'application/octet-stream': ['.bak'],
+                                      'application/sql': ['.sql']
+                                    }
+                                  }
+                                ]
+                              });
+                              
+                              // Prompt user để nhập đường dẫn đầy đủ vì browser không cho phép access full path
+                              const fullPath = window.prompt(
+                                `File được chọn: ${fileHandle.name}\n\nVui lòng nhập đường dẫn đầy đủ đến file này:`,
+                                `C:\\temp\\${fileHandle.name}`
+                              );
+                              
+                              if (fullPath) {
+                                setRestoreFilePath(fullPath);
+                              }
+                            } else {
+                              // Fallback: Input file picker thông thường
+                              const input = document.createElement('input');
+                              input.type = 'file';
+                              input.accept = '.bak,.sql';
+                              
+                              input.onchange = (e: any) => {
+                                const file = e.target.files[0];
+                                if (file) {
+                                  // Prompt user để nhập đường dẫn đầy đủ
+                                  const fullPath = window.prompt(
+                                    `File được chọn: ${file.name}\n\nVui lòng nhập đường dẫn đầy đủ đến file này:`,
+                                    `C:\\temp\\${file.name}`
+                                  );
+                                  
+                                  if (fullPath) {
+                                    setRestoreFilePath(fullPath);
+                                  }
+                                }
+                              };
+                              
+                              input.click();
                             }
-                          };
-                          input.click();
+                          } catch (error) {
+                            console.error('Error selecting file:', error);
+                            // Fallback to manual input
+                            const path = window.prompt(
+                              'Nhập đường dẫn đầy đủ đến file backup (.bak):',
+                              restoreFilePath || 'C:\\temp\\RetailPoint_backup_20241007_161912.bak'
+                            );
+                            if (path) {
+                              setRestoreFilePath(path);
+                            }
+                          }
                         }}
                         disabled={isLoading}
                       >
                         <FileText className="h-4 w-4 mr-1" />
-                        Chọn File
+                        📄 Browse
                       </Button>
                     </div>
-                    <p className="text-sm text-gray-600">
-                      Chọn file backup (.bak) để phục hồi database
-                    </p>
+                    <div className="space-y-1">
+                      <p className="text-sm text-gray-600">
+                        Nhập đường dẫn đầy đủ đến file backup (.bak) cần phục hồi
+                      </p>
+                      <div className="flex flex-wrap gap-1 mt-2">
+                        <span className="text-xs text-gray-500">Thư mục thường dùng:</span>
+                        {['C:\\temp\\', 'C:\\Backups\\', 'D:\\Backups\\'].map((path) => (
+                          <button
+                            key={path}
+                            type="button"
+                            onClick={() => setRestoreFilePath(path)}
+                            className="text-xs bg-gray-100 hover:bg-gray-200 px-2 py-1 rounded border text-gray-700"
+                            disabled={isLoading}
+                          >
+                            {path}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
                   </div>
 
                   {restoreProgress > 0 && (
