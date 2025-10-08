@@ -21,6 +21,22 @@ export interface RestoreRequest {
   backupFilePath: string;
 }
 
+export interface BackupFile {
+  fileName: string;
+  filePath: string;
+  size: number;
+  lastModified: string;
+  extension: string;
+}
+
+export interface UploadBackupResponse {
+  message: string;
+  filePath: string;
+  fileName: string;
+  originalName: string;
+  size: number;
+}
+
 export interface DeleteConfirmation {
   confirmationText: string;
 }
@@ -70,6 +86,48 @@ export const dataManagementApi = {
     if (!response.ok) {
       const error = await response.json();
       throw new Error(error.message || 'Lỗi khi sao lưu database');
+    }
+
+    return response.json();
+  },
+
+  // Get backup files list
+  getBackupFiles: async (): Promise<BackupFile[]> => {
+    const staffId = localStorage.getItem('staffId');
+    const response = await fetch(`${API_BASE}/backup-files`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'StaffId': staffId || ''
+      }
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Lỗi khi lấy danh sách backup files');
+    }
+
+    const result = await response.json();
+    return result.files;
+  },
+
+  // Upload backup file
+  uploadBackupFile: async (file: File): Promise<UploadBackupResponse> => {
+    const staffId = localStorage.getItem('staffId');
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const response = await fetch(`${API_BASE}/upload-backup`, {
+      method: 'POST',
+      headers: {
+        'StaffId': staffId || ''
+      },
+      body: formData
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Lỗi khi upload backup file');
     }
 
     return response.json();
@@ -141,6 +199,8 @@ export const useDataManagement = () => {
   return {
     getDatabaseInfo: () => dataManagementApi.getDatabaseInfo(),
     backupDatabase: (request: BackupRequest) => dataManagementApi.backupDatabase(request),
+    getBackupFiles: () => dataManagementApi.getBackupFiles(),
+    uploadBackupFile: (file: File) => dataManagementApi.uploadBackupFile(file),
     restoreDatabase: (request: RestoreRequest) => dataManagementApi.restoreDatabase(request),
     deleteSalesData: (confirmation: DeleteConfirmation) => dataManagementApi.deleteSalesData(confirmation),
     deleteAllData: (confirmation: DeleteConfirmation) => dataManagementApi.deleteAllData(confirmation)

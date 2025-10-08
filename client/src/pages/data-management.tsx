@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { 
   Database, 
   Download, 
@@ -24,7 +25,7 @@ import {
   Loader2
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { dataManagementApi, type DatabaseInfo, type BackupResult } from '@/lib/data-management-api';
+import { dataManagementApi, type DatabaseInfo, type BackupResult, type BackupFile } from '@/lib/data-management-api';
 
 const DataManagement: React.FC = () => {
   const { toast } = useToast();
@@ -37,10 +38,14 @@ const DataManagement: React.FC = () => {
   const [salesDataConfirmation, setSalesDataConfirmation] = useState('');
   const [allDataConfirmation, setAllDataConfirmation] = useState('');
   const [showRestoreDialog, setShowRestoreDialog] = useState(false);
+  const [backupFiles, setBackupFiles] = useState<BackupFile[]>([]);
+  const [selectedBackupFile, setSelectedBackupFile] = useState('');
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
 
   // Load database info on component mount
   useEffect(() => {
     loadDatabaseInfo();
+    loadBackupFiles();
   }, []);
 
   const loadDatabaseInfo = async () => {
@@ -57,14 +62,23 @@ const DataManagement: React.FC = () => {
     }
   };
 
-  const handleBackupDatabase = async () => {
+  const loadBackupFiles = async () => {
+    try {
+      const files = await dataManagementApi.getBackupFiles();
+      setBackupFiles(files);
+    } catch (error: any) {
+      console.error('Error loading backup files:', error);
+      // Không hiển thị toast error cho việc load backup files vì có thể folder chưa tồn tại
+    }
+  };
+
+  const handleCreateBackup = async () => {
     setIsLoading(true);
     setBackupProgress(0);
     
     try {
-      console.log('Backup Path being sent:', customBackupPath);
       const result = await dataManagementApi.backupDatabase({
-        backupPath: customBackupPath?.trim() || undefined
+        backupPath: customBackupPath.trim() || undefined
       });
       
       setBackupProgress(100);
@@ -75,7 +89,7 @@ const DataManagement: React.FC = () => {
       setCustomBackupPath('');
       await loadDatabaseInfo();
     } catch (error: any) {
-      console.error('Error backing up database:', error);
+      console.error('Error creating backup:', error);
       toast({
         variant: "destructive",
         title: "Lỗi",
@@ -87,12 +101,37 @@ const DataManagement: React.FC = () => {
     }
   };
 
+  const handleFileUpload = async (file: File) => {
+    if (!file) return;
+
+    setIsLoading(true);
+    try {
+      const result = await dataManagementApi.uploadBackupFile(file);
+      toast({
+        title: "Thành công",
+        description: `Upload file ${result.originalName} thành công!`
+      });
+      setUploadedFile(file);
+      setRestoreFilePath(result.filePath);
+      await loadBackupFiles(); // Reload backup files list
+    } catch (error: any) {
+      console.error('Error uploading file:', error);
+      toast({
+        variant: "destructive",
+        title: "Lỗi",
+        description: error.message || 'Lỗi khi upload file backup'
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleRestoreDatabase = async () => {
     if (!restoreFilePath.trim()) {
       toast({
         variant: "destructive",
         title: "Lỗi",
-        description: 'Vui lòng nhập đường dẫn file backup'
+        description: 'Vui lòng chọn file backup hoặc upload file mới'
       });
       return;
     }
@@ -111,6 +150,8 @@ const DataManagement: React.FC = () => {
         description: 'Phục hồi database thành công!'
       });
       setRestoreFilePath('');
+      setSelectedBackupFile('');
+      setUploadedFile(null);
       setShowRestoreDialog(false);
       await loadDatabaseInfo();
     } catch (error: any) {
@@ -131,7 +172,7 @@ const DataManagement: React.FC = () => {
       toast({
         variant: "destructive",
         title: "Lỗi",
-        description: 'Vui lòng nhập đúng text xác nhận: DELETE SALES DATA'
+        description: 'Vui lòng nhập chính xác "DELETE SALES DATA"'
       });
       return;
     }
@@ -145,7 +186,7 @@ const DataManagement: React.FC = () => {
       
       toast({
         title: "Thành công",
-        description: 'Đã xóa dữ liệu bán hàng thành công!'
+        description: 'Xóa dữ liệu bán hàng thành công!'
       });
       setSalesDataConfirmation('');
       await loadDatabaseInfo();
@@ -166,7 +207,7 @@ const DataManagement: React.FC = () => {
       toast({
         variant: "destructive",
         title: "Lỗi",
-        description: 'Vui lòng nhập đúng text xác nhận: DELETE ALL DATA'
+        description: 'Vui lòng nhập chính xác "DELETE ALL DATA"'
       });
       return;
     }
@@ -180,7 +221,7 @@ const DataManagement: React.FC = () => {
       
       toast({
         title: "Thành công",
-        description: 'Đã xóa toàn bộ dữ liệu thành công!'
+        description: 'Xóa toàn bộ dữ liệu thành công!'
       });
       setAllDataConfirmation('');
       await loadDatabaseInfo();
@@ -196,55 +237,74 @@ const DataManagement: React.FC = () => {
     }
   };
 
+  const formatFileSize = (bytes: number) => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      <div className="flex items-center gap-3 mb-6">
-        <Database className="h-8 w-8 text-blue-600" />
+    <div className="container mx-auto p-6">
+      <div className="flex items-center justify-between mb-6">
         <h1 className="text-3xl font-bold text-gray-900">Quản Lý Dữ Liệu</h1>
-        <Badge variant="secondary" className="ml-auto">
+        <Badge variant="outline">
           <Shield className="h-4 w-4 mr-1" />
-          Cần phân quyền
+          Cấp quyền
         </Badge>
       </div>
 
       {/* Database Info Card */}
-      <Card>
+      <Card className="mb-6">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <HardDrive className="h-5 w-5" />
+            <Database className="h-5 w-5 text-blue-600" />
             Thông Tin Database
           </CardTitle>
         </CardHeader>
         <CardContent>
           {databaseInfo ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="flex flex-col">
-                <Label className="text-sm text-gray-600">Tên Database</Label>
-                <span className="font-semibold">{databaseInfo.databaseName}</span>
+              <div className="flex items-center gap-3">
+                <Database className="h-8 w-8 text-blue-600" />
+                <div>
+                  <p className="text-sm text-gray-600">Tên Database</p>
+                  <p className="font-semibold">{databaseInfo.databaseName}</p>
+                </div>
               </div>
-              <div className="flex flex-col">
-                <Label className="text-sm text-gray-600">Kích Thước</Label>
-                <span className="font-semibold">{databaseInfo.sizeMB} MB</span>
+              <div className="flex items-center gap-3">
+                <HardDrive className="h-8 w-8 text-green-600" />
+                <div>
+                  <p className="text-sm text-gray-600">Kích Thước</p>
+                  <p className="font-semibold">{databaseInfo.sizeMB} MB</p>
+                </div>
               </div>
-              <div className="flex flex-col">
-                <Label className="text-sm text-gray-600">Server</Label>
-                <span className="font-semibold">{databaseInfo.serverName}</span>
+              <div className="flex items-center gap-3">
+                <Database className="h-8 w-8 text-purple-600" />
+                <div>
+                  <p className="text-sm text-gray-600">Server</p>
+                  <p className="font-semibold">{databaseInfo.serverName}</p>
+                </div>
               </div>
-              <div className="flex flex-col">
-                <Label className="text-sm text-gray-600">Backup Cuối</Label>
-                <span className="font-semibold">{databaseInfo.lastBackup}</span>
+              <div className="flex items-center gap-3">
+                <Clock className="h-8 w-8 text-orange-600" />
+                <div>
+                  <p className="text-sm text-gray-600">Backup Cuối</p>
+                  <p className="font-semibold">{databaseInfo.lastBackup || 'Chưa có'}</p>
+                </div>
               </div>
             </div>
           ) : (
             <div className="flex items-center justify-center py-8">
-              <Loader2 className="h-6 w-6 animate-spin mr-2" />
-              <span>Đang tải thông tin database...</span>
+              <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+              <span className="ml-2 text-gray-600">Đang tải thông tin...</span>
             </div>
           )}
         </CardContent>
       </Card>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Backup Database Card */}
         <Card>
           <CardHeader>
@@ -256,128 +316,41 @@ const DataManagement: React.FC = () => {
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label>Đường dẫn sao lưu (tùy chọn)</Label>
-              <div className="flex gap-2">
-                <Input
-                  placeholder="Ví dụ: C:\Backups"
-                  value={customBackupPath}
-                  onChange={(e) => setCustomBackupPath(e.target.value)}
-                  disabled={isLoading}
-                  className="flex-1"
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={async () => {
-                    try {
-                      // Sử dụng File System Access API (nếu hỗ trợ)
-                      if ('showDirectoryPicker' in window) {
-                        const dirHandle = await (window as any).showDirectoryPicker();
-                        // Lấy đường dẫn từ handle (có thể cần xử lý khác tùy browser)
-                        setCustomBackupPath(dirHandle.name ? `C:\\${dirHandle.name}` : dirHandle.name);
-                      } else {
-                        // Fallback: Tạo input file với directory selection
-                        const input = document.createElement('input');
-                        input.type = 'file';
-                        input.webkitdirectory = true;
-                        input.multiple = false;
-                        
-                        input.onchange = (e: any) => {
-                          const files = e.target.files;
-                          if (files && files.length > 0) {
-                            const file = files[0];
-                            // Lấy đường dẫn thư mục từ webkitRelativePath
-                            const relativePath = file.webkitRelativePath;
-                            const folderName = relativePath.split('/')[0];
-                            
-                            // Prompt user để nhập đường dẫn đầy đủ
-                            const fullPath = window.prompt(
-                              `Thư mục được chọn: ${folderName}\n\nVui lòng nhập đường dẫn đầy đủ đến thư mục này:`,
-                              `C:\\${folderName}`
-                            );
-                            
-                            if (fullPath) {
-                              setCustomBackupPath(fullPath);
-                            }
-                          }
-                        };
-                        
-                        input.click();
-                      }
-                    } catch (error) {
-                      console.error('Error selecting directory:', error);
-                      // Fallback to manual input
-                      const path = window.prompt('Nhập đường dẫn thư mục để lưu backup:', customBackupPath || 'C:\\Backups');
-                      if (path) {
-                        setCustomBackupPath(path);
-                      }
-                    }
-                  }}
-                  disabled={isLoading}
-                >
-                  📁 Browse
-                </Button>
-              </div>
-              <div className="space-y-1">
-                <p className="text-sm text-gray-600">
-                  Để trống sẽ sử dụng đường dẫn mặc định: <code className="bg-gray-100 px-1 rounded">C:\temp</code>
-                </p>
-                <p className="text-xs text-blue-600">
-                  💡 Tên file sẽ được tự động tạo theo định dạng: database_backup_YYYYMMDD_HHMMSS.bak
-                </p>
-                <div className="flex flex-wrap gap-1 mt-2">
-                  <span className="text-xs text-gray-500">Đường dẫn phổ biến:</span>
-                  {['C:\\Backups', 'D:\\Backups', 'C:\\temp\\backups'].map((path) => (
-                    <button
-                      key={path}
-                      type="button"
-                      onClick={() => setCustomBackupPath(path)}
-                      className="text-xs bg-gray-100 hover:bg-gray-200 px-2 py-1 rounded border text-gray-700"
-                      disabled={isLoading}
-                    >
-                      {path}
-                    </button>
-                  ))}
-                </div>
-              </div>
+              <Input
+                placeholder="Để trống sẽ dùng đường dẫn mặc định"
+                value={customBackupPath}
+                onChange={(e) => setCustomBackupPath(e.target.value)}
+                disabled={isLoading}
+              />
+              <p className="text-sm text-gray-600">
+                Mặc định: C:\temp\RetailPoint_backup_[timestamp].bak
+              </p>
             </div>
 
             {backupProgress > 0 && (
               <div className="space-y-2">
+                <Label>Tiến trình sao lưu:</Label>
                 <Progress value={backupProgress} className="w-full" />
-                <p className="text-sm text-center">Đang sao lưu... {backupProgress}%</p>
               </div>
             )}
 
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button 
-                  className="w-full" 
-                  disabled={isLoading}
-                >
-                  {isLoading ? (
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  ) : (
-                    <Download className="h-4 w-4 mr-2" />
-                  )}
-                  Sao Lưu Database
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Xác nhận sao lưu</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Bạn có chắc chắn muốn sao lưu toàn bộ database? 
-                    Quá trình này có thể mất vài phút tùy thuộc vào kích thước dữ liệu.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Hủy</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleBackupDatabase}>
-                    Sao Lưu
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
+            <Button
+              onClick={handleCreateBackup}
+              disabled={isLoading}
+              className="w-full"
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Đang sao lưu...
+                </>
+              ) : (
+                <>
+                  <Download className="h-4 w-4 mr-2" />
+                  Tạo Backup
+                </>
+              )}
+            </Button>
           </CardContent>
         </Card>
 
@@ -404,138 +377,129 @@ const DataManagement: React.FC = () => {
                   Phục Hồi Database
                 </Button>
               </DialogTrigger>
-              <DialogContent>
+              <DialogContent className="max-w-md">
                 <DialogHeader>
                   <DialogTitle>Phục Hồi Database</DialogTitle>
                 </DialogHeader>
                 <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label>Đường dẫn file backup (.bak)</Label>
-                    <div className="flex gap-2">
-                      <Input
-                        placeholder="Ví dụ: C:\Backups\database_backup_20241007_120000.bak"
-                        value={restoreFilePath}
-                        onChange={(e) => setRestoreFilePath(e.target.value)}
-                        disabled={isLoading}
-                        className="flex-1"
-                      />
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={async () => {
-                          try {
-                            // Sử dụng File System Access API (nếu hỗ trợ)
-                            if ('showOpenFilePicker' in window) {
-                              const [fileHandle] = await (window as any).showOpenFilePicker({
-                                types: [
-                                  {
-                                    description: 'Backup files',
-                                    accept: {
-                                      'application/octet-stream': ['.bak'],
-                                      'application/sql': ['.sql']
-                                    }
-                                  }
-                                ]
-                              });
-                              
-                              // Prompt user để nhập đường dẫn đầy đủ vì browser không cho phép access full path
-                              const fullPath = window.prompt(
-                                `File được chọn: ${fileHandle.name}\n\nVui lòng nhập đường dẫn đầy đủ đến file này:`,
-                                `C:\\temp\\${fileHandle.name}`
-                              );
-                              
-                              if (fullPath) {
-                                setRestoreFilePath(fullPath);
-                              }
-                            } else {
-                              // Fallback: Input file picker thông thường
-                              const input = document.createElement('input');
-                              input.type = 'file';
-                              input.accept = '.bak,.sql';
-                              
-                              input.onchange = (e: any) => {
-                                const file = e.target.files[0];
-                                if (file) {
-                                  // Prompt user để nhập đường dẫn đầy đủ
-                                  const fullPath = window.prompt(
-                                    `File được chọn: ${file.name}\n\nVui lòng nhập đường dẫn đầy đủ đến file này:`,
-                                    `C:\\temp\\${file.name}`
-                                  );
-                                  
-                                  if (fullPath) {
-                                    setRestoreFilePath(fullPath);
-                                  }
-                                }
-                              };
-                              
-                              input.click();
-                            }
-                          } catch (error) {
-                            console.error('Error selecting file:', error);
-                            // Fallback to manual input
-                            const path = window.prompt(
-                              'Nhập đường dẫn đầy đủ đến file backup (.bak):',
-                              restoreFilePath || 'C:\\temp\\RetailPoint_backup_20241007_161912.bak'
-                            );
-                            if (path) {
-                              setRestoreFilePath(path);
-                            }
-                          }
+                  <Alert>
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertDescription>
+                      Phục hồi sẽ ghi đè toàn bộ dữ liệu hiện tại!
+                    </AlertDescription>
+                  </Alert>
+
+                  {/* Chọn từ backup files đã có */}
+                  {backupFiles.length > 0 && (
+                    <div className="space-y-2">
+                      <Label>Chọn từ backup files đã upload:</Label>
+                      <Select 
+                        value={selectedBackupFile} 
+                        onValueChange={(value) => {
+                          setSelectedBackupFile(value);
+                          setRestoreFilePath(value);
+                          setUploadedFile(null);
                         }}
-                        disabled={isLoading}
                       >
-                        <FileText className="h-4 w-4 mr-1" />
-                        📄 Browse
-                      </Button>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Chọn file backup..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {backupFiles.map((file) => (
+                            <SelectItem key={file.fileName} value={file.filePath}>
+                              <div className="flex flex-col">
+                                <span className="font-medium">{file.fileName}</span>
+                                <span className="text-xs text-gray-500">
+                                  {formatFileSize(file.size)} - {new Date(file.lastModified).toLocaleString()}
+                                </span>
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
-                    <div className="space-y-1">
-                      <p className="text-sm text-gray-600">
-                        Nhập đường dẫn đầy đủ đến file backup (.bak) cần phục hồi
-                      </p>
-                      <div className="flex flex-wrap gap-1 mt-2">
-                        <span className="text-xs text-gray-500">Thư mục thường dùng:</span>
-                        {['C:\\temp\\', 'C:\\Backups\\', 'D:\\Backups\\'].map((path) => (
-                          <button
-                            key={path}
-                            type="button"
-                            onClick={() => setRestoreFilePath(path)}
-                            className="text-xs bg-gray-100 hover:bg-gray-200 px-2 py-1 rounded border text-gray-700"
-                            disabled={isLoading}
-                          >
-                            {path}
-                          </button>
-                        ))}
+                  )}
+
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 border-t border-gray-300"></div>
+                    <span className="text-sm text-gray-500">HOẶC</span>
+                    <div className="flex-1 border-t border-gray-300"></div>
+                  </div>
+
+                  {/* Upload file mới */}
+                  <div className="space-y-2">
+                    <Label>Upload file backup mới:</Label>
+                    <div className="flex items-center justify-center w-full">
+                      <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100">
+                        <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                          <Upload className="w-8 h-8 mb-2 text-gray-500" />
+                          <p className="mb-2 text-sm text-gray-500">
+                            <span className="font-semibold">Click để chọn</span> hoặc kéo thả file
+                          </p>
+                          <p className="text-xs text-gray-500">.bak hoặc .sql files</p>
+                        </div>
+                        <input
+                          type="file"
+                          className="hidden"
+                          accept=".bak,.sql"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              handleFileUpload(file);
+                              setSelectedBackupFile('');
+                            }
+                          }}
+                          disabled={isLoading}
+                        />
+                      </label>
+                    </div>
+                    
+                    {uploadedFile && (
+                      <div className="p-3 bg-green-50 border border-green-200 rounded-md">
+                        <p className="text-sm text-green-800">
+                          ✓ Đã upload: {uploadedFile.name}
+                        </p>
                       </div>
-                    </div>
+                    )}
                   </div>
 
                   {restoreProgress > 0 && (
                     <div className="space-y-2">
+                      <Label>Tiến trình phục hồi:</Label>
                       <Progress value={restoreProgress} className="w-full" />
-                      <p className="text-sm text-center">Đang phục hồi... {restoreProgress}%</p>
                     </div>
                   )}
+                </div>
 
-                  <Alert>
-                    <AlertTriangle className="h-4 w-4" />
-                    <AlertDescription>
-                      Thao tác này sẽ thay thế hoàn toàn dữ liệu hiện tại. Đảm bảo bạn đã sao lưu trước khi thực hiện!
-                    </AlertDescription>
-                  </Alert>
-
-                  <div className="flex justify-end gap-2">
-                    <Button variant="outline" onClick={() => setShowRestoreDialog(false)}>
-                      Hủy
-                    </Button>
-                    <Button onClick={handleRestoreDatabase} disabled={isLoading || !restoreFilePath.trim()}>
-                      {isLoading ? (
-                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                      ) : (
+                <div className="flex justify-end gap-2 mt-6">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setShowRestoreDialog(false);
+                      setRestoreFilePath('');
+                      setSelectedBackupFile('');
+                      setUploadedFile(null);
+                    }}
+                    disabled={isLoading}
+                  >
+                    Hủy
+                  </Button>
+                  <Button
+                    onClick={handleRestoreDatabase}
+                    disabled={isLoading || !restoreFilePath.trim()}
+                  >
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Đang phục hồi...
+                      </>
+                    ) : (
+                      <>
                         <Upload className="h-4 w-4 mr-2" />
-                      )}
-                      Phục Hồi
-                    </Button>
-                  </div>
+                        Phục Hồi
+                      </>
+                    )}
+                  </Button>
                 </div>
               </DialogContent>
             </Dialog>
@@ -543,12 +507,13 @@ const DataManagement: React.FC = () => {
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* Data Deletion Section */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
         {/* Delete Sales Data Card */}
-        <Card className="border-orange-200">
+        <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-orange-700">
-              <Trash2 className="h-5 w-5" />
+            <CardTitle className="flex items-center gap-2">
+              <Trash2 className="h-5 w-5 text-yellow-600" />
               Xóa Dữ Liệu Bán Hàng
             </CardTitle>
           </CardHeader>
@@ -556,60 +521,42 @@ const DataManagement: React.FC = () => {
             <Alert>
               <AlertTriangle className="h-4 w-4" />
               <AlertDescription>
-                Xóa toàn bộ đơn hàng, khách hàng, báo cáo. <br />
-                <strong>Giữ lại:</strong> Sản phẩm, nhóm hàng, nhân viên, cài đặt.
+                Xóa tất cả đơn hàng, chi tiết đơn hàng và dữ liệu thanh toán
               </AlertDescription>
             </Alert>
 
             <div className="space-y-2">
               <Label>Nhập "DELETE SALES DATA" để xác nhận:</Label>
               <Input
+                placeholder="DELETE SALES DATA"
                 value={salesDataConfirmation}
                 onChange={(e) => setSalesDataConfirmation(e.target.value)}
-                placeholder="DELETE SALES DATA"
                 disabled={isLoading}
               />
             </div>
 
             <AlertDialog>
               <AlertDialogTrigger asChild>
-                <Button 
-                  variant="destructive" 
-                  className="w-full" 
+                <Button
+                  variant="destructive"
                   disabled={isLoading || salesDataConfirmation !== 'DELETE SALES DATA'}
+                  className="w-full"
                 >
-                  {isLoading ? (
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  ) : (
-                    <Trash2 className="h-4 w-4 mr-2" />
-                  )}
+                  <Trash2 className="h-4 w-4 mr-2" />
                   Xóa Dữ Liệu Bán Hàng
                 </Button>
               </AlertDialogTrigger>
               <AlertDialogContent>
                 <AlertDialogHeader>
-                  <AlertDialogTitle className="text-orange-700">
-                    Xóa Dữ Liệu Bán Hàng
-                  </AlertDialogTitle>
+                  <AlertDialogTitle>Bạn có chắc chắn?</AlertDialogTitle>
                   <AlertDialogDescription>
-                    <strong>Cảnh báo nghiêm trọng!</strong><br />
-                    Thao tác này sẽ xóa vĩnh viễn:
-                    <ul className="list-disc list-inside mt-2 space-y-1">
-                      <li>Tất cả đơn hàng và chi tiết đơn hàng</li>
-                      <li>Thông tin khách hàng</li>
-                      <li>Lịch sử xuất nhập kho</li>
-                      <li>Báo cáo bán hàng</li>
-                    </ul>
-                    <br />
-                    <strong>Dữ liệu được giữ lại:</strong> Sản phẩm, nhóm hàng, nhân viên, cài đặt hệ thống.
-                    <br /><br />
-                    Bạn có chắc chắn muốn tiếp tục?
+                    Thao tác này sẽ xóa vĩnh viễn tất cả dữ liệu bán hàng và không thể hoàn tác.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel>Hủy</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleDeleteSalesData} className="bg-orange-600 hover:bg-orange-700">
-                    Xóa Dữ Liệu Bán Hàng
+                  <AlertDialogAction onClick={handleDeleteSalesData}>
+                    Xóa
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
@@ -618,75 +565,54 @@ const DataManagement: React.FC = () => {
         </Card>
 
         {/* Delete All Data Card */}
-        <Card className="border-red-200">
+        <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-red-700">
-              <XCircle className="h-5 w-5" />
+            <CardTitle className="flex items-center gap-2">
+              <XCircle className="h-5 w-5 text-red-600" />
               Xóa Toàn Bộ Dữ Liệu
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <Alert variant="destructive">
+            <Alert>
               <AlertTriangle className="h-4 w-4" />
               <AlertDescription>
-                <strong>NGUY HIỂM!</strong> Xóa toàn bộ dữ liệu hệ thống. <br />
-                <strong>Giữ lại:</strong> Chỉ cấu hình permissions cơ bản.
+                <strong>NGUY HIỂM:</strong> Xóa toàn bộ dữ liệu trong database!
               </AlertDescription>
             </Alert>
 
             <div className="space-y-2">
               <Label>Nhập "DELETE ALL DATA" để xác nhận:</Label>
               <Input
+                placeholder="DELETE ALL DATA"
                 value={allDataConfirmation}
                 onChange={(e) => setAllDataConfirmation(e.target.value)}
-                placeholder="DELETE ALL DATA"
                 disabled={isLoading}
               />
             </div>
 
             <AlertDialog>
               <AlertDialogTrigger asChild>
-                <Button 
-                  variant="destructive" 
-                  className="w-full bg-red-600 hover:bg-red-700" 
+                <Button
+                  variant="destructive"
                   disabled={isLoading || allDataConfirmation !== 'DELETE ALL DATA'}
+                  className="w-full"
                 >
-                  {isLoading ? (
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  ) : (
-                    <XCircle className="h-4 w-4 mr-2" />
-                  )}
+                  <XCircle className="h-4 w-4 mr-2" />
                   Xóa Toàn Bộ Dữ Liệu
                 </Button>
               </AlertDialogTrigger>
               <AlertDialogContent>
                 <AlertDialogHeader>
-                  <AlertDialogTitle className="text-red-700">
-                    XÓA TOÀN BỘ DỮ LIỆU HỆ THỐNG
-                  </AlertDialogTitle>
+                  <AlertDialogTitle>CẢNH BÁO: Xóa toàn bộ dữ liệu!</AlertDialogTitle>
                   <AlertDialogDescription>
-                    <strong className="text-red-600">CẢNH BÁO CỰC KỲ NGHIÊM TRỌNG!</strong><br />
-                    Thao tác này sẽ xóa vĩnh viễn:
-                    <ul className="list-disc list-inside mt-2 space-y-1">
-                      <li><strong>Tất cả sản phẩm và nhóm hàng</strong></li>
-                      <li><strong>Tất cả đơn hàng và dữ liệu bán hàng</strong></li>
-                      <li><strong>Tất cả khách hàng</strong></li>
-                      <li><strong>Tất cả nhân viên và phân quyền</strong></li>
-                      <li><strong>Tất cả cài đặt hệ thống</strong></li>
-                      <li><strong>Tất cả báo cáo và lịch sử</strong></li>
-                    </ul>
-                    <br />
-                    <strong className="text-green-600">Chỉ giữ lại:</strong> Cấu hình permissions cơ bản của hệ thống.
-                    <br /><br />
-                    <strong className="text-red-600">THAO TÁC NÀY KHÔNG THỂ HOÀN TÁC!</strong>
-                    <br />
-                    Bạn có chắc chắn muốn tiếp tục?
+                    Thao tác này sẽ xóa VĨNh VIỄN toàn bộ dữ liệu trong database và KHÔNG THỂ hoàn tác. 
+                    Hãy chắc chắn bạn đã sao lưu dữ liệu trước khi thực hiện!
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel>Hủy</AlertDialogCancel>
                   <AlertDialogAction onClick={handleDeleteAllData} className="bg-red-600 hover:bg-red-700">
-                    XÓA TOÀN BỘ DỮ LIỆU
+                    Xóa Tất Cả
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
@@ -694,25 +620,6 @@ const DataManagement: React.FC = () => {
           </CardContent>
         </Card>
       </div>
-
-      {/* Information Footer */}
-      <Card className="bg-blue-50 border-blue-200">
-        <CardContent className="pt-6">
-          <div className="flex items-start gap-3">
-            <FileText className="h-5 w-5 text-blue-600 mt-0.5" />
-            <div className="space-y-2">
-              <h3 className="font-semibold text-blue-900">Lưu Ý Quan Trọng</h3>
-              <ul className="text-sm text-blue-800 space-y-1">
-                <li>• <strong>Sao lưu thường xuyên:</strong> Thực hiện backup định kỳ để bảo vệ dữ liệu</li>
-                <li>• <strong>Kiểm tra file backup:</strong> Đảm bảo file backup có thể sử dụng được trước khi xóa dữ liệu</li>
-                <li>• <strong>Phân quyền:</strong> Chỉ người có quyền mới có thể thực hiện các thao tác này</li>
-                <li>• <strong>Thời gian thực hiện:</strong> Backup/Restore có thể mất thời gian tùy thuộc kích thước dữ liệu</li>
-                <li>• <strong>Kết nối ổn định:</strong> Đảm bảo kết nối internet và database ổn định trong quá trình thực hiện</li>
-              </ul>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 };
