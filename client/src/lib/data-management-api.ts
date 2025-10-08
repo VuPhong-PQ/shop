@@ -171,26 +171,6 @@ export const dataManagementApi = {
     }
 
     return response.json();
-  },
-
-  // Delete all data
-  deleteAllData: async (confirmation: DeleteConfirmation): Promise<{ message: string; timestamp: string }> => {
-    const staffId = localStorage.getItem('staffId');
-    const response = await fetch(`${API_BASE}/all-data`, {
-      method: 'DELETE',
-      headers: {
-        'Content-Type': 'application/json',
-        'StaffId': staffId || ''
-      },
-      body: JSON.stringify(confirmation)
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || 'Lỗi khi xóa toàn bộ dữ liệu');
-    }
-
-    return response.json();
   }
 };
 
@@ -202,7 +182,6 @@ export const useDataManagement = () => {
     getBackupFiles: () => dataManagementApi.getBackupFiles(),
     uploadBackupFile: (file: File) => dataManagementApi.uploadBackupFile(file),
     restoreDatabase: (request: RestoreRequest) => dataManagementApi.restoreDatabase(request),
-    deleteSalesData: (confirmation: DeleteConfirmation) => dataManagementApi.deleteSalesData(confirmation),
-    deleteAllData: (confirmation: DeleteConfirmation) => dataManagementApi.deleteAllData(confirmation)
+    deleteSalesData: (confirmation: DeleteConfirmation) => dataManagementApi.deleteSalesData(confirmation)
   };
 };

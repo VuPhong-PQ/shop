@@ -21,7 +21,6 @@ import {
   HardDrive,
   Clock,
   CheckCircle,
-  XCircle,
   Loader2
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -36,7 +35,6 @@ const DataManagement: React.FC = () => {
   const [customBackupPath, setCustomBackupPath] = useState('');
   const [restoreFilePath, setRestoreFilePath] = useState('');
   const [salesDataConfirmation, setSalesDataConfirmation] = useState('');
-  const [allDataConfirmation, setAllDataConfirmation] = useState('');
   const [showRestoreDialog, setShowRestoreDialog] = useState(false);
   const [backupFiles, setBackupFiles] = useState<BackupFile[]>([]);
   const [selectedBackupFile, setSelectedBackupFile] = useState('');
@@ -196,41 +194,6 @@ const DataManagement: React.FC = () => {
         variant: "destructive",
         title: "Lỗi",
         description: error.message || 'Lỗi khi xóa dữ liệu bán hàng'
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleDeleteAllData = async () => {
-    if (allDataConfirmation !== 'DELETE ALL DATA') {
-      toast({
-        variant: "destructive",
-        title: "Lỗi",
-        description: 'Vui lòng nhập chính xác "DELETE ALL DATA"'
-      });
-      return;
-    }
-
-    setIsLoading(true);
-    
-    try {
-      const result = await dataManagementApi.deleteAllData({
-        confirmationText: allDataConfirmation
-      });
-      
-      toast({
-        title: "Thành công",
-        description: 'Xóa toàn bộ dữ liệu thành công!'
-      });
-      setAllDataConfirmation('');
-      await loadDatabaseInfo();
-    } catch (error: any) {
-      console.error('Error deleting all data:', error);
-      toast({
-        variant: "destructive",
-        title: "Lỗi",
-        description: error.message || 'Lỗi khi xóa toàn bộ dữ liệu'
       });
     } finally {
       setIsLoading(false);
@@ -508,7 +471,7 @@ const DataManagement: React.FC = () => {
       </div>
 
       {/* Data Deletion Section */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+      <div className="mt-6 max-w-md mx-auto">
         {/* Delete Sales Data Card */}
         <Card>
           <CardHeader>
@@ -557,62 +520,6 @@ const DataManagement: React.FC = () => {
                   <AlertDialogCancel>Hủy</AlertDialogCancel>
                   <AlertDialogAction onClick={handleDeleteSalesData}>
                     Xóa
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          </CardContent>
-        </Card>
-
-        {/* Delete All Data Card */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <XCircle className="h-5 w-5 text-red-600" />
-              Xóa Toàn Bộ Dữ Liệu
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <Alert>
-              <AlertTriangle className="h-4 w-4" />
-              <AlertDescription>
-                <strong>NGUY HIỂM:</strong> Xóa toàn bộ dữ liệu trong database!
-              </AlertDescription>
-            </Alert>
-
-            <div className="space-y-2">
-              <Label>Nhập "DELETE ALL DATA" để xác nhận:</Label>
-              <Input
-                placeholder="DELETE ALL DATA"
-                value={allDataConfirmation}
-                onChange={(e) => setAllDataConfirmation(e.target.value)}
-                disabled={isLoading}
-              />
-            </div>
-
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button
-                  variant="destructive"
-                  disabled={isLoading || allDataConfirmation !== 'DELETE ALL DATA'}
-                  className="w-full"
-                >
-                  <XCircle className="h-4 w-4 mr-2" />
-                  Xóa Toàn Bộ Dữ Liệu
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>CẢNH BÁO: Xóa toàn bộ dữ liệu!</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Thao tác này sẽ xóa VĨNh VIỄN toàn bộ dữ liệu trong database và KHÔNG THỂ hoàn tác. 
-                    Hãy chắc chắn bạn đã sao lưu dữ liệu trước khi thực hiện!
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Hủy</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleDeleteAllData} className="bg-red-600 hover:bg-red-700">
-                    Xóa Tất Cả
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>

@@ -1,6 +1,6 @@
 {
   "Version": 1,
-  "Hash": "94JZWYwALMHz/5ued4DQeRo1rRluziDd68xx1uQrYuY=",
+  "Hash": "wHJ7+w7YYVxg63aQLY54ArncibDG+1ImnX9nB5vTK1k=",
   "Source": "RetailPointBackend",
   "BasePath": "_content/RetailPointBackend",
   "Mode": "Default",
@@ -1065,6 +1065,27 @@
       "CopyToOutputDirectory": "Never",
       "CopyToPublishDirectory": "PreserveNewest",
       "OriginalItemSpec": "wwwroot\\uploads\\backups\\20251008_150010_RetailPoint_backup_20251007_163419.bak"
+    },
+    {
+      "Identity": "D:\\laptrinh\\thiekepm\\RetailPoint\\Backend\\RetailPointBackend\\wwwroot\\uploads\\backups\\20251008_151646_RetailPoint_backup_20251007_163419.bak",
+      "SourceId": "RetailPointBackend",
+      "SourceType": "Discovered",
+      "ContentRoot": "D:\\laptrinh\\thiekepm\\RetailPoint\\Backend\\RetailPointBackend\\wwwroot\\",
+      "BasePath": "_content/RetailPointBackend",
+      "RelativePath": "uploads/backups/20251008_151646_RetailPoint_backup_20251007_163419#[.{fingerprint}]?.bak",
+      "AssetKind": "All",
+      "AssetMode": "All",
+      "AssetRole": "Primary",
+      "AssetMergeBehavior": "",
+      "AssetMergeSource": "",
+      "RelatedAsset": "",
+      "AssetTraitName": "",
+      "AssetTraitValue": "",
+      "Fingerprint": "394dq4rloa",
+      "Integrity": "xzBQuSsxbClpUrVS+7xOgfIu5XnwKs4NDTxJvSM4KZw=",
+      "CopyToOutputDirectory": "Never",
+      "CopyToPublishDirectory": "PreserveNewest",
+      "OriginalItemSpec": "wwwroot\\uploads\\backups\\20251008_151646_RetailPoint_backup_20251007_163419.bak"
     },
     {
       "Identity": "D:\\laptrinh\\thiekepm\\RetailPoint\\Backend\\RetailPointBackend\\wwwroot\\uploads\\bc218f7f-f77a-41cb-bd16-6760ab382261.jpeg",
@@ -5449,6 +5470,88 @@
         {
           "Name": "Last-Modified",
           "Value": "Wed, 08 Oct 2025 08:00:10 GMT"
+        },
+        {
+          "Name": "Cache-Control",
+          "Value": "no-cache"
+        }
+      ],
+      "EndpointProperties": [
+        {
+          "Name": "integrity",
+          "Value": "sha256-xzBQuSsxbClpUrVS+7xOgfIu5XnwKs4NDTxJvSM4KZw="
+        }
+      ]
+    },
+    {
+      "Route": "uploads/backups/20251008_151646_RetailPoint_backup_20251007_163419.394dq4rloa.bak",
+      "AssetFile": "D:\\laptrinh\\thiekepm\\RetailPoint\\Backend\\RetailPointBackend\\wwwroot\\uploads\\backups\\20251008_151646_RetailPoint_backup_20251007_163419.bak",
+      "Selectors": [],
+      "ResponseHeaders": [
+        {
+          "Name": "Accept-Ranges",
+          "Value": "bytes"
+        },
+        {
+          "Name": "Content-Length",
+          "Value": "5988864"
+        },
+        {
+          "Name": "Content-Type",
+          "Value": "application/octet-stream"
+        },
+        {
+          "Name": "ETag",
+          "Value": "\"xzBQuSsxbClpUrVS+7xOgfIu5XnwKs4NDTxJvSM4KZw=\""
+        },
+        {
+          "Name": "Last-Modified",
+          "Value": "Wed, 08 Oct 2025 08:16:46 GMT"
+        },
+        {
+          "Name": "Cache-Control",
+          "Value": "max-age=31536000, immutable"
+        }
+      ],
+      "EndpointProperties": [
+        {
+          "Name": "fingerprint",
+          "Value": "394dq4rloa"
+        },
+        {
+          "Name": "label",
+          "Value": "uploads/backups/20251008_151646_RetailPoint_backup_20251007_163419.bak"
+        },
+        {
+          "Name": "integrity",
+          "Value": "sha256-xzBQuSsxbClpUrVS+7xOgfIu5XnwKs4NDTxJvSM4KZw="
+        }
+      ]
+    },
+    {
+      "Route": "uploads/backups/20251008_151646_RetailPoint_backup_20251007_163419.bak",
+      "AssetFile": "D:\\laptrinh\\thiekepm\\RetailPoint\\Backend\\RetailPointBackend\\wwwroot\\uploads\\backups\\20251008_151646_RetailPoint_backup_20251007_163419.bak",
+      "Selectors": [],
+      "ResponseHeaders": [
+        {
+          "Name": "Accept-Ranges",
+          "Value": "bytes"
+        },
+        {
+          "Name": "Content-Length",
+          "Value": "5988864"
+        },
+        {
+          "Name": "Content-Type",
+          "Value": "application/octet-stream"
+        },
+        {
+          "Name": "ETag",
+          "Value": "\"xzBQuSsxbClpUrVS+7xOgfIu5XnwKs4NDTxJvSM4KZw=\""
+        },
+        {
+          "Name": "Last-Modified",
+          "Value": "Wed, 08 Oct 2025 08:16:46 GMT"
         },
         {
           "Name": "Cache-Control",

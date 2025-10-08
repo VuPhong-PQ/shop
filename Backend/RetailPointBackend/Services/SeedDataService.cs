@@ -70,8 +70,7 @@ namespace RetailPointBackend.Services
                 new Permission { PermissionName = "ViewDataManagement", Description = "Xem trang quản lý dữ liệu", Category = "DataManagement" },
                 new Permission { PermissionName = "BackupDatabase", Description = "Sao lưu cơ sở dữ liệu", Category = "DataManagement" },
                 new Permission { PermissionName = "RestoreDatabase", Description = "Phục hồi cơ sở dữ liệu", Category = "DataManagement" },
-                new Permission { PermissionName = "DeleteSalesData", Description = "Xóa dữ liệu bán hàng", Category = "DataManagement" },
-                new Permission { PermissionName = "DeleteAllData", Description = "Xóa toàn bộ dữ liệu", Category = "DataManagement" }
+                new Permission { PermissionName = "DeleteSalesData", Description = "Xóa dữ liệu bán hàng", Category = "DataManagement" }
             };
 
             foreach (var permission in permissions)
