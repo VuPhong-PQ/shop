@@ -4185,6 +4185,88 @@
       ]
     },
     {
+      "Route": "uploads/backups/20251008_162027_RetailPoint_backup_20251007_163419.394dq4rloa.bak",
+      "AssetFile": "uploads/backups/20251008_162027_RetailPoint_backup_20251007_163419.bak",
+      "Selectors": [],
+      "ResponseHeaders": [
+        {
+          "Name": "Accept-Ranges",
+          "Value": "bytes"
+        },
+        {
+          "Name": "Cache-Control",
+          "Value": "max-age=31536000, immutable"
+        },
+        {
+          "Name": "Content-Length",
+          "Value": "5988864"
+        },
+        {
+          "Name": "Content-Type",
+          "Value": "application/octet-stream"
+        },
+        {
+          "Name": "ETag",
+          "Value": "\"xzBQuSsxbClpUrVS+7xOgfIu5XnwKs4NDTxJvSM4KZw=\""
+        },
+        {
+          "Name": "Last-Modified",
+          "Value": "Wed, 08 Oct 2025 09:20:27 GMT"
+        }
+      ],
+      "EndpointProperties": [
+        {
+          "Name": "fingerprint",
+          "Value": "394dq4rloa"
+        },
+        {
+          "Name": "integrity",
+          "Value": "sha256-xzBQuSsxbClpUrVS+7xOgfIu5XnwKs4NDTxJvSM4KZw="
+        },
+        {
+          "Name": "label",
+          "Value": "uploads/backups/20251008_162027_RetailPoint_backup_20251007_163419.bak"
+        }
+      ]
+    },
+    {
+      "Route": "uploads/backups/20251008_162027_RetailPoint_backup_20251007_163419.bak",
+      "AssetFile": "uploads/backups/20251008_162027_RetailPoint_backup_20251007_163419.bak",
+      "Selectors": [],
+      "ResponseHeaders": [
+        {
+          "Name": "Accept-Ranges",
+          "Value": "bytes"
+        },
+        {
+          "Name": "Cache-Control",
+          "Value": "no-cache"
+        },
+        {
+          "Name": "Content-Length",
+          "Value": "5988864"
+        },
+        {
+          "Name": "Content-Type",
+          "Value": "application/octet-stream"
+        },
+        {
+          "Name": "ETag",
+          "Value": "\"xzBQuSsxbClpUrVS+7xOgfIu5XnwKs4NDTxJvSM4KZw=\""
+        },
+        {
+          "Name": "Last-Modified",
+          "Value": "Wed, 08 Oct 2025 09:20:27 GMT"
+        }
+      ],
+      "EndpointProperties": [
+        {
+          "Name": "integrity",
+          "Value": "sha256-xzBQuSsxbClpUrVS+7xOgfIu5XnwKs4NDTxJvSM4KZw="
+        }
+      ]
+    },
+    {
       "Route": "uploads/bc218f7f-f77a-41cb-bd16-6760ab382261.2xgsikijsn.jpeg",
       "AssetFile": "uploads/bc218f7f-f77a-41cb-bd16-6760ab382261.jpeg",
       "Selectors": [],

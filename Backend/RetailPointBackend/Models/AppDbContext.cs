@@ -34,6 +34,7 @@ namespace RetailPointBackend.Models
     public DbSet<Permission> Permissions { get; set; }
     public DbSet<RolePermission> RolePermissions { get; set; }
     public DbSet<InventoryTransaction> InventoryTransactions { get; set; }
+    public DbSet<BackupHistory> BackupHistories { get; set; }
     
     // E-Invoice tables
     public DbSet<EInvoice> EInvoices { get; set; }

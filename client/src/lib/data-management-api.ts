@@ -37,6 +37,16 @@ export interface UploadBackupResponse {
   size: number;
 }
 
+export interface BackupHistoryItem {
+  id: number;
+  backupDate: string;
+  backupType: string;
+  fileName: string;
+  fileSizeMB: number;
+  status: string;
+  note: string;
+}
+
 export interface DeleteConfirmation {
   confirmationText: string;
 }
@@ -133,6 +143,26 @@ export const dataManagementApi = {
     return response.json();
   },
 
+  // Get backup history
+  getBackupHistory: async (): Promise<BackupHistoryItem[]> => {
+    const staffId = localStorage.getItem('staffId');
+    const response = await fetch(`${API_BASE}/backup-history`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'StaffId': staffId || ''
+      }
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Lỗi khi lấy lịch sử backup');
+    }
+
+    const result = await response.json();
+    return result.history;
+  },
+
   // Restore database
   restoreDatabase: async (request: RestoreRequest): Promise<{ message: string; restoredFrom: string }> => {
     const staffId = localStorage.getItem('staffId');
@@ -180,6 +210,7 @@ export const useDataManagement = () => {
     getDatabaseInfo: () => dataManagementApi.getDatabaseInfo(),
     backupDatabase: (request: BackupRequest) => dataManagementApi.backupDatabase(request),
     getBackupFiles: () => dataManagementApi.getBackupFiles(),
+    getBackupHistory: () => dataManagementApi.getBackupHistory(),
     uploadBackupFile: (file: File) => dataManagementApi.uploadBackupFile(file),
     restoreDatabase: (request: RestoreRequest) => dataManagementApi.restoreDatabase(request),
     deleteSalesData: (confirmation: DeleteConfirmation) => dataManagementApi.deleteSalesData(confirmation)

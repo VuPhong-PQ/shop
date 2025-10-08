@@ -68,6 +68,12 @@ builder.Services.AddHttpClient<IEInvoiceService, VNPTEInvoiceService>();
 // Hoặc sử dụng MockEInvoiceService cho testing
 // builder.Services.AddScoped<IEInvoiceService, MockEInvoiceService>();
 
+// Đăng ký BackupScheduleService
+builder.Services.AddScoped<IBackupScheduleService, BackupScheduleService>();
+
+// Đăng ký Background Service cho backup tự động
+builder.Services.AddHostedService<RetailPointBackend.BackgroundServices.BackupScheduleBackgroundService>();
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.

@@ -24,7 +24,7 @@ import {
   Loader2
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { dataManagementApi, type DatabaseInfo, type BackupResult, type BackupFile } from '@/lib/data-management-api';
+import { dataManagementApi, type DatabaseInfo, type BackupResult, type BackupFile, type BackupHistoryItem } from '@/lib/data-management-api';
 
 const DataManagement: React.FC = () => {
   const { toast } = useToast();
@@ -39,11 +39,13 @@ const DataManagement: React.FC = () => {
   const [backupFiles, setBackupFiles] = useState<BackupFile[]>([]);
   const [selectedBackupFile, setSelectedBackupFile] = useState('');
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [backupHistory, setBackupHistory] = useState<BackupHistoryItem[]>([]);
 
   // Load database info on component mount
   useEffect(() => {
     loadDatabaseInfo();
     loadBackupFiles();
+    loadBackupHistory();
   }, []);
 
   const loadDatabaseInfo = async () => {
@@ -70,6 +72,16 @@ const DataManagement: React.FC = () => {
     }
   };
 
+  const loadBackupHistory = async () => {
+    try {
+      const history = await dataManagementApi.getBackupHistory();
+      setBackupHistory(history);
+    } catch (error: any) {
+      console.error('Error loading backup history:', error);
+      // Không hiển thị toast error cho việc load backup history
+    }
+  };
+
   const handleCreateBackup = async () => {
     setIsLoading(true);
     setBackupProgress(0);
@@ -86,6 +98,7 @@ const DataManagement: React.FC = () => {
       });
       setCustomBackupPath('');
       await loadDatabaseInfo();
+      await loadBackupHistory(); // Reload backup history
     } catch (error: any) {
       console.error('Error creating backup:', error);
       toast({
@@ -466,6 +479,63 @@ const DataManagement: React.FC = () => {
                 </div>
               </DialogContent>
             </Dialog>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Backup History Section */}
+      <div className="mt-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Clock className="h-5 w-5 text-orange-600" />
+              Lịch Sử Backup
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {backupHistory.length > 0 ? (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b">
+                      <th className="text-left p-2">Thời gian</th>
+                      <th className="text-left p-2">Loại</th>
+                      <th className="text-left p-2">Tên file</th>
+                      <th className="text-left p-2">Kích thước</th>
+                      <th className="text-left p-2">Trạng thái</th>
+                      <th className="text-left p-2">Ghi chú</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {backupHistory.map((item) => (
+                      <tr key={item.id} className="border-b hover:bg-gray-50">
+                        <td className="p-2">
+                          {new Date(item.backupDate).toLocaleString('vi-VN')}
+                        </td>
+                        <td className="p-2">
+                          <Badge variant={item.backupType === 'Auto' ? 'default' : 'outline'}>
+                            {item.backupType === 'Auto' ? 'Tự động' : 'Thủ công'}
+                          </Badge>
+                        </td>
+                        <td className="p-2 font-mono text-xs">{item.fileName}</td>
+                        <td className="p-2">{item.fileSizeMB.toFixed(2)} MB</td>
+                        <td className="p-2">
+                          <Badge variant={item.status === 'Success' ? 'default' : 'destructive'}>
+                            {item.status === 'Success' ? 'Thành công' : 'Thất bại'}
+                          </Badge>
+                        </td>
+                        <td className="p-2 text-xs text-gray-600">{item.note}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="text-center py-8 text-gray-500">
+                <Clock className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                <p>Chưa có lịch sử backup nào</p>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

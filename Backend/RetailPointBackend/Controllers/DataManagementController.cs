@@ -276,11 +276,31 @@ namespace RetailPointBackend.Controllers
                     }
                 }
 
+                // Lấy thông tin file backup
+                var fileInfo = new FileInfo(backupPath);
+                var fileSizeMB = Math.Round(fileInfo.Length / (1024.0 * 1024.0), 2);
+
+                // Lưu lịch sử backup vào database
+                var backupHistory = new BackupHistory
+                {
+                    BackupDate = DateTime.Now,
+                    BackupType = "Manual",
+                    FilePath = backupPath,
+                    FileName = backupFileName,
+                    FileSizeMB = fileSizeMB,
+                    Status = "Success",
+                    Note = "Backup thủ công từ Data Management"
+                };
+
+                _context.BackupHistories.Add(backupHistory);
+                await _context.SaveChangesAsync();
+
                 return Ok(new { 
                     message = "Backup database thành công", 
                     backupPath = backupPath,
                     fileName = backupFileName,
-                    timestamp = timestamp
+                    timestamp = timestamp,
+                    size = fileSizeMB
                 });
             }
             catch (Exception ex)
@@ -331,6 +351,44 @@ namespace RetailPointBackend.Controllers
             {
                 _logger.LogError(ex, "Lỗi khi lấy danh sách backup files");
                 return StatusCode(500, new { message = "Lỗi khi lấy danh sách backup files", error = ex.Message });
+            }
+        }
+
+        // Get backup history
+        [HttpGet("backup-history")]
+        public async Task<IActionResult> GetBackupHistory()
+        {
+            try
+            {
+                // Check permission
+                var staffIdHeader = Request.Headers["StaffId"].FirstOrDefault();
+                if (!int.TryParse(staffIdHeader, out int staffId) || 
+                    !await _permissionService.HasPermissionAsync(staffId, "ViewDataManagement"))
+                {
+                    return Forbid("Bạn không có quyền xem lịch sử backup");
+                }
+
+                var history = await _context.BackupHistories
+                    .OrderByDescending(bh => bh.BackupDate)
+                    .Take(50)
+                    .Select(bh => new
+                    {
+                        id = bh.Id,
+                        backupDate = bh.BackupDate,
+                        backupType = bh.BackupType,
+                        fileName = bh.FileName,
+                        fileSizeMB = bh.FileSizeMB,
+                        status = bh.Status,
+                        note = bh.Note
+                    })
+                    .ToListAsync();
+
+                return Ok(new { history });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Lỗi khi lấy lịch sử backup");
+                return StatusCode(500, new { message = "Lỗi khi lấy lịch sử backup", error = ex.Message });
             }
         }
 
