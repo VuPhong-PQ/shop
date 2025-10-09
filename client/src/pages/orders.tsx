@@ -47,6 +47,7 @@ type Order = {
   status?: string;
   cashierName?: string;
   subtotal?: number;
+  discountAmount?: number;
   cancellationReason?: string;
 };
 
@@ -358,7 +359,14 @@ export default function OrdersPage() {
                       <div>Khách hàng: <span className="font-medium">{order.customerName || "Khách lẻ"}</span></div>
                       <div>Ngày tạo: <span className="font-medium">{new Date(order.createdAt).toLocaleDateString('vi-VN')}</span></div>
                       <div>Giờ tạo: <span className="font-medium">{new Date(order.createdAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</span></div>
-                      <div>Tổng tiền: <span className="font-bold text-blue-600">{Number(order.totalAmount).toLocaleString('vi-VN')}₫</span></div>
+                      <div className="flex items-center gap-2">
+                        <span>Tổng tiền: <span className="font-bold text-blue-600">{Number(order.totalAmount).toLocaleString('vi-VN')}₫</span></span>
+                        {order.discountAmount && order.discountAmount > 0 && (
+                          <Badge className="bg-red-100 text-red-800 border-red-200 text-xs">
+                            Giảm {Number(order.discountAmount).toLocaleString('vi-VN')}₫
+                          </Badge>
+                        )}
+                      </div>
                     </div>
                     
                     {/* Trạng thái */}
@@ -551,11 +559,15 @@ export default function OrdersPage() {
               {(() => {
                 const subtotal = selectedOrder.items?.reduce((sum, item) => sum + (Number(item.totalPrice) || 0), 0) || 0;
                 const taxAmount = Number(selectedOrder.taxAmount) || 0;
+                const discountAmount = Number(selectedOrder.discountAmount) || 0;
                 return (
                   <>
                     <div>Tạm tính: <b>{subtotal.toLocaleString('vi-VN')}₫</b></div>
                     {taxAmount > 0 && (
                       <div>VAT 10%: <b>{taxAmount.toLocaleString('vi-VN')}₫</b></div>
+                    )}
+                    {discountAmount > 0 && (
+                      <div className="text-red-600">Giảm giá: <b>-{discountAmount.toLocaleString('vi-VN')}₫</b></div>
                     )}
                   </>
                 );

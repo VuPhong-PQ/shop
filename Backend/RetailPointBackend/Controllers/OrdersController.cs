@@ -255,9 +255,13 @@ namespace RetailPointBackend.Controllers
                     o.CustomerName,
                     o.CreatedAt,
                     o.TotalAmount,
+                    o.SubTotal,
+                    o.TaxAmount,
+                    o.DiscountAmount,
                     o.PaymentStatus,
                     o.Status,
                     o.PaymentMethod,
+                    CashierName = "Admin", // Tạm thời hardcode vì Staff chưa có trong context
                     Items = o.Items.Select(i => new {
                         i.ProductName,
                         i.Quantity,
