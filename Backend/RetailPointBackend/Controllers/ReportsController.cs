@@ -48,12 +48,31 @@ namespace RetailPointBackend.Controllers
                                 oi.Order.Status != "cancelled") // Loại trừ đơn hàng đã hủy
                     .SumAsync(oi => oi.Quantity);
 
+                // Tính tổng số tiền giảm giá
+                var totalDiscountAmount = await _context.OrderDiscounts
+                    .Where(od => od.AppliedAt >= start && od.AppliedAt < end &&
+                                od.Order != null &&
+                                (od.Order.PaymentStatus == "paid" || od.Order.PaymentStatus == "completed") &&
+                                od.Order.Status != "cancelled")
+                    .SumAsync(od => od.DiscountAmount);
+
+                // Tính số lượng giảm giá đã sử dụng
+                var totalDiscountUsage = await _context.OrderDiscounts
+                    .Where(od => od.AppliedAt >= start && od.AppliedAt < end &&
+                                od.Order != null &&
+                                (od.Order.PaymentStatus == "paid" || od.Order.PaymentStatus == "completed") &&
+                                od.Order.Status != "cancelled")
+                    .CountAsync();
+
                 var response = new
                 {
                     totalRevenue = totalRevenue.ToString("N0") + "₫",
                     totalOrders = totalOrders,
                     totalCustomers = totalCustomers,
-                    totalProductsSold = totalProductsSold
+                    totalProductsSold = totalProductsSold,
+                    totalDiscountAmount = totalDiscountAmount.ToString("N0") + "₫",
+                    totalDiscountUsage = totalDiscountUsage,
+                    discountRate = totalRevenue > 0 ? Math.Round((totalDiscountAmount / (totalRevenue + totalDiscountAmount)) * 100, 2) : 0
                 };
 
                 return Ok(response);
@@ -294,8 +313,22 @@ namespace RetailPointBackend.Controllers
                 // Lợi nhuận sau thuế = Lợi nhuận trước thuế - Thuế VAT
                 var profitAfterTax = profitBeforeTax - totalTax;
 
+                // Tính tổng giảm giá
+                var totalDiscountAmount = await _context.OrderDiscounts
+                    .Where(od => od.AppliedAt >= start && od.AppliedAt < end &&
+                                od.Order != null &&
+                                (od.Order.PaymentStatus == "paid" || od.Order.PaymentStatus == "completed") &&
+                                od.Order.Status != "cancelled")
+                    .SumAsync(od => od.DiscountAmount);
+
+                // Lợi nhuận thực tế (bao gồm cả giảm giá) = Lợi nhuận sau thuế - Giảm giá
+                var actualProfit = profitAfterTax - totalDiscountAmount;
+
                 // Tỷ suất lợi nhuận = Lợi nhuận sau thuế / Doanh thu (chưa thuế) * 100
                 var profitMargin = totalRevenue > 0 ? (profitAfterTax / totalRevenue * 100) : 0;
+
+                // Tỷ suất lợi nhuận thực tế (bao gồm giảm giá)
+                var actualProfitMargin = totalRevenue > 0 ? (actualProfit / totalRevenue * 100) : 0;
 
                 // Top sản phẩm có lợi nhuận cao từ OrderItems với thông tin chi tiết (loại trừ đơn hàng đã hủy)
                 var orderItems = await _context.OrderItems
@@ -403,6 +436,12 @@ namespace RetailPointBackend.Controllers
                     profitAfterTax = profitAfterTax.ToString("N0") + "₫",
                     profitMargin = profitMargin.ToString("F1") + "%",
                     totalLoss = totalLoss.ToString("N0") + "₫",
+                    
+                    // Thông tin giảm giá
+                    totalDiscountAmount = totalDiscountAmount.ToString("N0") + "₫",
+                    actualProfit = actualProfit.ToString("N0") + "₫",
+                    actualProfitMargin = actualProfitMargin.ToString("F1") + "%",
+                    discountImpact = totalRevenue > 0 ? (totalDiscountAmount / totalRevenue * 100).ToString("F1") + "%" : "0%",
                     
                     // Giữ lại cho tương thích
                     totalProfit = profitAfterTax.ToString("N0") + "₫",

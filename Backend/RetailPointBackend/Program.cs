@@ -71,6 +71,9 @@ builder.Services.AddHttpClient<IEInvoiceService, VNPTEInvoiceService>();
 // Đăng ký BackupScheduleService
 builder.Services.AddScoped<IBackupScheduleService, BackupScheduleService>();
 
+// Đăng ký DiscountService
+builder.Services.AddScoped<IDiscountService, DiscountService>();
+
 // Đăng ký Background Service cho backup tự động
 builder.Services.AddHostedService<RetailPointBackend.BackgroundServices.BackupScheduleBackgroundService>();
 

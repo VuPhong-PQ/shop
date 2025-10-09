@@ -16,6 +16,10 @@ namespace RetailPointBackend.Models
     public int Quantity { get; set; }
     public decimal Price { get; set; }
     public decimal TotalPrice { get; set; }
+    
+    // Thông tin giảm giá cho từng mặt hàng
+    public decimal DiscountAmount { get; set; } = 0;
+    public decimal FinalPrice { get; set; } = 0; // Giá sau khi giảm
 
     public int? CustomerId { get; set; }
     public Customer? Customer { get; set; }

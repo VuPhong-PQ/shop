@@ -40,6 +40,10 @@ namespace RetailPointBackend.Models
     public DbSet<EInvoice> EInvoices { get; set; }
     public DbSet<EInvoiceItem> EInvoiceItems { get; set; }
     public DbSet<EInvoiceConfig> EInvoiceConfigs { get; set; }
+    
+    // Discount tables
+    public DbSet<Discount> Discounts { get; set; }
+    public DbSet<OrderDiscount> OrderDiscounts { get; set; }
     }
 
 }
