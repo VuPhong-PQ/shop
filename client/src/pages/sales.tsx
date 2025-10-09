@@ -1705,7 +1705,15 @@ export default function Sales() {
                       <div>Tạm tính: <b>{subtotal.toLocaleString('vi-VN')}₫</b></div>
                       {discountAmount > 0 && (
                         <div className="text-green-600">
-                          Giảm giá {orderDetailData.discountName ? `(${orderDetailData.discountName})` : ''}: 
+                          Giảm giá {(() => {
+                            if (orderDetailData.discountName && orderDetailData.discountName !== 'Giảm giá thủ công') {
+                              return `(${orderDetailData.discountName})`;
+                            } else if (orderDetailData.discountType) {
+                              return `(${orderDetailData.discountType})`;
+                            } else {
+                              return '(Giảm giá thủ công)';
+                            }
+                          })()}: 
                           <b> -{discountAmount.toLocaleString('vi-VN')}₫</b>
                         </div>
                       )}
