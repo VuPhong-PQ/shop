@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { AppLayout } from '@/components/layout/app-layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -40,12 +41,22 @@ const DataManagement: React.FC = () => {
   const [selectedBackupFile, setSelectedBackupFile] = useState('');
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [backupHistory, setBackupHistory] = useState<BackupHistoryItem[]>([]);
+  
+  // Backup Settings state
+  const [backupSettings, setBackupSettings] = useState({
+    backupTime: '13:00',
+    isEnabled: true,
+    notes: ''
+  });
+  const [isUpdatingSettings, setIsUpdatingSettings] = useState(false);
+  const [isTestingBackup, setIsTestingBackup] = useState(false);
 
   // Load database info on component mount
   useEffect(() => {
     loadDatabaseInfo();
     loadBackupFiles();
     loadBackupHistory();
+    loadBackupSettings();
   }, []);
 
   const loadDatabaseInfo = async () => {
@@ -79,6 +90,90 @@ const DataManagement: React.FC = () => {
     } catch (error: any) {
       console.error('Error loading backup history:', error);
       // Không hiển thị toast error cho việc load backup history
+    }
+  };
+
+  // Load backup settings
+  const loadBackupSettings = async () => {
+    try {
+      const response = await fetch('/api/BackupSettings');
+      if (response.ok) {
+        const settings = await response.json();
+        // Convert TimeSpan to HH:mm format
+        const hours = Math.floor(settings.backupTime.totalSeconds / 3600);
+        const minutes = Math.floor((settings.backupTime.totalSeconds % 3600) / 60);
+        const timeString = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+        
+        setBackupSettings({
+          backupTime: timeString,
+          isEnabled: settings.isEnabled,
+          notes: settings.notes || ''
+        });
+      }
+    } catch (error) {
+      console.error('Error loading backup settings:', error);
+    }
+  };
+
+  // Update backup settings
+  const handleUpdateBackupSettings = async () => {
+    setIsUpdatingSettings(true);
+    try {
+      const response = await fetch('/api/BackupSettings', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(backupSettings)
+      });
+
+      if (response.ok) {
+        toast({
+          title: "Thành công",
+          description: "Cài đặt backup đã được cập nhật",
+        });
+      } else {
+        throw new Error('Failed to update backup settings');
+      }
+    } catch (error: any) {
+      console.error('Error updating backup settings:', error);
+      toast({
+        variant: "destructive",
+        title: "Lỗi",
+        description: error.message || 'Lỗi khi cập nhật cài đặt backup'
+      });
+    } finally {
+      setIsUpdatingSettings(false);
+    }
+  };
+
+  // Test backup
+  const handleTestBackup = async () => {
+    setIsTestingBackup(true);
+    try {
+      const response = await fetch('/api/BackupSettings/test', {
+        method: 'POST'
+      });
+
+      if (response.ok) {
+        toast({
+          title: "Thành công",
+          description: "Backup thử nghiệm đã hoàn thành",
+        });
+        // Reload backup history to show the new backup
+        loadBackupHistory();
+      } else {
+        throw new Error('Failed to run test backup');
+      }
+    } catch (error: any) {
+      console.error('Error running test backup:', error);
+      toast({
+        variant: "destructive",
+        title: "Lỗi",
+        description: error.message || 'Lỗi khi chạy backup thử nghiệm'
+      });
+    } finally {
+      setIsTestingBackup(false);
     }
   };
 
@@ -222,14 +317,15 @@ const DataManagement: React.FC = () => {
   };
 
   return (
-    <div className="container mx-auto p-6">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">Quản Lý Dữ Liệu</h1>
-        <Badge variant="outline">
-          <Shield className="h-4 w-4 mr-1" />
-          Cấp quyền
-        </Badge>
-      </div>
+    <AppLayout title="Quản Lý Dữ Liệu">
+      <div className="container mx-auto p-6">
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-3xl font-bold text-gray-900">Quản Lý Dữ Liệu</h1>
+          <Badge variant="outline">
+            <Shield className="h-4 w-4 mr-1" />
+            Cấp quyền
+          </Badge>
+        </div>
 
       {/* Database Info Card */}
       <Card className="mb-6">
@@ -540,6 +636,99 @@ const DataManagement: React.FC = () => {
         </Card>
       </div>
 
+      {/* Backup Settings Section */}
+      <div className="mt-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Clock className="h-5 w-5 text-blue-600" />
+              Cài Đặt Backup Tự Động
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="backup-time">Thời gian backup hàng ngày</Label>
+                <Input
+                  id="backup-time"
+                  type="time"
+                  value={backupSettings.backupTime}
+                  onChange={(e) => setBackupSettings({
+                    ...backupSettings,
+                    backupTime: e.target.value
+                  })}
+                />
+                <p className="text-xs text-gray-500">
+                  Hệ thống sẽ tự động backup dữ liệu vào thời gian này mỗi ngày
+                </p>
+              </div>
+              
+              <div className="space-y-2">
+                <Label>Trạng thái</Label>
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="backup-enabled"
+                    checked={backupSettings.isEnabled}
+                    onChange={(e) => setBackupSettings({
+                      ...backupSettings,
+                      isEnabled: e.target.checked
+                    })}
+                    className="rounded"
+                  />
+                  <Label htmlFor="backup-enabled">
+                    {backupSettings.isEnabled ? 'Đang bật' : 'Đang tắt'}
+                  </Label>
+                </div>
+              </div>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="backup-notes">Ghi chú (tùy chọn)</Label>
+              <Textarea
+                id="backup-notes"
+                placeholder="Nhập ghi chú về cài đặt backup..."
+                value={backupSettings.notes}
+                onChange={(e) => setBackupSettings({
+                  ...backupSettings,
+                  notes: e.target.value
+                })}
+                rows={2}
+              />
+            </div>
+            
+            <div className="flex gap-2">
+              <Button 
+                onClick={handleUpdateBackupSettings}
+                disabled={isUpdatingSettings}
+                className="flex items-center gap-2"
+              >
+                {isUpdatingSettings && <Loader2 className="h-4 w-4 animate-spin" />}
+                Lưu cài đặt
+              </Button>
+              
+              <Button 
+                variant="outline"
+                onClick={handleTestBackup}
+                disabled={isTestingBackup}
+                className="flex items-center gap-2"
+              >
+                {isTestingBackup && <Loader2 className="h-4 w-4 animate-spin" />}
+                Chạy thử backup
+              </Button>
+            </div>
+            
+            <Alert>
+              <Shield className="h-4 w-4" />
+              <AlertDescription>
+                Backup tự động sẽ chạy vào thời gian đã cài đặt mỗi ngày. 
+                Bạn có thể tắt tính năng này bằng cách bỏ chọn "Đang bật".
+              </AlertDescription>
+            </Alert>
+          </CardContent>
+        </Card>
+      </div>
+
       {/* Data Deletion Section */}
       <div className="mt-6 max-w-md mx-auto">
         {/* Delete Sales Data Card */}
@@ -598,6 +787,7 @@ const DataManagement: React.FC = () => {
         </Card>
       </div>
     </div>
+    </AppLayout>
   );
 };
 

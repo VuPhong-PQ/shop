@@ -132,6 +132,46 @@ namespace RetailPointBackend.Controllers
             _context.Orders.Add(order);
             _context.SaveChanges();
             
+            // Tạo OrderDiscount record nếu có manual discount
+            if (order.DiscountAmount > 0)
+            {
+                // Tìm hoặc tạo discount record cho manual discount
+                var manualDiscount = _notificationContext.Discounts.FirstOrDefault(d => d.Name == "Giảm giá thủ công");
+                if (manualDiscount == null)
+                {
+                    manualDiscount = new Discount
+                    {
+                        Name = "Giảm giá thủ công",
+                        Description = "Giảm giá được áp dụng thủ công tại quầy",
+                        Type = DiscountType.FixedAmountTotal,
+                        Value = 0, // Giá trị sẽ khác nhau cho từng đơn
+                        IsActive = true,
+                        UsageCount = 0
+                    };
+                    _notificationContext.Discounts.Add(manualDiscount);
+                    _notificationContext.SaveChanges();
+                }
+                
+                var orderDiscount = new OrderDiscount
+                {
+                    OrderId = order.OrderId,
+                    DiscountId = manualDiscount.DiscountId,
+                    DiscountName = "Giảm giá thủ công",
+                    DiscountType = DiscountType.FixedAmountTotal, // Manual discount default to fixed amount
+                    DiscountValue = order.DiscountAmount,
+                    DiscountAmount = order.DiscountAmount,
+                    OrderItemId = null, // Apply to whole order
+                    AppliedAt = DateTime.Now,
+                    AppliedBy = staffId ?? 1 // Default staff if not provided
+                };
+                
+                _notificationContext.OrderDiscounts.Add(orderDiscount);
+                
+                // Cập nhật usage count
+                manualDiscount.UsageCount++;
+                _notificationContext.SaveChanges();
+            }
+            
             // Tạo thông báo đơn hàng mới
             try
             {

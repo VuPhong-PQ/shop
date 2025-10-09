@@ -120,5 +120,185 @@ namespace RetailPointBackend.Controllers
                 return StatusCode(500, new { message = "Error getting permissions", error = ex.Message });
             }
         }
+
+        // Create test data for discount system
+        [HttpPost("create-discount-test-data")]
+        public async Task<IActionResult> CreateDiscountTestData()
+        {
+            try
+            {
+                // Create sample orders with discounts
+                var orders = new List<Order>();
+                var orderItems = new List<OrderItem>();
+                var orderDiscounts = new List<OrderDiscount>();
+                
+                // Order 1: 10% discount on total
+                var order1 = new Order
+                {
+                    CustomerName = "Khách hàng test 1",
+                    PaymentMethod = "cash",
+                    PaymentStatus = "paid",
+                    Status = "completed",
+                    SubTotal = 500000,
+                    TaxAmount = 0,
+                    DiscountAmount = 50000,
+                    TotalAmount = 450000,
+                    CreatedAt = DateTime.Now.AddDays(-5)
+                };
+                orders.Add(order1);
+
+                // Order 2: Fixed amount discount
+                var order2 = new Order
+                {
+                    CustomerName = "Khách hàng test 2",
+                    PaymentMethod = "card",
+                    PaymentStatus = "paid",
+                    Status = "completed",
+                    SubTotal = 800000,
+                    TaxAmount = 0,
+                    DiscountAmount = 100000,
+                    TotalAmount = 700000,
+                    CreatedAt = DateTime.Now.AddDays(-3)
+                };
+                orders.Add(order2);
+
+                // Order 3: No discount
+                var order3 = new Order
+                {
+                    CustomerName = "Khách hàng test 3",
+                    PaymentMethod = "cash",
+                    PaymentStatus = "paid",
+                    Status = "completed", 
+                    SubTotal = 300000,
+                    TaxAmount = 0,
+                    DiscountAmount = 0,
+                    TotalAmount = 300000,
+                    CreatedAt = DateTime.Now.AddDays(-1)
+                };
+                orders.Add(order3);
+
+                // Add orders to context first to get IDs
+                _context.Orders.AddRange(orders);
+                await _context.SaveChangesAsync();
+
+                // Create OrderItems
+                var orderItem1_1 = new OrderItem
+                {
+                    OrderId = order1.OrderId,
+                    ProductName = "Sản phẩm A",
+                    Price = 300000,
+                    Quantity = 1,
+                    TotalPrice = 300000,
+                    FinalPrice = 270000,
+                    DiscountAmount = 30000
+                };
+                
+                var orderItem1_2 = new OrderItem
+                {
+                    OrderId = order1.OrderId,
+                    ProductName = "Sản phẩm B",
+                    Price = 200000,
+                    Quantity = 1,
+                    TotalPrice = 200000,
+                    FinalPrice = 180000,
+                    DiscountAmount = 20000
+                };
+
+                var orderItem2_1 = new OrderItem
+                {
+                    OrderId = order2.OrderId,
+                    ProductName = "Sản phẩm C",
+                    Price = 800000,
+                    Quantity = 1,
+                    TotalPrice = 800000,
+                    FinalPrice = 700000,
+                    DiscountAmount = 100000
+                };
+
+                var orderItem3_1 = new OrderItem
+                {
+                    OrderId = order3.OrderId,
+                    ProductName = "Sản phẩm D",
+                    Price = 300000,
+                    Quantity = 1,
+                    TotalPrice = 300000,
+                    FinalPrice = 300000,
+                    DiscountAmount = 0
+                };
+
+                orderItems.AddRange(new[] { orderItem1_1, orderItem1_2, orderItem2_1, orderItem3_1 });
+                _context.OrderItems.AddRange(orderItems);
+                await _context.SaveChangesAsync();
+
+                // Get admin staff ID
+                var adminStaff = await _context.Staffs.FirstOrDefaultAsync(s => s.Username == "admin");
+                int? adminStaffId = adminStaff?.StaffId;
+
+                // Create OrderDiscounts for orders with discounts (first need to create Discount entities)
+                var discount1 = new Discount
+                {
+                    Name = "Giảm giá 10% tổng bill",
+                    Type = DiscountType.PercentageTotal,
+                    Value = 10,
+                    IsActive = true,
+                    CreatedAt = DateTime.Now.AddDays(-10),
+                    CreatedBy = adminStaffId
+                };
+
+                var discount2 = new Discount
+                {
+                    Name = "Giảm giá 100k cho tổng bill",
+                    Type = DiscountType.FixedAmountTotal,
+                    Value = 100000,
+                    IsActive = true,
+                    CreatedAt = DateTime.Now.AddDays(-10),
+                    CreatedBy = adminStaffId
+                };
+
+                _context.Discounts.AddRange(new[] { discount1, discount2 });
+                await _context.SaveChangesAsync();
+
+                var orderDiscount1 = new OrderDiscount
+                {
+                    OrderId = order1.OrderId,
+                    DiscountId = discount1.DiscountId,
+                    DiscountType = DiscountType.PercentageTotal,
+                    DiscountValue = 10,
+                    DiscountAmount = 50000,
+                    DiscountName = "Giảm giá 10% tổng bill",
+                    AppliedBy = adminStaffId,
+                    AppliedAt = order1.CreatedAt
+                };
+
+                var orderDiscount2 = new OrderDiscount
+                {
+                    OrderId = order2.OrderId,
+                    DiscountId = discount2.DiscountId,
+                    DiscountType = DiscountType.FixedAmountTotal,
+                    DiscountValue = 100000,
+                    DiscountAmount = 100000,
+                    DiscountName = "Giảm giá 100k cho tổng bill",
+                    AppliedBy = adminStaffId,
+                    AppliedAt = order2.CreatedAt
+                };
+
+                _context.OrderDiscounts.AddRange(new[] { orderDiscount1, orderDiscount2 });
+                await _context.SaveChangesAsync();
+
+                return Ok(new
+                {
+                    message = "Đã tạo dữ liệu test thành công",
+                    ordersCreated = orders.Count,
+                    orderItemsCreated = orderItems.Count,
+                    discountsCreated = 2,
+                    orderDiscountsCreated = 2,
+                    orderIds = orders.Select(o => o.OrderId).ToList()
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Lỗi khi tạo dữ liệu test", error = ex.Message });
+            }
+        }
     }
 }

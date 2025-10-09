@@ -5,7 +5,7 @@ using RetailPointBackend.Models;
 namespace RetailPointBackend.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("api/discount-reports")]
     public class DiscountReportsController : ControllerBase
     {
         private readonly AppDbContext _context;
@@ -36,8 +36,9 @@ namespace RetailPointBackend.Controllers
                 TotalDiscountAmount = discounts.Sum(d => d.DiscountAmount),
                 TotalDiscountApplications = discounts.Count,
                 UniqueOrdersWithDiscount = discounts.Select(d => d.OrderId).Distinct().Count(),
-                AverageDiscountPerOrder = discounts.GroupBy(d => d.OrderId)
-                    .Average(g => g.Sum(d => d.DiscountAmount)),
+                AverageDiscountPerOrder = discounts.Any() ? 
+                    (discounts.GroupBy(d => d.OrderId).Any() ? 
+                        discounts.GroupBy(d => d.OrderId).Average(g => g.Sum(d => d.DiscountAmount)) : 0) : 0,
                 
                 DiscountsByType = discounts.GroupBy(d => d.DiscountType)
                     .Select(g => new DiscountTypeReport
@@ -46,7 +47,7 @@ namespace RetailPointBackend.Controllers
                         TypeName = GetDiscountTypeName(g.Key),
                         Count = g.Count(),
                         TotalAmount = g.Sum(d => d.DiscountAmount),
-                        AverageAmount = g.Average(d => d.DiscountAmount)
+                        AverageAmount = g.Any() ? g.Average(d => d.DiscountAmount) : 0
                     }).ToList(),
 
                 TopDiscounts = discounts.GroupBy(d => new { d.DiscountId, d.DiscountName })
@@ -56,7 +57,7 @@ namespace RetailPointBackend.Controllers
                         DiscountName = g.Key.DiscountName,
                         UsageCount = g.Count(),
                         TotalAmount = g.Sum(d => d.DiscountAmount),
-                        AverageAmount = g.Average(d => d.DiscountAmount)
+                        AverageAmount = g.Any() ? g.Average(d => d.DiscountAmount) : 0
                     })
                     .OrderByDescending(t => t.TotalAmount)
                     .Take(10)

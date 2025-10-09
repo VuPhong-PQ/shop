@@ -75,7 +75,10 @@ builder.Services.AddScoped<IBackupScheduleService, BackupScheduleService>();
 builder.Services.AddScoped<IDiscountService, DiscountService>();
 
 // Đăng ký Background Service cho backup tự động
-builder.Services.AddHostedService<RetailPointBackend.BackgroundServices.BackupScheduleBackgroundService>();
+// Register BackupScheduleBackgroundService as singleton so controllers can access it
+builder.Services.AddSingleton<RetailPointBackend.BackgroundServices.BackupScheduleBackgroundService>();
+builder.Services.AddHostedService<RetailPointBackend.BackgroundServices.BackupScheduleBackgroundService>(provider => 
+    provider.GetRequiredService<RetailPointBackend.BackgroundServices.BackupScheduleBackgroundService>());
 
 var app = builder.Build();
 

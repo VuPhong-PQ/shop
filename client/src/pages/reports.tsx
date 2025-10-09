@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { PaymentReport } from "@/components/reports/payment-report";
+import { DiscountSummaryReport } from "@/types/discountReports";
 import { 
   BarChart, 
   Bar, 
@@ -60,6 +61,7 @@ export default function Reports() {
       queryClient.invalidateQueries({ queryKey: ['/api/reports/product-performance'] });
       queryClient.invalidateQueries({ queryKey: ['/api/reports/customer-analytics'] });
       queryClient.invalidateQueries({ queryKey: ['/api/reports/profit-analysis'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/discount-reports/summary'] });
     };
 
     const handleVisibilityChange = () => {
@@ -75,6 +77,7 @@ export default function Reports() {
       queryClient.invalidateQueries({ queryKey: ['/api/reports/product-performance'] });
       queryClient.invalidateQueries({ queryKey: ['/api/reports/customer-analytics'] });
       queryClient.invalidateQueries({ queryKey: ['/api/reports/profit-analysis'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/discount-reports/summary'] });
     };
 
     window.addEventListener('focus', handleFocus);
@@ -141,7 +144,20 @@ export default function Reports() {
     refetchInterval: 30000, // Refetch mỗi 30 giây
   });
 
-  const isLoading = salesLoading || productLoading || customerLoading || profitLoading;
+  const { data: discountReports, isLoading: discountLoading } = useQuery<DiscountSummaryReport>({
+    queryKey: ['/api/discount-reports/summary', dateRange.startDate, dateRange.endDate],
+    queryFn: async (): Promise<DiscountSummaryReport> => {
+      const response = await fetch(`/api/discount-reports/summary?startDate=${dateRange.startDate}&endDate=${dateRange.endDate}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch discount reports');
+      }
+      return response.json();
+    },
+    enabled: !!dateRange.startDate && !!dateRange.endDate,
+    refetchInterval: 30000, // Refetch mỗi 30 giây
+  });
+
+  const isLoading = salesLoading || productLoading || customerLoading || profitLoading || discountLoading;
 
   // Chart data formatting
   const chartData = productPerformance?.topProducts?.map(product => ({
@@ -339,12 +355,13 @@ export default function Reports() {
           </div>
         ) : (
           <Tabs defaultValue="overview" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-1">
+            <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-1">
               <TabsTrigger value="overview">Tổng quan</TabsTrigger>
               <TabsTrigger value="products">Sản phẩm</TabsTrigger>
               <TabsTrigger value="payment">Thanh toán</TabsTrigger>
               <TabsTrigger value="customers">Khách hàng</TabsTrigger>
               <TabsTrigger value="profit">Lợi nhuận</TabsTrigger>
+              <TabsTrigger value="discounts">Giảm giá</TabsTrigger>
             </TabsList>
 
             <TabsContent value="overview" className="space-y-6">
@@ -682,6 +699,152 @@ export default function Reports() {
                         <div className="text-right">
                           <p className="text-lg font-bold text-green-600">{product.profit}</p>
                           <p className="text-sm text-gray-500">Lợi nhuận/sp: {product.profitPerUnit}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="discounts" className="space-y-6">
+              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Tổng giảm giá</CardTitle>
+                    <DollarSign className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-red-600">
+                      {discountReports?.totalDiscountAmount?.toLocaleString('vi-VN') || '0'}₫
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {discountReports?.totalDiscountApplications || 0} lần áp dụng
+                    </p>
+                  </CardContent>
+                </Card>
+                
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Giảm giá theo %</CardTitle>
+                    <TrendingDown className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">
+                      {(discountReports?.discountsByType?.find(d => d.type === 1)?.totalAmount || 0).toLocaleString('vi-VN')}₫
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {discountReports?.discountsByType?.find(d => d.type === 1)?.count || 0} lần
+                    </p>
+                  </CardContent>
+                </Card>
+                
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Giảm giá cố định</CardTitle>
+                    <Package className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">
+                      {(discountReports?.discountsByType?.find(d => d.type === 3)?.totalAmount || 0).toLocaleString('vi-VN')}₫
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {discountReports?.discountsByType?.find(d => d.type === 3)?.count || 0} lần
+                    </p>
+                  </CardContent>
+                </Card>
+                
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Giảm giá TB/đơn</CardTitle>
+                    <BarChart3 className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">
+                      {discountReports?.averageDiscountPerOrder?.toLocaleString('vi-VN') || '0'}₫
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Trung bình mỗi đơn
+                    </p>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Discount Charts */}
+              <div className="grid gap-6 md:grid-cols-2">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Biểu đồ giảm giá theo loại</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <ResponsiveContainer width="100%" height={300}>
+                      <PieChart>
+                        <Pie
+                          data={discountReports?.discountsByType?.map(dt => ({
+                            name: dt.typeName,
+                            value: dt.totalAmount
+                          })) || []}
+                          cx="50%"
+                          cy="50%"
+                          labelLine={false}
+                          label={({ name, value }) => `${name}: ${Number(value).toLocaleString('vi-VN')}₫`}
+                          outerRadius={80}
+                          fill="#8884d8"
+                          dataKey="value"
+                        >
+                          {(discountReports?.discountsByType || []).map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                          ))}
+                        </Pie>
+                        <Tooltip formatter={(value) => `${Number(value).toLocaleString('vi-VN')}₫`} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Giảm giá theo ngày</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <ResponsiveContainer width="100%" height={300}>
+                      <LineChart data={discountReports?.dailyDiscounts || []}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="date" />
+                        <YAxis />
+                        <Tooltip formatter={(value) => `${Number(value).toLocaleString('vi-VN')}₫`} />
+                        <Line type="monotone" dataKey="totalAmount" stroke="#8884d8" />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Top Discounts */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Top giảm giá được sử dụng</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {discountReports?.topDiscounts?.map((discount, index) => (
+                      <div key={index} className="flex items-center justify-between p-4 border rounded-lg">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <Badge variant="secondary">Giảm giá</Badge>
+                            <span className="font-medium">{discount.discountName}</span>
+                          </div>
+                          <p className="text-sm text-muted-foreground mt-1">
+                            Đã sử dụng: {discount.usageCount} lần
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-lg font-bold text-red-600">
+                            -{discount.totalAmount?.toLocaleString('vi-VN') || '0'}₫
+                          </p>
+                          <p className="text-sm text-gray-500">
+                            TB/lần: {discount.averageAmount?.toLocaleString('vi-VN') || '0'}₫
+                          </p>
                         </div>
                       </div>
                     ))}
