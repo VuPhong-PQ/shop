@@ -860,51 +860,75 @@ namespace RetailPointBackend.Controllers
                     {
                         _logger.LogInformation("Bắt đầu xóa dữ liệu bán hàng...");
 
-                        // Kiểm tra và xóa order items trước (nếu bảng tồn tại)
+                        // Danh sách bảng cần xóa theo thứ tự (từ child đến parent)
+                        var tablesToDelete = new[]
+                        {
+                            // Dữ liệu chi tiết đơn hàng
+                            "OrderItems",
+                            
+                            // Dữ liệu đơn hàng
+                            "Orders",
+                            
+                            // Dữ liệu khách hàng
+                            "Customers",
+                            
+                            // Dữ liệu kho và giao dịch
+                            "InventoryMovements",
+                            "InventoryTransactions",
+                            
+                            // Dữ liệu thanh toán
+                            "PaymentTransactions",
+                            "PaymentStats",
+                            
+                            // Dữ liệu báo cáo
+                            "SalesReports",
+                            "DailySalesReports",
+                            "MonthlySalesReports",
+                            "ProductSalesReports",
+                            
+                            // Hóa đơn điện tử
+                            "EInvoiceItems",
+                            "EInvoices",
+                            
+                            // Thông báo liên quan đến bán hàng
+                            "Notifications",
+                            
+                            // Log activities liên quan
+                            "ActivityLogs",
+                            "AuditLogs"
+                        };
+
+                        var deletedTables = new List<string>();
+                        var skippedTables = new List<string>();
+
+                        // Tắt foreign key constraints tạm thời
                         try
                         {
-                            await _context.Database.ExecuteSqlRawAsync("DELETE FROM OrderItems WHERE 1=1");
-                            _logger.LogInformation("Đã xóa OrderItems");
+                            await _context.Database.ExecuteSqlRawAsync("EXEC sp_MSforeachtable 'ALTER TABLE ? NOCHECK CONSTRAINT ALL'");
+                            _logger.LogInformation("Đã tắt foreign key constraints");
                         }
                         catch (Exception ex)
                         {
-                            _logger.LogWarning($"Lỗi khi xóa OrderItems: {ex.Message}");
+                            _logger.LogWarning($"Lỗi khi tắt constraints: {ex.Message}");
+                        }
+
+                        // Xóa từng bảng (không cần kiểm tra tồn tại, sẽ catch exception nếu không có)
+                        foreach (var table in tablesToDelete)
+                        {
+                            try
+                            {
+                                var result = await _context.Database.ExecuteSqlRawAsync($"DELETE FROM [{table}] WHERE 1=1");
+                                deletedTables.Add($"{table}");
+                                _logger.LogInformation($"Đã xóa {table}");
+                            }
+                            catch (Exception ex)
+                            {
+                                skippedTables.Add($"{table} (lỗi: {ex.Message})");
+                                _logger.LogWarning($"Lỗi khi xóa {table}: {ex.Message}");
+                            }
                         }
                         
-                        // Xóa orders
-                        try
-                        {
-                            await _context.Database.ExecuteSqlRawAsync("DELETE FROM Orders WHERE 1=1");
-                            _logger.LogInformation("Đã xóa Orders");
-                        }
-                        catch (Exception ex)
-                        {
-                            _logger.LogWarning($"Lỗi khi xóa Orders: {ex.Message}");
-                        }
-                        
-                        // Xóa customers
-                        try
-                        {
-                            await _context.Database.ExecuteSqlRawAsync("DELETE FROM Customers WHERE 1=1");
-                            _logger.LogInformation("Đã xóa Customers");
-                        }
-                        catch (Exception ex)
-                        {
-                            _logger.LogWarning($"Lỗi khi xóa Customers: {ex.Message}");
-                        }
-                        
-                        // Xóa inventory movements (nếu có)
-                        try
-                        {
-                            await _context.Database.ExecuteSqlRawAsync("DELETE FROM InventoryMovements WHERE 1=1");
-                            _logger.LogInformation("Đã xóa InventoryMovements");
-                        }
-                        catch (Exception ex)
-                        {
-                            _logger.LogWarning($"Lỗi khi xóa InventoryMovements: {ex.Message}");
-                        }
-                        
-                        // Reset inventory quantities về 0 (nếu cột tồn tại)
+                        // Reset inventory quantities về 0
                         try
                         {
                             await _context.Database.ExecuteSqlRawAsync("UPDATE Products SET StockQuantity = 0 WHERE StockQuantity IS NOT NULL");
@@ -915,13 +939,13 @@ namespace RetailPointBackend.Controllers
                             _logger.LogWarning($"Lỗi khi reset StockQuantity: {ex.Message}");
                         }
                         
-                        // Reset identity columns (nếu có)
-                        var identityTables = new[] { "Orders", "OrderItems", "Customers", "InventoryMovements" };
+                        // Reset identity columns
+                        var identityTables = new[] { "Orders", "OrderItems", "Customers", "InventoryMovements", "EInvoices", "Notifications" };
                         foreach (var table in identityTables)
                         {
                             try
                             {
-                                await _context.Database.ExecuteSqlRawAsync($"DBCC CHECKIDENT ('{table}', RESEED, 0)");
+                                await _context.Database.ExecuteSqlRawAsync($"DBCC CHECKIDENT ('[{table}]', RESEED, 0)");
                                 _logger.LogInformation($"Đã reset identity cho {table}");
                             }
                             catch (Exception ex)
@@ -930,12 +954,26 @@ namespace RetailPointBackend.Controllers
                             }
                         }
 
+                        // Bật lại foreign key constraints
+                        try
+                        {
+                            await _context.Database.ExecuteSqlRawAsync("EXEC sp_MSforeachtable 'ALTER TABLE ? WITH CHECK CHECK CONSTRAINT ALL'");
+                            _logger.LogInformation("Đã bật lại foreign key constraints");
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogWarning($"Lỗi khi bật lại constraints: {ex.Message}");
+                        }
+
                         await transaction.CommitAsync();
                         _logger.LogInformation("Hoàn thành xóa dữ liệu bán hàng");
 
                         return Ok(new { 
-                            message = "Đã xóa toàn bộ dữ liệu bán hàng thành công. Sản phẩm và nhóm hàng được giữ lại.",
-                            timestamp = DateTime.Now
+                            message = "Đã xóa toàn bộ dữ liệu bán hàng thành công. Sản phẩm và cấu hình hệ thống được giữ lại.",
+                            timestamp = DateTime.Now,
+                            deletedTables = deletedTables,
+                            skippedTables = skippedTables,
+                            note = "Đã xóa: đơn hàng, khách hàng, giao dịch kho, thanh toán, báo cáo, hóa đơn điện tử, thông báo"
                         });
                     }
                     catch
@@ -978,6 +1016,58 @@ namespace RetailPointBackend.Controllers
                     var databaseName = sqlConnectionStringBuilder.InitialCatalog;
                     var serverName = sqlConnectionStringBuilder.DataSource;
                     
+                    // Lấy thông tin backup cuối cùng từ BackupHistory
+                    var lastBackup = await _context.BackupHistories
+                        .Where(bh => bh.Status == "Success")
+                        .OrderByDescending(bh => bh.BackupDate)
+                        .FirstOrDefaultAsync();
+
+                    string lastBackupInfo = "Chưa có thông tin";
+                    if (lastBackup != null)
+                    {
+                        var timeAgo = DateTime.Now - lastBackup.BackupDate;
+                        if (timeAgo.TotalMinutes < 60)
+                        {
+                            lastBackupInfo = $"{(int)timeAgo.TotalMinutes} phút trước ({lastBackup.BackupType})";
+                        }
+                        else if (timeAgo.TotalHours < 24)
+                        {
+                            lastBackupInfo = $"{(int)timeAgo.TotalHours} giờ trước ({lastBackup.BackupType})";
+                        }
+                        else
+                        {
+                            lastBackupInfo = $"{(int)timeAgo.TotalDays} ngày trước ({lastBackup.BackupType})";
+                        }
+                    }
+
+                    // Lấy kích thước database
+                    double sizeMB = 0.0;
+                    try
+                    {
+                        using (var connection = new SqlConnection(connectionString))
+                        {
+                            await connection.OpenAsync();
+                            var sizeQuery = $@"
+                                SELECT 
+                                    CAST(SUM(CAST(FILEPROPERTY(name, 'SpaceUsed') AS bigint) * 8.0 / 1024) AS decimal(15,2))
+                                FROM sys.database_files 
+                                WHERE type IN (0,1)";
+                            
+                            using (var command = new SqlCommand(sizeQuery, connection))
+                            {
+                                var result = await command.ExecuteScalarAsync();
+                                if (result != null && result != DBNull.Value)
+                                {
+                                    sizeMB = Convert.ToDouble(result);
+                                }
+                            }
+                        }
+                    }
+                    catch (Exception sizeEx)
+                    {
+                        _logger.LogWarning(sizeEx, "Không thể lấy kích thước database");
+                    }
+                    
                     // Sau khi restore, Entity Framework context có thể bị lỗi
                     // Thử refresh context bằng cách tạo connection mới
                     try
@@ -987,9 +1077,12 @@ namespace RetailPointBackend.Controllers
                         
                         return Ok(new {
                             databaseName = dbName ?? databaseName ?? "Unknown",
-                            sizeMB = 0.0, // Tạm thời để 0, sẽ implement sau
+                            sizeMB = Math.Round(sizeMB, 2),
                             serverName = serverName ?? "localhost",
-                            lastBackup = "Chưa có thông tin"
+                            lastBackup = lastBackupInfo,
+                            lastBackupDate = lastBackup?.BackupDate,
+                            lastBackupType = lastBackup?.BackupType,
+                            lastBackupSize = lastBackup?.FileSizeMB
                         });
                     }
                     catch (Exception efError)
@@ -1006,9 +1099,12 @@ namespace RetailPointBackend.Controllers
                                 
                                 return Ok(new {
                                     databaseName = dbName ?? databaseName ?? "Unknown",
-                                    sizeMB = 0.0,
+                                    sizeMB = Math.Round(sizeMB, 2),
                                     serverName = serverName ?? "localhost",
-                                    lastBackup = "Chưa có thông tin"
+                                    lastBackup = lastBackupInfo,
+                                    lastBackupDate = lastBackup?.BackupDate,
+                                    lastBackupType = lastBackup?.BackupType,
+                                    lastBackupSize = lastBackup?.FileSizeMB
                                 });
                             }
                         }
@@ -1022,11 +1118,39 @@ namespace RetailPointBackend.Controllers
                     try
                     {
                         var sqlConnectionStringBuilder = new SqlConnectionStringBuilder(connectionString);
+                        
+                        // Vẫn cố gắng lấy thông tin backup cuối từ BackupHistory
+                        var lastBackup = await _context.BackupHistories
+                            .Where(bh => bh.Status == "Success")
+                            .OrderByDescending(bh => bh.BackupDate)
+                            .FirstOrDefaultAsync();
+
+                        string lastBackupInfo = "Chưa có thông tin";
+                        if (lastBackup != null)
+                        {
+                            var timeAgo = DateTime.Now - lastBackup.BackupDate;
+                            if (timeAgo.TotalMinutes < 60)
+                            {
+                                lastBackupInfo = $"{(int)timeAgo.TotalMinutes} phút trước ({lastBackup.BackupType})";
+                            }
+                            else if (timeAgo.TotalHours < 24)
+                            {
+                                lastBackupInfo = $"{(int)timeAgo.TotalHours} giờ trước ({lastBackup.BackupType})";
+                            }
+                            else
+                            {
+                                lastBackupInfo = $"{(int)timeAgo.TotalDays} ngày trước ({lastBackup.BackupType})";
+                            }
+                        }
+                        
                         return Ok(new {
                             databaseName = sqlConnectionStringBuilder.InitialCatalog ?? "RetailPointDB",
                             sizeMB = 0.0,
                             serverName = sqlConnectionStringBuilder.DataSource ?? "localhost",
-                            lastBackup = "Không thể kết nối để kiểm tra"
+                            lastBackup = lastBackupInfo,
+                            lastBackupDate = lastBackup?.BackupDate,
+                            lastBackupType = lastBackup?.BackupType,
+                            lastBackupSize = lastBackup?.FileSizeMB
                         });
                     }
                     catch
@@ -1035,7 +1159,10 @@ namespace RetailPointBackend.Controllers
                             databaseName = "RetailPointDB",
                             sizeMB = 0.0,
                             serverName = "localhost",
-                            lastBackup = "Không thể lấy thông tin"
+                            lastBackup = "Không thể lấy thông tin",
+                            lastBackupDate = (DateTime?)null,
+                            lastBackupType = (string?)null,
+                            lastBackupSize = (double?)null
                         });
                     }
                 }
