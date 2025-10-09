@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { PaymentReport } from "@/components/reports/payment-report";
-import { DiscountSummaryReport } from "@/types/discountReports";
+import { DiscountSummaryReport, DiscountOrdersResponse } from "@/types/discountReports";
 import { 
   BarChart, 
   Bar, 
@@ -46,9 +46,18 @@ const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
 
 export default function Reports() {
   const queryClient = useQueryClient();
+  
+  // Set default range để capture tất cả data hôm nay
+  const today = new Date();
+  const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const endOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
+  
+  const todayString = startOfToday.toISOString().split('T')[0]; // 2025-10-09
+  const tomorrowString = endOfToday.toISOString().split('T')[0]; // 2025-10-10
+  
   const [dateRange, setDateRange] = useState({
-    startDate: "2025-10-01",
-    endDate: "2025-10-02"
+    startDate: todayString,     // Từ hôm nay
+    endDate: tomorrowString     // Đến ngày mai (để include hết hôm nay)
   });
   const [reportType, setReportType] = useState("summary");
 
@@ -147,17 +156,60 @@ export default function Reports() {
   const { data: discountReports, isLoading: discountLoading } = useQuery<DiscountSummaryReport>({
     queryKey: ['/api/discount-reports/summary', dateRange.startDate, dateRange.endDate],
     queryFn: async (): Promise<DiscountSummaryReport> => {
-      const response = await fetch(`/api/discount-reports/summary?startDate=${dateRange.startDate}&endDate=${dateRange.endDate}`);
+      // Temporary fix: Get all data without date filter since backend has filtering bug
+      let url = `/api/discount-reports/summary`;
+      // TODO: Re-enable date filtering after backend restart
+      // if (dateRange.startDate && dateRange.endDate) {
+      //   url += `?startDate=${dateRange.startDate}&endDate=${dateRange.endDate}`;
+      // }
+      
+      console.log('Fetching discount summary from:', url);
+      const response = await fetch(url);
       if (!response.ok) {
         throw new Error('Failed to fetch discount reports');
       }
-      return response.json();
+      const result = await response.json();
+      console.log('Discount Summary result:', result);
+      return result;
     },
     enabled: !!dateRange.startDate && !!dateRange.endDate,
     refetchInterval: 30000, // Refetch mỗi 30 giây
   });
 
-  const isLoading = salesLoading || productLoading || customerLoading || profitLoading || discountLoading;
+  const { data: discountOrders, isLoading: discountOrdersLoading } = useQuery<DiscountOrdersResponse>({
+    queryKey: ['/api/discount-reports/orders', dateRange.startDate, dateRange.endDate],
+    queryFn: async (): Promise<DiscountOrdersResponse> => {
+      // Temporary fix: Get all data without date filter since backend has filtering bug
+      let url = `/api/discount-reports/orders?page=1&pageSize=20`;
+      // TODO: Re-enable date filtering after backend restart
+      // if (dateRange.startDate && dateRange.endDate) {
+      //   url += `&startDate=${dateRange.startDate}&endDate=${dateRange.endDate}`;
+      // }
+      
+      console.log('Fetching discount orders from:', url);
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error('Failed to fetch discount orders');
+      }
+      const result = await response.json();
+      console.log('Discount orders result:', result);
+      
+      // Debug: Check discountDetails for each order
+      result.orders?.forEach((order: any, index: number) => {
+        console.log(`Order ${index + 1} (${order.orderNumber}):`, {
+          discountCount: order.discountCount,
+          discountDetailsLength: order.discountDetails?.length || 0,
+          discountDetails: order.discountDetails
+        });
+      });
+      
+      return result;
+    },
+    enabled: !!dateRange.startDate && !!dateRange.endDate,
+    refetchInterval: 30000, // Refetch mỗi 30 giây
+  });
+
+  const isLoading = salesLoading || productLoading || customerLoading || profitLoading || discountLoading || discountOrdersLoading;
 
   // Chart data formatting
   const chartData = productPerformance?.topProducts?.map(product => ({
@@ -820,34 +872,52 @@ export default function Reports() {
                 </Card>
               </div>
 
-              {/* Top Discounts */}
-              <Card>
+              {/* Discount Orders */}
+              <Card className="discount-orders">
                 <CardHeader>
-                  <CardTitle>Top giảm giá được sử dụng</CardTitle>
+                  <CardTitle className="font-roboto">Chi tiết các đơn hàng được giảm giá</CardTitle>
+                  <p className="text-sm text-muted-foreground font-roboto">
+                    Tổng cộng: {discountOrders?.totalCount || 0} đơn hàng
+                  </p>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="font-roboto">
                   <div className="space-y-4">
-                    {discountReports?.topDiscounts?.map((discount, index) => (
-                      <div key={index} className="flex items-center justify-between p-4 border rounded-lg">
+                    {discountOrders?.orders?.map((order) => (
+                      <div key={order.orderId} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 cursor-pointer font-roboto">
                         <div className="flex-1">
                           <div className="flex items-center gap-2">
-                            <Badge variant="secondary">Giảm giá</Badge>
-                            <span className="font-medium">{discount.discountName}</span>
+                            <Badge variant="outline" className="font-roboto">#{order.orderNumber}</Badge>
+                            <span className="font-medium font-roboto">{order.customerName}</span>
                           </div>
-                          <p className="text-sm text-muted-foreground mt-1">
-                            Đã sử dụng: {discount.usageCount} lần
+                          <p className="text-sm text-muted-foreground mt-1 font-roboto">
+                            {new Date(order.orderDate).toLocaleDateString('vi-VN')} • {order.discountCount} loại giảm giá
                           </p>
+                          <div className="flex gap-2 mt-2">
+                            {order.discountDetails.map((discount, idx) => (
+                              <Badge key={idx} variant="secondary" className="text-xs font-roboto">
+                                {discount.discountName}: -{discount.discountAmount.toLocaleString('vi-VN')}₫
+                              </Badge>
+                            ))}
+                          </div>
                         </div>
-                        <div className="text-right">
-                          <p className="text-lg font-bold text-red-600">
-                            -{discount.totalAmount?.toLocaleString('vi-VN') || '0'}₫
+                        <div className="text-right font-roboto">
+                          <p className="text-lg font-bold text-green-600 font-roboto">
+                            {order.orderTotal.toLocaleString('vi-VN')}₫
                           </p>
-                          <p className="text-sm text-gray-500">
-                            TB/lần: {discount.averageAmount?.toLocaleString('vi-VN') || '0'}₫
+                          <p className="text-sm text-red-600 font-medium font-roboto">
+                            Giảm: -{order.totalDiscountAmount.toLocaleString('vi-VN')}₫
+                          </p>
+                          <p className="text-xs text-gray-500 font-roboto">
+                            {order.paymentMethod} • {order.paymentStatus}
                           </p>
                         </div>
                       </div>
                     ))}
+                    {discountOrders?.orders?.length === 0 && (
+                      <div className="text-center py-8 text-muted-foreground font-roboto">
+                        Không có đơn hàng nào có giảm giá trong khoảng thời gian này
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>

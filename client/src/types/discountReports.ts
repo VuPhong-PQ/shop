@@ -30,3 +30,33 @@ export interface DailyDiscountReport {
   totalAmount: number;
   uniqueOrders: number;
 }
+
+export interface DiscountOrdersResponse {
+  orders: DiscountedOrderSummary[];
+  totalCount: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+}
+
+export interface DiscountedOrderSummary {
+  orderId: number;
+  orderNumber: string;
+  customerName: string;
+  orderTotal: number;
+  totalDiscountAmount: number;
+  discountCount: number;
+  orderDate: string;
+  paymentStatus: string;
+  paymentMethod: string;
+  discountDetails: OrderDiscountDetail[];
+}
+
+export interface OrderDiscountDetail {
+  discountName: string;
+  discountType: number;
+  discountTypeName: string;
+  discountValue: number;
+  discountAmount: number;
+  appliedAt: string;
+}

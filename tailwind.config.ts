@@ -71,6 +71,8 @@ export default {
         serif: ["var(--font-serif)"],
         mono: ["var(--font-mono)"],
         inter: ['Inter', 'sans-serif'],
+        vietnamese: ['Roboto', 'Segoe UI', 'Tahoma', 'Arial', 'sans-serif'],
+        roboto: ['Roboto', 'sans-serif'],
       },
       keyframes: {
         "accordion-down": {
