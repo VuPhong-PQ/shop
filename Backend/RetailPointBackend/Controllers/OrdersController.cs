@@ -28,7 +28,7 @@ namespace RetailPointBackend.Controllers
             [FromForm] string? orderNumber,
             [FromForm] int? customerId,
             [FromForm] int? staffId,
-            [FromForm] string? storeId,
+            [FromForm] int? storeId,
             [FromForm] string? subtotal,
             [FromForm] string? taxAmount,
             [FromForm] string? discountAmount,
@@ -79,7 +79,7 @@ namespace RetailPointBackend.Controllers
                 Status = status ?? "pending", // Default là pending thay vì completed
                 OrderNumber = orderNumber,
                 StaffId = staffId,
-                StoreId = storeId,
+                StoreId = storeId?.ToString(), // Convert int? to string
                 Items = items
             };
             // Nếu có CustomerId, gán lại CustomerName từ bảng Customer
@@ -238,9 +238,17 @@ namespace RetailPointBackend.Controllers
         }
 
         [HttpGet]
-        public IActionResult GetOrders()
+        public IActionResult GetOrders([FromQuery] int? storeId = null)
         {
-            var orders = _context.Orders
+            var query = _context.Orders.AsQueryable();
+            
+            // Filter by StoreId if provided (for multi-store support)
+            if (storeId.HasValue)
+            {
+                query = query.Where(o => o.StoreId == storeId.Value.ToString());
+            }
+            
+            var orders = query
                 .Select(o => new {
                     o.OrderId,
                     o.CustomerId,
@@ -261,6 +269,7 @@ namespace RetailPointBackend.Controllers
                     o.PaymentStatus,
                     o.Status,
                     o.PaymentMethod,
+                    o.StoreId,
                     CashierName = "Admin", // Tạm thời hardcode vì Staff chưa có trong context
                     Items = o.Items.Select(i => new {
                         i.ProductName,
@@ -493,7 +502,7 @@ namespace RetailPointBackend.Controllers
                     Status = request.Status ?? "pending",
                     CreatedAt = DateTime.Now,
                     StaffId = request.StaffId,
-                    StoreId = request.StoreId?.ToString(),
+                    StoreId = request.StoreId?.ToString(), // Convert int? to string
                     Notes = request.Notes
                 };
 

@@ -65,9 +65,17 @@ namespace RetailPointBackend.Controllers
 
         // GET: api/products
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Product>>> GetProducts()
+        public async Task<ActionResult<IEnumerable<Product>>> GetProducts([FromQuery] int? storeId = null)
         {
-            return await _context.Products.ToListAsync();
+            var query = _context.Products.AsQueryable();
+            
+            // Filter by store if storeId is provided
+            if (storeId.HasValue)
+            {
+                query = query.Where(p => p.StoreId == storeId.Value);
+            }
+            
+            return await query.ToListAsync();
         }
 
         // GET: api/products/low-stock

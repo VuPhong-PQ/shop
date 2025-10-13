@@ -146,7 +146,12 @@ namespace RetailPointBackend.Migrations
                     b.Property<string>("SoDienThoai")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<int?>("StoreId")
+                        .HasColumnType("int");
+
                     b.HasKey("CustomerId");
+
+                    b.HasIndex("StoreId");
 
                     b.ToTable("Customers");
                 });
@@ -185,6 +190,7 @@ namespace RetailPointBackend.Migrations
                         .HasColumnType("int");
 
                     b.Property<decimal?>("MinOrderValue")
+                        .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<int?>("MinQuantity")
@@ -211,6 +217,7 @@ namespace RetailPointBackend.Migrations
                         .HasColumnType("int");
 
                     b.Property<decimal>("Value")
+                        .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
                     b.HasKey("DiscountId");
@@ -700,6 +707,7 @@ namespace RetailPointBackend.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<decimal>("DiscountAmount")
+                        .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<string>("Notes")
@@ -720,16 +728,19 @@ namespace RetailPointBackend.Migrations
                     b.Property<string>("Status")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("StoreId")
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<int?>("StoreId")
+                        .HasColumnType("int");
 
                     b.Property<decimal>("SubTotal")
+                        .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<decimal>("TaxAmount")
+                        .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<decimal>("TotalAmount")
+                        .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
                     b.HasKey("OrderId");
@@ -737,6 +748,8 @@ namespace RetailPointBackend.Migrations
                     b.HasIndex("CustomerId");
 
                     b.HasIndex("StaffId");
+
+                    b.HasIndex("StoreId");
 
                     b.ToTable("Orders");
                 });
@@ -802,15 +815,18 @@ namespace RetailPointBackend.Migrations
                         .HasColumnType("int");
 
                     b.Property<decimal>("DiscountAmount")
+                        .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<decimal>("FinalPrice")
+                        .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<int>("OrderId")
                         .HasColumnType("int");
 
                     b.Property<decimal>("Price")
+                        .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<int>("ProductId")
@@ -823,6 +839,7 @@ namespace RetailPointBackend.Migrations
                         .HasColumnType("int");
 
                     b.Property<decimal>("TotalPrice")
+                        .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
                     b.HasKey("OrderItemId");
@@ -980,6 +997,21 @@ namespace RetailPointBackend.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("PrintConfigs");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            AutoPrintBill = true,
+                            AutoPrintOnOrder = false,
+                            BillFooter = "Cảm ơn quý khách!",
+                            BillHeader = "RETAIL POINT STORE",
+                            PaperSize = "80mm",
+                            PrintBarcode = true,
+                            PrintCopies = 1,
+                            PrintLogo = false,
+                            PrinterName = "Default Printer"
+                        });
                 });
 
             modelBuilder.Entity("RetailPointBackend.Models.Product", b =>
@@ -997,6 +1029,7 @@ namespace RetailPointBackend.Migrations
                         .HasColumnType("int");
 
                     b.Property<decimal?>("CostPrice")
+                        .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<string>("Description")
@@ -1012,6 +1045,7 @@ namespace RetailPointBackend.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<decimal>("Price")
+                        .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<int?>("ProductGroupId")
@@ -1021,10 +1055,15 @@ namespace RetailPointBackend.Migrations
                     b.Property<int>("StockQuantity")
                         .HasColumnType("int");
 
+                    b.Property<int?>("StoreId")
+                        .HasColumnType("int");
+
                     b.Property<string>("Unit")
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("ProductId");
+
+                    b.HasIndex("StoreId");
 
                     b.ToTable("Products");
                 });
@@ -1339,7 +1378,8 @@ namespace RetailPointBackend.Migrations
                         .HasColumnType("bit");
 
                     b.Property<decimal>("EnvTaxRate")
-                        .HasColumnType("decimal(18,2)");
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
 
                     b.Property<bool>("VATIncludedInPrice")
                         .HasColumnType("bit");
@@ -1349,11 +1389,33 @@ namespace RetailPointBackend.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<decimal>("VATRate")
-                        .HasColumnType("decimal(18,2)");
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
 
                     b.HasKey("Id");
 
                     b.ToTable("TaxConfigs");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            EnableEnvTax = false,
+                            EnableVAT = false,
+                            EnvTaxRate = 2.0m,
+                            VATIncludedInPrice = true,
+                            VATLabel = "VAT",
+                            VATRate = 10.0m
+                        });
+                });
+
+            modelBuilder.Entity("RetailPointBackend.Models.Customer", b =>
+                {
+                    b.HasOne("RetailPointBackend.Models.Store", "Store")
+                        .WithMany()
+                        .HasForeignKey("StoreId");
+
+                    b.Navigation("Store");
                 });
 
             modelBuilder.Entity("RetailPointBackend.Models.Discount", b =>
@@ -1468,9 +1530,15 @@ namespace RetailPointBackend.Migrations
                         .WithMany()
                         .HasForeignKey("StaffId");
 
+                    b.HasOne("RetailPointBackend.Models.Store", "Store")
+                        .WithMany()
+                        .HasForeignKey("StoreId");
+
                     b.Navigation("Customer");
 
                     b.Navigation("Staff");
+
+                    b.Navigation("Store");
                 });
 
             modelBuilder.Entity("RetailPointBackend.Models.OrderDiscount", b =>
@@ -1527,6 +1595,15 @@ namespace RetailPointBackend.Migrations
                     b.Navigation("Order");
 
                     b.Navigation("Product");
+                });
+
+            modelBuilder.Entity("RetailPointBackend.Models.Product", b =>
+                {
+                    b.HasOne("RetailPointBackend.Models.Store", "Store")
+                        .WithMany()
+                        .HasForeignKey("StoreId");
+
+                    b.Navigation("Store");
                 });
 
             modelBuilder.Entity("RetailPointBackend.Models.RolePermission", b =>

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace RetailPointBackend.Models
 {
@@ -21,11 +22,13 @@ namespace RetailPointBackend.Models
         public string? CancellationReason { get; set; } // Lý do hủy đơn hàng
         public string? OrderNumber { get; set; }
         public int? StaffId { get; set; } // Foreign Key to Staff
-        public string? StoreId { get; set; }
+        public string? StoreId { get; set; } // Foreign Key to Store - tạm thời dùng string
         public string? Notes { get; set; }
         
         public Customer? Customer { get; set; }
         public Staff? Staff { get; set; } // Navigation property to Staff
+        // [ForeignKey("StoreId")]
+        // public virtual Store? Store { get; set; } // Navigation property to Store - temporarily disabled due to type mismatch
         public List<OrderItem> Items { get; set; } = new List<OrderItem>();
     }
 }

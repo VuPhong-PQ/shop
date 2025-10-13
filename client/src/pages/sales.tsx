@@ -15,6 +15,7 @@ import { Search, Plus, Minus, Trash2, ShoppingCart, CreditCard, Banknote, QrCode
 import { cn, normalizeSearchText } from "@/lib/utils";
 import type { Product, Customer } from "@/types/backend-types";
 import { useCartDiscount, useApplyDiscount, type Discount, type DiscountCalculationResponse } from "@/hooks/useDiscount";
+import { useAuth } from "@/contexts/auth-context";
 
 type StoreInfo = {
   name: string;
@@ -70,6 +71,7 @@ const getPaymentColor = (id: string) => {
 };
 
 export default function Sales() {
+  const { currentStore, user } = useAuth();
   const [location, navigate] = useLocation();
   const [cart, setCart] = useState<CartItem[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -346,11 +348,21 @@ export default function Sales() {
 
   // Fetch products and customers
   const { data: products = [] } = useQuery<Product[]>({
-    queryKey: ['/api/products'],
+    queryKey: ['/api/products', currentStore?.storeId],
+    queryFn: () => {
+      const storeParam = currentStore?.storeId ? `?storeId=${currentStore.storeId}` : '';
+      return apiRequest(`/api/products${storeParam}`);
+    },
+    enabled: !!currentStore?.storeId,
   });
 
   const { data: customers = [] } = useQuery<Customer[]>({
-    queryKey: ['/api/customers'],
+    queryKey: ['/api/customers', currentStore?.storeId],
+    queryFn: async () => {
+      const storeParam = currentStore?.storeId ? `?storeId=${currentStore.storeId}` : '';
+      const rawCustomers = await apiRequest(`/api/customers${storeParam}`);
+      return rawCustomers;
+    },
     select: (rawCustomers: any[]) => rawCustomers.map((c) => ({
       id: c.customerId?.toString(),
       name: c.hoTen || '',
@@ -359,6 +371,7 @@ export default function Sales() {
       address: c.diaChi || '',
       customerType: c.hangKhachHang || '',
     })),
+    enabled: !!currentStore?.storeId,
   });
 
   // Fetch store info
@@ -926,8 +939,9 @@ export default function Sales() {
     const formData = new FormData();
     formData.append('orderNumber', `ORD${Date.now()}`);
     formData.append('customerId', selectedCustomer?.id || '0');
-    formData.append('cashierId', "550e8400-e29b-41d4-a716-446655440001");
-    formData.append('storeId', "550e8400-e29b-41d4-a716-446655440002");
+    formData.append('cashierId', user?.staffId?.toString() || "1");
+    formData.append('storeId', currentStore?.storeId?.toString() || "");
+    formData.append('staffId', user?.staffId?.toString() || "1");
     formData.append('subtotal', subtotal.toString());
     formData.append('taxAmount', taxAmount.toString());
     formData.append('discountAmount', totalDiscountAmount.toString());
@@ -1037,8 +1051,9 @@ export default function Sales() {
       // First create the order
       const formData = new FormData();
       formData.append('customerId', selectedCustomer?.id || '0');
-      formData.append('cashierId', "550e8400-e29b-41d4-a716-446655440001");
-      formData.append('storeId', "550e8400-e29b-41d4-a716-446655440002");
+      formData.append('cashierId', user?.staffId?.toString() || "1");
+      formData.append('storeId', currentStore?.storeId?.toString() || "");
+      formData.append('staffId', user?.staffId?.toString() || "1");
       formData.append('subtotal', subtotal.toString());
       formData.append('taxAmount', taxAmount.toString());
       formData.append('discountAmount', totalDiscountAmount.toString());
@@ -1124,8 +1139,9 @@ export default function Sales() {
     const formData = new FormData();
     formData.append('orderNumber', `PENDING${Date.now()}`);
     formData.append('customerId', selectedCustomer?.id || '0');
-    formData.append('cashierId', "550e8400-e29b-41d4-a716-446655440001");
-    formData.append('storeId', "550e8400-e29b-41d4-a716-446655440002");
+    formData.append('cashierId', user?.staffId?.toString() || "1");
+    formData.append('storeId', currentStore?.storeId?.toString() || "");
+    formData.append('staffId', user?.staffId?.toString() || "1");
     formData.append('subtotal', subtotal.toString());
     formData.append('taxAmount', taxAmount.toString());
     formData.append('discountAmount', "0");

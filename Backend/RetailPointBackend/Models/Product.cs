@@ -20,6 +20,11 @@ namespace RetailPointBackend.Models
         public string? Unit { get; set; }
         public string? ImageUrl { get; set; }
         public string? Description { get; set; }
+        
+        // Multi-store support
+        public int? StoreId { get; set; }
+        [ForeignKey("StoreId")]
+        public virtual Store? Store { get; set; }
 
         // Computed properties for stock status
         [NotMapped]

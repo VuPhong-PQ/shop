@@ -22,6 +22,8 @@ import EInvoiceSettings from "@/pages/einvoice-settings";
 import VNPTTest from "@/pages/vnpt-test";
 import DataManagement from "@/pages/data-management";
 import StoreSelection from "@/pages/store-selection";
+import StoreManagement from "@/pages/store-management";
+import Dashboard from "@/pages/dashboard";
 
 function Router() {
   return (
@@ -32,6 +34,11 @@ function Router() {
       <Route path="/store-selection">
         <ProtectedRoute>
           <StoreSelection />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/dashboard">
+        <ProtectedRoute requiredPermission="ViewDashboard">
+          <Dashboard />
         </ProtectedRoute>
       </Route>
       <Route path="/">
@@ -107,6 +114,11 @@ function Router() {
       <Route path="/data-management">
         <ProtectedRoute requiredPermission="ViewDataManagement">
           <DataManagement />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/store-management">
+        <ProtectedRoute requiredPermission="ViewSettings">
+          <StoreManagement />
         </ProtectedRoute>
       </Route>
       <Route>

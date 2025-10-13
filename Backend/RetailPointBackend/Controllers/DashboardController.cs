@@ -8,15 +8,15 @@ namespace RetailPointBackend.Controllers
     [Route("api/[controller]")]
     public class DashboardController : ControllerBase
     {
-        private readonly RetailPointContext _context;
+        private readonly AppDbContext _context;
 
-        public DashboardController(RetailPointContext context)
+        public DashboardController(AppDbContext context)
         {
             _context = context;
         }
 
         [HttpGet("metrics")]
-        public IActionResult GetDashboardMetrics()
+        public IActionResult GetDashboardMetrics([FromQuery] string? storeId = null)
         {
             try
             {
@@ -25,14 +25,21 @@ namespace RetailPointBackend.Controllers
                 var thisMonth = new DateTime(today.Year, today.Month, 1);
                 var lastMonth = thisMonth.AddMonths(-1);
 
+                // Base query for orders - xử lý trường hợp StoreId có thể null
+                var ordersQuery = _context.Orders.AsQueryable();
+                if (!string.IsNullOrEmpty(storeId))
+                {
+                    ordersQuery = ordersQuery.Where(o => o.StoreId == storeId);
+                }
+
                 // Tính toán doanh thu hôm nay
-                var todayOrders = _context.Orders
+                var todayOrders = ordersQuery
                     .Where(o => o.CreatedAt.Date == today && o.PaymentStatus == "paid" && o.Status != "cancelled")
                     .ToList();
                 var todayRevenue = todayOrders.Sum(o => o.TotalAmount);
 
                 // Tính toán doanh thu hôm qua để so sánh
-                var yesterdayOrders = _context.Orders
+                var yesterdayOrders = ordersQuery
                     .Where(o => o.CreatedAt.Date == yesterday && o.PaymentStatus == "paid" && o.Status != "cancelled")
                     .ToList();
                 var yesterdayRevenue = yesterdayOrders.Sum(o => o.TotalAmount);
@@ -91,12 +98,12 @@ namespace RetailPointBackend.Controllers
                     ordersByStatus = new
                     {
                         total = totalOrders,
-                        paid = _context.Orders.Count(o => o.PaymentStatus == "paid"),
-                        pending = _context.Orders.Count(o => o.PaymentStatus == "pending"),
-                        failed = _context.Orders.Count(o => o.PaymentStatus == "failed"),
-                        completed = _context.Orders.Count(o => o.Status == "completed"),
-                        processing = _context.Orders.Count(o => o.Status == "pending"),
-                        cancelled = _context.Orders.Count(o => o.Status == "cancelled")
+                        paid = ordersQuery.Count(o => o.PaymentStatus == "paid"),
+                        pending = ordersQuery.Count(o => o.PaymentStatus == "pending"),
+                        failed = ordersQuery.Count(o => o.PaymentStatus == "failed"),
+                        completed = ordersQuery.Count(o => o.Status == "completed"),
+                        processing = ordersQuery.Count(o => o.Status == "pending"),
+                        cancelled = ordersQuery.Count(o => o.Status == "cancelled")
                     }
                 };
 
@@ -154,6 +161,61 @@ namespace RetailPointBackend.Controllers
                 return $"{(int)timeSpan.TotalDays} ngày trước";
             
             return createdAt.ToString("dd/MM/yyyy");
+        }
+
+        [HttpGet("metrics/stores")]
+        public IActionResult GetStoreMetrics()
+        {
+            try
+            {
+                // Lấy thông tin các cửa hàng và thống kê
+                var stores = _context.Stores
+                    .Select(s => new
+                    {
+                        id = s.StoreId,
+                        name = s.Name,
+                        address = s.Address,
+                        isActive = s.IsActive,
+                        // Thống kê doanh thu theo cửa hàng - convert int StoreId to string for comparison
+                        totalRevenue = _context.Orders
+                            .Where(o => o.StoreId == s.StoreId.ToString() && o.PaymentStatus == "paid" && o.Status != "cancelled")
+                            .Sum(o => (decimal?)o.TotalAmount) ?? 0,
+                        totalOrders = _context.Orders
+                            .Where(o => o.StoreId == s.StoreId.ToString())
+                            .Count(),
+                        todayRevenue = _context.Orders
+                            .Where(o => o.StoreId == s.StoreId.ToString()
+                                && o.CreatedAt.Date == DateTime.Today 
+                                && o.PaymentStatus == "paid" 
+                                && o.Status != "cancelled")
+                            .Sum(o => (decimal?)o.TotalAmount) ?? 0
+                    })
+                    .ToList();
+
+                // Nếu không có cửa hàng nào, tạo dữ liệu mặc định
+                if (!stores.Any())
+                {
+                    return Ok(new List<object>
+                    {
+                        new
+                        {
+                            id = 1,
+                            name = "Cửa hàng chính",
+                            address = "Chưa cập nhật địa chỉ",
+                            isActive = true,
+                            totalRevenue = 0,
+                            totalOrders = 0,
+                            todayRevenue = 0
+                        }
+                    });
+                }
+
+                return Ok(stores);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Lỗi khi tải thông tin cửa hàng", error = ex.Message });
+            }
         }
     }
 }

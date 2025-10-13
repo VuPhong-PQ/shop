@@ -18,9 +18,17 @@ namespace RetailPointBackend.Controllers
 
         // GET: api/customers
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Customer>>> GetCustomers()
+        public async Task<ActionResult<IEnumerable<Customer>>> GetCustomers([FromQuery] int? storeId = null)
         {
-            return await _context.Customers.ToListAsync();
+            var query = _context.Customers.AsQueryable();
+            
+            // Filter by store if storeId is provided
+            if (storeId.HasValue)
+            {
+                query = query.Where(c => c.StoreId == storeId.Value);
+            }
+            
+            return await query.ToListAsync();
         }
 
         // POST: api/customers

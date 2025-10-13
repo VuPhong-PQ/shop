@@ -46,6 +46,105 @@ namespace RetailPointBackend.Models
     // Discount tables
     public DbSet<Discount> Discounts { get; set; }
     public DbSet<OrderDiscount> OrderDiscounts { get; set; }
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        base.OnModelCreating(modelBuilder);
+
+        // Configure decimal properties precision
+        modelBuilder.Entity<Discount>()
+            .Property(d => d.MinOrderValue)
+            .HasPrecision(18, 2);
+        
+        modelBuilder.Entity<Discount>()
+            .Property(d => d.Value)
+            .HasPrecision(18, 2);
+
+        modelBuilder.Entity<Order>()
+            .Property(o => o.DiscountAmount)
+            .HasPrecision(18, 2);
+        
+        modelBuilder.Entity<Order>()
+            .Property(o => o.SubTotal)
+            .HasPrecision(18, 2);
+        
+        modelBuilder.Entity<Order>()
+            .Property(o => o.TaxAmount)
+            .HasPrecision(18, 2);
+        
+        modelBuilder.Entity<Order>()
+            .Property(o => o.TotalAmount)
+            .HasPrecision(18, 2);
+
+        modelBuilder.Entity<OrderItem>()
+            .Property(oi => oi.Price)
+            .HasPrecision(18, 2);
+        
+        modelBuilder.Entity<OrderItem>()
+            .Property(oi => oi.DiscountAmount)
+            .HasPrecision(18, 2);
+        
+        modelBuilder.Entity<OrderItem>()
+            .Property(oi => oi.FinalPrice)
+            .HasPrecision(18, 2);
+        
+        modelBuilder.Entity<OrderItem>()
+            .Property(oi => oi.TotalPrice)
+            .HasPrecision(18, 2);
+
+        modelBuilder.Entity<Product>()
+            .Property(p => p.Price)
+            .HasPrecision(18, 2);
+        
+        modelBuilder.Entity<Product>()
+            .Property(p => p.CostPrice)
+            .HasPrecision(18, 2);
+
+        modelBuilder.Entity<TaxConfig>()
+            .Property(tc => tc.VATRate)
+            .HasPrecision(5, 2);
+        
+        modelBuilder.Entity<TaxConfig>()
+            .Property(tc => tc.EnvTaxRate)
+            .HasPrecision(5, 2);
+
+        // Seed default data
+        SeedDefaultData(modelBuilder);
+    }
+
+    private void SeedDefaultData(ModelBuilder modelBuilder)
+    {
+        // Seed default TaxConfig
+        modelBuilder.Entity<TaxConfig>().HasData(
+            new TaxConfig
+            {
+                Id = 1,
+                EnableVAT = false,
+                VATIncludedInPrice = true,
+                VATRate = 10.0m,
+                VATLabel = "VAT",
+                EnableEnvTax = false,
+                EnvTaxRate = 2.0m
+            }
+        );
+
+        // Seed default PrintConfig
+        modelBuilder.Entity<PrintConfig>().HasData(
+            new PrintConfig
+            {
+                Id = 1,
+                PrinterName = "Default Printer",
+                PaperSize = "80mm",
+                PrintCopies = 1,
+                AutoPrintBill = true,
+                AutoPrintOnOrder = false,
+                PrintBarcode = true,
+                PrintLogo = false,
+                BillHeader = "RETAIL POINT STORE",
+                BillFooter = "Cảm ơn quý khách!"
+            }
+        );
+    }
     }
 
 }
