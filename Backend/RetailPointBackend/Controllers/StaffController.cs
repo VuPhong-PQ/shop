@@ -246,6 +246,7 @@ namespace RetailPointBackend.Controllers
                 .Include(s => s.Role)
                 .ThenInclude(r => r.RolePermissions)
                 .ThenInclude(rp => rp.Permission)
+                .Include(s => s.Store)
                 .FirstOrDefaultAsync(s => s.Username == loginDto.Username && s.IsActive);
 
             if (staff == null || !BCrypt.Net.BCrypt.Verify(loginDto.Password, staff.PasswordHash))
@@ -270,7 +271,9 @@ namespace RetailPointBackend.Controllers
                 RoleId = staff.RoleId,
                 RoleName = staff.Role.RoleName,
                 Permissions = permissions,
-                LastLogin = staff.LastLogin
+                LastLogin = staff.LastLogin,
+                StoreId = staff.StoreId,
+                StoreName = staff.Store?.Name
             };
 
             return Ok(response);
@@ -395,5 +398,7 @@ namespace RetailPointBackend.Controllers
         public string RoleName { get; set; } = string.Empty;
         public List<string> Permissions { get; set; } = new List<string>();
         public DateTime? LastLogin { get; set; }
+        public int? StoreId { get; set; }
+        public string? StoreName { get; set; }
     }
 }

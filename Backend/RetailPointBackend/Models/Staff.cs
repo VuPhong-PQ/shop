@@ -30,6 +30,9 @@ namespace RetailPointBackend.Models
         [ForeignKey("Role")]
         public int RoleId { get; set; }
         
+        [ForeignKey("Store")]
+        public int? StoreId { get; set; } // Foreign Key to Store (nullable for Admin)
+        
         public bool IsActive { get; set; } = true;
         
         public DateTime CreatedAt { get; set; } = DateTime.Now;
@@ -41,6 +44,7 @@ namespace RetailPointBackend.Models
         
         // Navigation properties
         public virtual Role Role { get; set; } = null!;
+        public virtual Store? Store { get; set; } // Navigation property to Store
         
         // Computed properties
         [NotMapped]

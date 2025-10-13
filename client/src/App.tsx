@@ -21,12 +21,18 @@ import PrintOrder from "@/pages/print-order";
 import EInvoiceSettings from "@/pages/einvoice-settings";
 import VNPTTest from "@/pages/vnpt-test";
 import DataManagement from "@/pages/data-management";
+import StoreSelection from "@/pages/store-selection";
 
 function Router() {
   return (
     <Switch>
       <Route path="/login">
         <Login />
+      </Route>
+      <Route path="/store-selection">
+        <ProtectedRoute>
+          <StoreSelection />
+        </ProtectedRoute>
       </Route>
       <Route path="/">
         <ProtectedRoute requiredPermission="ViewOrders">

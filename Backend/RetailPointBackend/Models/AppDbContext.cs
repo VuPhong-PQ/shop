@@ -30,6 +30,7 @@ namespace RetailPointBackend.Models
     public DbSet<Customer> Customers { get; set; }
     public DbSet<Notification> Notifications { get; set; }
     public DbSet<Staff> Staffs { get; set; }
+    public DbSet<Store> Stores { get; set; }
     public DbSet<Role> Roles { get; set; }
     public DbSet<Permission> Permissions { get; set; }
     public DbSet<RolePermission> RolePermissions { get; set; }

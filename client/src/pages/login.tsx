@@ -78,8 +78,13 @@ export default function Login() {
         description: `Chào mừng ${data.fullName}!`,
       });
 
-      // Chuyển hướng về trang chính
-      setLocation("/");
+      // Nếu user có storeId thì redirect về store selection, nếu không thì về dashboard
+      if (data.roleName === "Admin" || !data.storeId) {
+        setLocation("/store-selection");
+      } else {
+        // Nếu đã có store được assign thì có thể vào dashboard luôn
+        setLocation("/");
+      }
     },
     onError: (error: Error) => {
       setError(error.message);
