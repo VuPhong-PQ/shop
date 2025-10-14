@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/contexts/auth-context";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -51,24 +51,32 @@ export function StoreSelector({ onStoreSelected, showTitle = true }: StoreSelect
   };
 
   // Admin có thể truy cập tất cả stores, nhân viên chỉ có thể truy cập store được assign
-  const accessibleStores = user?.roleName === "Admin" 
-    ? availableStores 
-    : availableStores.filter(store => store.storeId === user?.storeId);
+  // availableStores đã được lọc theo quyền từ backend rồi, chỉ cần dùng trực tiếp
+  const accessibleStores = availableStores;
 
   if (accessibleStores.length === 0) {
     return (
-      <div className="text-center py-8">
-        <Store className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-        <p className="text-gray-500">Không có cửa hàng nào được phân quyền</p>
+      <div className="text-center py-12">
+        <div className="max-w-md mx-auto">
+          <Store className="w-16 h-16 text-gray-300 mx-auto mb-6" />
+          <h3 className="text-xl font-semibold text-gray-700 mb-3">
+            Chưa có cửa hàng nào được phân quyền
+          </h3>
+          <p className="text-gray-500 mb-6 leading-relaxed">
+            Hiện tại bạn chưa được phân quyền vào cửa hàng nào. Vui lòng liên hệ với quản trị viên để được cấp quyền truy cập các cửa hàng.
+          </p>
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <p className="text-sm text-blue-800">
+              <strong>Lưu ý:</strong> Sau khi được cấp quyền, bạn cần đăng xuất và đăng nhập lại để cập nhật quyền truy cập.
+            </p>
+          </div>
+        </div>
       </div>
     );
   }
 
-  // Nếu user chỉ có 1 store thì auto-select
-  if (accessibleStores.length === 1 && !currentStore) {
-    const singleStore = accessibleStores[0];
-    handleStoreSelect(singleStore);
-  }
+  // Tạm thời bỏ auto-select để tránh infinite loop
+  // Sẽ xử lý auto-redirect ở level cao hơn
 
   return (
     <div className="space-y-4">

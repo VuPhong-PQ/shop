@@ -91,7 +91,7 @@ export default function Sales() {
     }
   }, [availableStores, loadAvailableStores]);
 
-  // Check for storeId in URL params
+  // Check for storeId in URL params và validate permissions
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const storeId = urlParams.get('storeId');
@@ -101,14 +101,26 @@ export default function Sales() {
     console.log('Sales page - Available stores:', availableStores);
     
     if (storeId && parseInt(storeId) !== currentStore?.storeId) {
-      // Switch to the specified store
+      // Kiểm tra xem user có quyền truy cập store này không
       const targetStore = availableStores?.find(store => store.storeId === parseInt(storeId));
       console.log('Sales page - Target store found:', targetStore);
       
       if (targetStore) {
-        console.log('Sales page - Switching to store:', parseInt(storeId));
+        // Chỉ switch nếu store này nằm trong danh sách availableStores (đã được filter theo permissions)
+        console.log('Sales page - Switching to authorized store:', parseInt(storeId));
         switchStore(parseInt(storeId));
         // Remove storeId from URL after switching
+        const newUrl = window.location.pathname;
+        window.history.replaceState({}, '', newUrl);
+      } else {
+        // Store không có trong availableStores - user không có quyền
+        console.warn('Sales page - User không có quyền truy cập store:', storeId);
+        toast({
+          title: "Không có quyền truy cập",
+          description: "Bạn không có quyền truy cập cửa hàng này.",
+          variant: "destructive",
+        });
+        // Remove storeId from URL
         const newUrl = window.location.pathname;
         window.history.replaceState({}, '', newUrl);
       }

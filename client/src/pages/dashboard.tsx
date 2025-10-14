@@ -28,7 +28,7 @@ interface DashboardMetrics {
 }
 
 export default function Dashboard() {
-  const { currentStore } = useAuth();
+  const { currentStore, user, availableStores } = useAuth();
   const [, navigate] = useLocation();
 
   const { data: metricsResponse, isLoading } = useQuery({
@@ -42,20 +42,36 @@ export default function Dashboard() {
   });
 
   const { data: storesResponse } = useQuery({
-    queryKey: ["/api/dashboard/metrics/stores"],
+    queryKey: ["/api/dashboard/metrics/stores", user?.username],
     queryFn: async () => {
-      const response = await fetch("http://localhost:5271/api/dashboard/metrics/stores");
+      const response = await fetch("http://localhost:5271/api/dashboard/metrics/stores", {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Username': user?.username || 'admin'
+        },
+        credentials: 'include'
+      });
       if (!response.ok) throw new Error("Failed to fetch stores");
       return response.json();
     },
+    enabled: !!user?.username,
   });
 
   const metrics = metricsResponse as DashboardMetrics;
 
   const handleStoreClick = (storeId: number) => {
-    // Chuyển đến trang bán hàng với storeId
-    console.log('Dashboard - Clicking store with ID:', storeId);
-    navigate(`/sales?storeId=${storeId}`);
+    // Kiểm tra xem user có quyền truy cập store này không
+    const hasAccess = availableStores?.some(store => store.storeId === storeId);
+    
+    if (hasAccess) {
+      // Chuyển đến trang bán hàng với storeId
+      console.log('Dashboard - Clicking authorized store with ID:', storeId);
+      navigate(`/sales?storeId=${storeId}`);
+    } else {
+      console.warn('Dashboard - User không có quyền truy cập store:', storeId);
+      // Có thể thêm toast thông báo ở đây
+    }
   };
 
   const handleChangeStore = () => {
@@ -97,25 +113,34 @@ export default function Dashboard() {
       {/* Store Selection Cards */}
       {storesResponse && storesResponse.length > 0 && (
         <div className="mb-6">
-          <h2 className="text-xl font-semibold mb-4">Các cửa hàng khả dụng</h2>
+          <h2 className="text-xl font-semibold mb-4">Các cửa hàng được phép truy cập</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {storesResponse.map((store: any) => (
-              <Card 
-                key={store.id}
-                className={`cursor-pointer transition-all hover:shadow-md ${
-                  currentStore?.storeId === store.id 
-                    ? "ring-2 ring-blue-500 bg-blue-50" 
-                    : "hover:border-blue-300"
-                }`}
-                onClick={() => handleStoreClick(store.id)}
-              >
+            {storesResponse.map((store: any) => {
+              // Kiểm tra xem user có quyền truy cập store này không
+              const hasAccess = availableStores?.some(s => s.storeId === store.id);
+              
+              return (
+                <Card 
+                  key={store.id}
+                  className={`transition-all ${
+                    hasAccess 
+                      ? `cursor-pointer hover:shadow-md ${
+                          currentStore?.storeId === store.id 
+                            ? "ring-2 ring-blue-500 bg-blue-50" 
+                            : "hover:border-blue-300"
+                        }`
+                      : "opacity-50 cursor-not-allowed bg-gray-50"
+                  }`}
+                  onClick={() => hasAccess && handleStoreClick(store.id)}
+                >
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-lg flex items-center gap-2">
                       <Store className="w-5 h-5" />
                       {store.name}
+                      {!hasAccess && <span className="text-xs text-red-500 ml-2">(Không có quyền)</span>}
                     </CardTitle>
-                    <ArrowRight className="w-4 h-4 text-gray-400" />
+                    {hasAccess && <ArrowRight className="w-4 h-4 text-gray-400" />}
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-2">
@@ -133,16 +158,18 @@ export default function Dashboard() {
                   <Button 
                     size="sm" 
                     className="w-full mt-2" 
+                    disabled={!hasAccess}
                     onClick={(e) => {
                       e.stopPropagation();
-                      handleStoreClick(store.id);
+                      hasAccess && handleStoreClick(store.id);
                     }}
                   >
-                    Vào bán hàng
+                    {hasAccess ? "Vào bán hàng" : "Không có quyền"}
                   </Button>
                 </CardContent>
               </Card>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}

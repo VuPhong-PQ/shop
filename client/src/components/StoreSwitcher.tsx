@@ -27,11 +27,15 @@ export default function StoreSwitcher({ onStoreChange }: StoreSwitcherProps) {
 
   const fetchMyStores = async () => {
     try {
+      // Get username from localStorage or session
+      const currentUser = localStorage.getItem('currentUser');
+      const username = currentUser ? JSON.parse(currentUser).username : 'admin';
+      
       const response = await fetch('http://localhost:5271/api/storeswitch/my-stores', {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-          'Username': 'admin' // Tạm thời hardcode, sau này lấy từ context/auth
+          'Username': username
         },
         credentials: 'include'
       });
@@ -47,11 +51,15 @@ export default function StoreSwitcher({ onStoreChange }: StoreSwitcherProps) {
 
   const fetchCurrentStore = async () => {
     try {
+      // Get username from localStorage or session
+      const currentUser = localStorage.getItem('currentUser');
+      const username = currentUser ? JSON.parse(currentUser).username : 'admin';
+      
       const response = await fetch('http://localhost:5271/api/storeswitch/current', {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-          'Username': 'admin'
+          'Username': username
         },
         credentials: 'include'
       });
@@ -73,11 +81,15 @@ export default function StoreSwitcher({ onStoreChange }: StoreSwitcherProps) {
   const handleStoreSelect = async (store: Store) => {
     setLoading(true);
     try {
+      // Get username from localStorage or session
+      const currentUser = localStorage.getItem('currentUser');
+      const username = currentUser ? JSON.parse(currentUser).username : 'admin';
+      
       const response = await fetch('http://localhost:5271/api/storeswitch/set-current', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Username': 'admin'
+          'Username': username
         },
         credentials: 'include',
         body: JSON.stringify({ storeId: store.storeId })
@@ -136,15 +148,20 @@ export default function StoreSwitcher({ onStoreChange }: StoreSwitcherProps) {
         className="w-full flex items-center justify-between space-x-2 p-3 bg-gray-50 hover:bg-gray-100 rounded-lg border transition-colors duration-200"
       >
         <div className="flex items-center space-x-2">
-          <Store className="w-4 h-4 text-blue-600" />
+          <Store className={`w-4 h-4 ${currentStore ? 'text-blue-600' : 'text-gray-400'}`} />
           <div className="text-left">
-            <div className="font-medium text-sm">
-              {currentStore?.name || 'Chọn cửa hàng'}
+            <div className={`font-medium text-sm ${currentStore ? 'text-gray-900' : 'text-gray-500'}`}>
+              {currentStore?.name || (stores.length === 0 ? 'Chưa có cửa hàng' : 'Chọn cửa hàng')}
             </div>
             {currentStore && (
               <div className="text-gray-500 text-xs flex items-center">
                 <MapPin className="w-3 h-3 mr-1" />
                 {currentStore.address}
+              </div>
+            )}
+            {!currentStore && stores.length === 0 && (
+              <div className="text-gray-400 text-xs">
+                Chưa được phân quyền
               </div>
             )}
           </div>
@@ -154,15 +171,26 @@ export default function StoreSwitcher({ onStoreChange }: StoreSwitcherProps) {
 
       {isOpen && (
         <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 max-h-80 overflow-y-auto min-w-[400px] max-w-[500px]">
-          {stores.map((store) => (
-            <button
-              key={store.storeId}
-              onClick={() => handleStoreSelect(store)}
-              disabled={loading}
-              className={`w-full text-left p-4 hover:bg-gray-50 transition-colors duration-200 border-b border-gray-100 last:border-b-0 ${
-                currentStore?.storeId === store.storeId ? 'bg-blue-50 border-l-4 border-blue-500' : ''
-              }`}
-            >
+          {stores.length === 0 ? (
+            <div className="p-6 text-center">
+              <div className="text-gray-400 mb-3">
+                <Store className="w-12 h-12 mx-auto" />
+              </div>
+              <div className="text-gray-700 font-medium mb-2">Chưa có cửa hàng nào</div>
+              <div className="text-gray-500 text-sm">
+                Bạn chưa được phân quyền vào cửa hàng nào. Vui lòng liên hệ với quản trị viên để được cấp quyền truy cập.
+              </div>
+            </div>
+          ) : (
+            stores.map((store) => (
+              <button
+                key={store.storeId}
+                onClick={() => handleStoreSelect(store)}
+                disabled={loading}
+                className={`w-full text-left p-4 hover:bg-gray-50 transition-colors duration-200 border-b border-gray-100 last:border-b-0 ${
+                  currentStore?.storeId === store.storeId ? 'bg-blue-50 border-l-4 border-blue-500' : ''
+                }`}
+              >
               <div className="flex items-start space-x-3">
                 <Store className={`w-5 h-5 mt-0.5 ${currentStore?.storeId === store.storeId ? 'text-blue-600' : 'text-gray-400'}`} />
                 <div className="flex-1 min-w-0">
@@ -188,8 +216,9 @@ export default function StoreSwitcher({ onStoreChange }: StoreSwitcherProps) {
                   <div className="text-blue-600 text-sm font-medium">✓</div>
                 )}
               </div>
-            </button>
-          ))}
+              </button>
+            ))
+          )}
         </div>
       )}
 

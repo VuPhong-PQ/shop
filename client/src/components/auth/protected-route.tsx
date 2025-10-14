@@ -29,8 +29,16 @@ export function ProtectedRoute({ children, requiredPermission }: ProtectedRouteP
       return;
     }
 
-    // Check if user needs to select store (for non-admin users or admin without current store)
-    if (user && !currentStore && (user.roleName === "Admin" || !user.storeId)) {
+    // Check if user needs to select store
+    // Chỉ redirect đến store-selection nếu user chưa có currentStore VÀ có nhiều stores để chọn
+    if (user && !currentStore) {
+      // Đối với Admin hoặc user có nhiều stores - cần chọn store
+      if (user.roleName === "Admin") {
+        setLocation("/store-selection");
+        return;
+      }
+      // Đối với staff không có currentStore - cũng cần đi store-selection để xem thông báo
+      // (nếu không có store nào) hoặc để auto-select store duy nhất
       setLocation("/store-selection");
       return;
     }

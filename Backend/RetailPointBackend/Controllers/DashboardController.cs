@@ -164,13 +164,38 @@ namespace RetailPointBackend.Controllers
         }
 
         [HttpGet("metrics/stores")]
-        public IActionResult GetStoreMetrics()
+        public async Task<IActionResult> GetStoreMetrics()
         {
             try
             {
-                // Lấy thông tin các cửa hàng đang hoạt động và thống kê
-                var stores = _context.Stores
-                    .Where(s => s.IsActive) // Chỉ lấy stores đang hoạt động
+                // Lấy thông tin user từ header
+                var username = HttpContext.Request.Headers["Username"].FirstOrDefault() ?? "admin";
+                
+                var staff = await _context.Staffs
+                    .Include(s => s.Role)
+                    .FirstOrDefaultAsync(s => s.Username == username && s.IsActive);
+                    
+                if (staff == null)
+                {
+                    return Unauthorized("Không tìm thấy thông tin nhân viên");
+                }
+
+                // Nếu là Admin thì có quyền truy cập tất cả stores
+                IQueryable<Store> storesQuery = _context.Stores.Where(s => s.IsActive);
+                
+                if (staff.Role.RoleName != "Admin")
+                {
+                    // Lọc chỉ stores được assign cho staff này
+                    var assignedStoreIds = await _context.StaffStores
+                        .Where(ss => ss.StaffId == staff.StaffId)
+                        .Select(ss => ss.StoreId)
+                        .ToListAsync();
+                    
+                    storesQuery = storesQuery.Where(s => assignedStoreIds.Contains(s.StoreId));
+                }
+
+                // Lấy thông tin các cửa hàng được phép truy cập và thống kê
+                var stores = await storesQuery
                     .Select(s => new
                     {
                         id = s.StoreId,
@@ -191,7 +216,7 @@ namespace RetailPointBackend.Controllers
                                 && o.Status != "cancelled")
                             .Sum(o => (decimal?)o.TotalAmount) ?? 0
                     })
-                    .ToList();
+                    .ToListAsync();
 
                 // Nếu không có cửa hàng nào, tạo dữ liệu mặc định
                 if (!stores.Any())

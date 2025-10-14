@@ -69,7 +69,7 @@ export default function Login() {
         throw new Error("Đăng nhập thất bại");
       }
     },
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
       // Sử dụng context để lưu thông tin đăng nhập
       login(data);
       
@@ -78,12 +78,51 @@ export default function Login() {
         description: `Chào mừng ${data.fullName}!`,
       });
 
-      // Nếu user có storeId thì redirect về store selection, nếu không thì về dashboard
-      if (data.roleName === "Admin" || !data.storeId) {
+      // Check số lượng stores được assign để quyết định redirect
+      try {
+        const response = await fetch('/api/storeswitch/my-stores', {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Username': data.username
+          },
+          credentials: 'include'
+        });
+        
+        if (response.ok) {
+          const stores = await response.json();
+          
+          if (stores.length === 0) {
+            // Không có store nào - đi đến store selection để hiển thị thông báo
+            setLocation("/store-selection");
+          } else if (stores.length === 1 && data.roleName !== "Admin") {
+            // Chỉ có 1 store và không phải Admin - redirect thẳng vào sales
+            const store = stores[0];
+            
+            // Set current store trước khi redirect
+            await fetch('/api/storeswitch/set-current', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Username': data.username
+              },
+              credentials: 'include',
+              body: JSON.stringify({ storeId: store.storeId })
+            });
+            
+            setLocation("/sales");
+          } else {
+            // Nhiều stores hoặc là Admin - đi đến store selection
+            setLocation("/store-selection");
+          }
+        } else {
+          // Lỗi API - fallback về store selection
+          setLocation("/store-selection");
+        }
+      } catch (error) {
+        console.error("Error checking stores:", error);
+        // Lỗi - fallback về store selection
         setLocation("/store-selection");
-      } else {
-        // Nếu đã có store được assign thì có thể vào dashboard luôn
-        setLocation("/");
       }
     },
     onError: (error: Error) => {

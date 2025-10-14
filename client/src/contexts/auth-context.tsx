@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 
 interface User {
   staffId: number;
@@ -34,6 +34,7 @@ interface AuthContextType {
   hasPermission: (permission: string) => boolean;
   refreshPermissions: () => Promise<void>;
   loadAvailableStores: () => Promise<void>;
+  loadCurrentStore: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -69,12 +70,70 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  const loadAvailableStores = useCallback(async (): Promise<void> => {
+    if (!user) return;
+    
+    try {
+      const response = await fetch('/api/storeswitch/my-stores', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Username': user.username
+        },
+        credentials: 'include'
+      });
+      
+      if (response.ok) {
+        const stores = await response.json();
+        setAvailableStores(stores);
+      }
+    } catch (error) {
+      console.error("Error loading stores:", error);
+    }
+  }, [user?.username]);
+
+  const loadCurrentStore = useCallback(async (): Promise<void> => {
+    if (!user) return;
+    
+    try {
+      const response = await fetch('/api/storeswitch/current', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Username': user.username
+        },
+        credentials: 'include'
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data.storeId) {
+          // Find store in available stores
+          const store = availableStores.find(s => s.storeId === data.storeId);
+          if (store) {
+            setCurrentStore(store);
+            localStorage.setItem("currentStore", JSON.stringify(store));
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Error loading current store:", error);
+    }
+  }, [user?.username, availableStores]);
+
   useEffect(() => {
     // Load available stores when authenticated
-    if (isAuthenticated) {
+    if (isAuthenticated && user) {
       loadAvailableStores();
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, user, loadAvailableStores]);
+
+  useEffect(() => {
+    // Load current store after available stores are loaded
+    if (isAuthenticated && user && availableStores.length > 0 && !currentStore) {
+      loadCurrentStore();
+    }
+  }, [isAuthenticated, user, availableStores, currentStore, loadCurrentStore]);
 
   const login = (userData: User) => {
     setUser(userData);
@@ -126,32 +185,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const loadAvailableStores = async (): Promise<void> => {
-    try {
-      const response = await fetch('/api/Stores');
-      if (response.ok) {
-        const stores = await response.json();
-        setAvailableStores(stores);
-      }
-    } catch (error) {
-      console.error("Error loading stores:", error);
-    }
-  };
-
   const switchStore = async (storeId: number): Promise<void> => {
+    if (!user) return;
+    
     try {
-      const selectedStore = availableStores.find(s => s.storeId === storeId);
-      if (selectedStore) {
-        setCurrentStore(selectedStore);
-        if (user) {
+      // Call backend to set current store
+      const response = await fetch('/api/storeswitch/set-current', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Username': user.username
+        },
+        body: JSON.stringify({ storeId }),
+        credentials: 'include'
+      });
+      
+      if (response.ok) {
+        const selectedStore = availableStores.find(s => s.storeId === storeId);
+        if (selectedStore) {
+          setCurrentStore(selectedStore);
           const updatedUser = { ...user, storeId, storeName: selectedStore.name };
           setUser(updatedUser);
           localStorage.setItem("user", JSON.stringify(updatedUser));
           localStorage.setItem("currentStore", JSON.stringify(selectedStore));
         }
+      } else {
+        throw new Error('Failed to switch store');
       }
     } catch (error) {
       console.error("Error switching store:", error);
+      throw error;
     }
   };
 
@@ -165,7 +228,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     switchStore,
     hasPermission,
     refreshPermissions,
-    loadAvailableStores
+    loadAvailableStores,
+    loadCurrentStore
   };
 
   return (
