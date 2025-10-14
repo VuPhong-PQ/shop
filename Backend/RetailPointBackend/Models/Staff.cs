@@ -44,7 +44,8 @@ namespace RetailPointBackend.Models
         
         // Navigation properties
         public virtual Role Role { get; set; } = null!;
-        public virtual Store? Store { get; set; } // Navigation property to Store
+        public virtual Store? Store { get; set; } // Primary store (backward compatibility)
+        public virtual ICollection<StaffStore> StaffStores { get; set; } = new List<StaffStore>();
         
         // Computed properties
         [NotMapped]

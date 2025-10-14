@@ -13,6 +13,7 @@ import {
 import { useNotifications } from "@/hooks/use-notifications";
 import { useAuth } from "@/contexts/auth-context";
 import { RefreshPermissionsButton } from "@/components/debug/refresh-permissions-button";
+import StoreSwitcher from "@/components/StoreSwitcher";
 
 interface HeaderProps {
   title: string;
@@ -107,6 +108,14 @@ export function Header({ title, onToggleNotifications, isWebSocketConnected }: H
                     <p className="text-xs text-gray-500">Vai trò: {user.roleName}</p>
                   </div>
                 </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <div className="p-2">
+                  <p className="text-xs font-medium text-gray-700 mb-2">Cửa hàng hiện tại:</p>
+                  <StoreSwitcher onStoreChange={(store) => {
+                    // Có thể dispatch action để update global store state
+                    console.log('Store changed to:', store);
+                  }} />
+                </div>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleLogout} className="text-red-600">
                   <LogOut className="h-4 w-4 mr-2" />

@@ -21,6 +21,15 @@ builder.Services.AddCors(options =>
     });
 });
 
+// Add sessions support
+builder.Services.AddDistributedMemoryCache();
+builder.Services.AddSession(options =>
+{
+    options.IdleTimeout = TimeSpan.FromMinutes(30);
+    options.Cookie.HttpOnly = true;
+    options.Cookie.IsEssential = true;
+});
+
 // Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddControllers()
@@ -99,6 +108,9 @@ app.UseStaticFiles();
 app.UseHttpsRedirection();
 // Bật CORS trước khi map controller
 app.UseCors();
+
+// Thêm session middleware
+app.UseSession();
 
 var summaries = new[]
 {

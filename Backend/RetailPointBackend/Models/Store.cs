@@ -38,5 +38,6 @@ namespace RetailPointBackend.Models
         
         // Navigation properties
         public virtual ICollection<Staff> Staffs { get; set; } = new List<Staff>();
+        public virtual ICollection<StaffStore> StaffStores { get; set; } = new List<StaffStore>();
     }
 }

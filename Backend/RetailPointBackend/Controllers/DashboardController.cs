@@ -168,8 +168,9 @@ namespace RetailPointBackend.Controllers
         {
             try
             {
-                // Lấy thông tin các cửa hàng và thống kê
+                // Lấy thông tin các cửa hàng đang hoạt động và thống kê
                 var stores = _context.Stores
+                    .Where(s => s.IsActive) // Chỉ lấy stores đang hoạt động
                     .Select(s => new
                     {
                         id = s.StoreId,
