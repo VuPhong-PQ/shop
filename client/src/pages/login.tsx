@@ -259,6 +259,13 @@ export default function Login() {
             <div className="text-center text-sm text-gray-500">
               <p>Hệ thống quản lý bán hàng</p>
               <p className="font-medium">RetailPoint POS</p>
+              
+              <div className="mt-4 pt-4 border-t border-gray-200">
+                <p className="text-xs text-gray-400">Vui lòng liên hệ Admin: <span className="font-medium">Vũ Phong</span></p>
+                <p className="text-xs text-gray-400">ĐT: <span className="font-medium">0907 999 841</span></p>
+                <p className="text-xs text-gray-400">Email: <span className="font-medium">vuphongpq@gmail.com</span></p>
+                <p className="text-xs text-gray-400 mt-1">Xin cảm ơn</p>
+              </div>
             </div>
           </CardContent>
         </Card>

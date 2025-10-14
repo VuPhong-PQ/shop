@@ -75,6 +75,38 @@ namespace RetailPointBackend.Controllers
         {
             try
             {
+                var group = await _context.ProductGroups.FindAsync(id);
+                if (group == null)
+                {
+                    return NotFound(new { message = "Nhóm sản phẩm không tồn tại" });
+                }
+
+                // Kiểm tra xem có sản phẩm nào thuộc nhóm này không
+                var productsInGroup = await _context.Products.CountAsync(p => p.ProductGroupId == id);
+                if (productsInGroup > 0)
+                {
+                    return BadRequest(new { message = $"Không thể xóa nhóm này vì còn {productsInGroup} sản phẩm. Hãy di chuyển sản phẩm trước khi xóa." });
+                }
+
+                _context.ProductGroups.Remove(group);
+                await _context.SaveChangesAsync();
+
+                Console.WriteLine($"Product group deleted: {id}");
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error deleting product group: {ex.Message}");
+                return StatusCode(500, new { message = "Không thể xóa nhóm sản phẩm", error = ex.Message });
+            }
+        }
+
+        // DELETE: api/productgroups/{id}
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteProductGroup(int id)
+        {
+            try
+            {
                 var productGroup = await _context.ProductGroups.FindAsync(id);
                 if (productGroup == null)
                 {
