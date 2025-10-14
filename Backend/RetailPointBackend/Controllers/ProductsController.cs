@@ -381,6 +381,7 @@ namespace RetailPointBackend.Controllers
                 var importResults = new List<object>();
                 var errors = new List<string>();
                 var successCount = 0;
+                var skippedCount = 0;
 
                 using var stream = new MemoryStream();
                 await file.CopyToAsync(stream);
@@ -450,13 +451,35 @@ namespace RetailPointBackend.Controllers
                         int.TryParse(minStockText, out var minStock);
                         if (minStock <= 0) minStock = 5; // Giá trị mặc định
 
+                        // Kiểm tra trùng tên sản phẩm
+                        var existingProductByName = await _context.Products.FirstOrDefaultAsync(p => !string.IsNullOrEmpty(p.Name) && p.Name.ToLower() == name.ToLower());
+                        if (existingProductByName != null)
+                        {
+                            skippedCount++;
+                            importResults.Add(new
+                            {
+                                Row = row,
+                                Name = name,
+                                Status = "Skipped",
+                                Reason = $"Sản phẩm đã tồn tại (ID: {existingProductByName.ProductId})"
+                            });
+                            continue;
+                        }
+
                         // Kiểm tra trùng mã vạch nếu có
                         if (!string.IsNullOrEmpty(barcode))
                         {
                             var existingProduct = await _context.Products.FirstOrDefaultAsync(p => p.Barcode == barcode);
                             if (existingProduct != null)
                             {
-                                errors.Add($"Hàng {row}: Mã vạch {barcode} đã tồn tại trong hệ thống");
+                                skippedCount++;
+                                importResults.Add(new
+                                {
+                                    Row = row,
+                                    Name = name,
+                                    Status = "Skipped",
+                                    Reason = $"Mã vạch đã tồn tại"
+                                });
                                 continue;
                             }
                         }
@@ -495,9 +518,11 @@ namespace RetailPointBackend.Controllers
 
                 return Ok(new
                 {
-                    Message = $"Import hoàn tất. Thành công: {successCount}, Lỗi: {errors.Count}",
+                    Message = $"Import hoàn tất. Thành công: {successCount}, Bỏ qua: {skippedCount}, Lỗi: {errors.Count}",
                     SuccessCount = successCount,
+                    SkippedCount = skippedCount,
                     ErrorCount = errors.Count,
+                    TotalProcessed = successCount + skippedCount + errors.Count,
                     Errors = errors,
                     Results = importResults
                 });

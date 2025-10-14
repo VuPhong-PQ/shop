@@ -27,7 +27,9 @@ import {
   Package,
   Grid3X3,
   Eye,
-  EyeOff
+  EyeOff,
+  Download,
+  Upload
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -62,7 +64,9 @@ export default function ProductGroups() {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
   const [editingGroup, setEditingGroup] = useState<any | null>(null);
+  const [importFile, setImportFile] = useState<File | null>(null);
 
   // Fetch product groups
   const { data: productGroups = [], isLoading } = useQuery({
@@ -122,12 +126,18 @@ export default function ProductGroups() {
 
   const updateProductGroupMutation = useMutation({
     mutationFn: async ({ id, data }: { id: number; data: Partial<ProductGroupFormData> }) => {
-      const response = await apiRequest('PUT', `/api/productgroups/${id}`, {
-        name: data.name,
-        description: data.description,
-        color: data.color,
-        order: data.sortOrder,
-        isVisible: data.isActive,
+      const response = await fetch(`/api/productgroups/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: data.name,
+          description: data.description,
+          color: data.color,
+          order: data.sortOrder,
+          isVisible: data.isActive,
+        }),
       });
       return response.ok;
     },
@@ -152,7 +162,9 @@ export default function ProductGroups() {
 
   const deleteProductGroupMutation = useMutation({
     mutationFn: async (id: number) => {
-      const response = await apiRequest('DELETE', `/api/productgroups/${id}`);
+      const response = await fetch(`/api/productgroups/${id}`, {
+        method: 'DELETE'
+      });
       return response.ok;
     },
     onSuccess: () => {
@@ -166,6 +178,82 @@ export default function ProductGroups() {
       toast({
         title: "Lỗi",
         description: "Không thể xóa nhóm sản phẩm",
+        variant: "destructive",
+      });
+    }
+  });
+
+  // Export template mutation
+  const exportTemplateMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch('http://localhost:5271/api/productgroups/export-template');
+      if (!response.ok) {
+        throw new Error('Failed to export template');
+      }
+      return response.blob();
+    },
+    onSuccess: (blob) => {
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `ProductGroups_Template_${new Date().toISOString().slice(0, 10)}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      toast({
+        title: "Thành công",
+        description: "Template Excel đã được tải xuống",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Lỗi",
+        description: "Không thể tải xuống template Excel",
+        variant: "destructive",
+      });
+    }
+  });
+
+  // Import from Excel mutation
+  const importFromExcelMutation = useMutation({
+    mutationFn: async (file: File) => {
+      const formData = new FormData();
+      formData.append('file', file);
+      const response = await fetch('http://localhost:5271/api/productgroups/import-excel', {
+        method: 'POST',
+        body: formData,
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to import Excel file');
+      }
+      return response.json();
+    },
+    onSuccess: (result) => {
+      const message = result.SkippedCount > 0 
+        ? `Import hoàn tất! Thêm mới: ${result.SuccessCount}, Bỏ qua (trùng lặp): ${result.SkippedCount}, Lỗi: ${result.ErrorCount}`
+        : `Import thành công ${result.SuccessCount} nhóm sản phẩm!`;
+      
+      toast({
+        title: "Import hoàn tất",
+        description: message,
+        variant: result.ErrorCount > 0 ? "destructive" : "default",
+      });
+      
+      // Hiển thị chi tiết lỗi nếu có
+      if (result.Errors && result.Errors.length > 0) {
+        console.error('Import errors:', result.Errors);
+      }
+      
+      queryClient.invalidateQueries({ queryKey: ['/api/productgroups'] });
+      setIsImportDialogOpen(false);
+      setImportFile(null);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Lỗi import",
+        description: error.message || "Không thể import file Excel",
         variant: "destructive",
       });
     }
@@ -239,29 +327,92 @@ export default function ProductGroups() {
             <p className="text-gray-600">Quản lý danh mục và phân loại sản phẩm</p>
           </div>
 
-          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-            <DialogTrigger asChild>
-              <Button 
-                onClick={() => {
-                  setEditingGroup(null);
-                  form.reset();
-                }}
-                data-testid="button-add-group"
-              >
-                <FolderPlus className="w-4 h-4 mr-2" />
-                Thêm nhóm mới
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-md">
-              <DialogHeader>
-                <DialogTitle>
-                  {editingGroup ? "Chỉnh sửa nhóm sản phẩm" : "Thêm nhóm sản phẩm mới"}
-                </DialogTitle>
-              </DialogHeader>
-              
-              <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                  <FormField
+          <div className="flex space-x-2">
+            {/* Export Template Button */}
+            <Button
+              variant="outline"
+              onClick={() => exportTemplateMutation.mutate()}
+              disabled={exportTemplateMutation.isPending}
+              data-testid="button-export-template"
+            >
+              <Download className="w-4 h-4 mr-2" />
+              {exportTemplateMutation.isPending ? "Đang xuất..." : "Xuất Template"}
+            </Button>
+
+            {/* Import Excel Button */}
+            <Dialog open={isImportDialogOpen} onOpenChange={setIsImportDialogOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline" data-testid="button-import-excel">
+                  <Upload className="w-4 h-4 mr-2" />
+                  Nhập từ Excel
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Nhập nhóm sản phẩm từ Excel</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Chọn file Excel</label>
+                    <Input
+                      type="file"
+                      accept=".xlsx,.xls"
+                      onChange={(e) => setImportFile(e.target.files?.[0] || null)}
+                      data-testid="input-excel-file"
+                    />
+                  </div>
+                  <div className="text-sm text-gray-600">
+                    <p>Lưu ý:</p>
+                    <ul className="list-disc list-inside space-y-1">
+                      <li>Chỉ hỗ trợ file .xlsx và .xls</li>
+                      <li>Tải template mẫu để biết định dạng chính xác</li>
+                      <li><strong>Nhóm trùng tên sẽ bị bỏ qua</strong></li>
+                      <li>Chỉ thêm mới nhóm chưa tồn tại</li>
+                    </ul>
+                  </div>
+                  <div className="flex justify-end space-x-2">
+                    <Button variant="outline" onClick={() => setIsImportDialogOpen(false)}>
+                      Hủy
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        if (importFile) {
+                          importFromExcelMutation.mutate(importFile);
+                        }
+                      }}
+                      disabled={!importFile || importFromExcelMutation.isPending}
+                      data-testid="button-confirm-import"
+                    >
+                      {importFromExcelMutation.isPending ? "Đang nhập..." : "Nhập dữ liệu"}
+                    </Button>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
+
+            <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+              <DialogTrigger asChild>
+                <Button 
+                  onClick={() => {
+                    setEditingGroup(null);
+                    form.reset();
+                  }}
+                  data-testid="button-add-group"
+                >
+                  <FolderPlus className="w-4 h-4 mr-2" />
+                  Thêm nhóm mới
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-md">
+                <DialogHeader>
+                  <DialogTitle>
+                    {editingGroup ? "Chỉnh sửa nhóm sản phẩm" : "Thêm nhóm sản phẩm mới"}
+                  </DialogTitle>
+                </DialogHeader>
+                
+                <Form {...form}>
+                  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                    <FormField
                     control={form.control}
                     name="name"
                     render={({ field }) => (
@@ -370,6 +521,7 @@ export default function ProductGroups() {
               </Form>
             </DialogContent>
           </Dialog>
+          </div>
         </div>
 
         {/* Search */}

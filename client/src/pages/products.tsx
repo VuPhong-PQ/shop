@@ -303,10 +303,21 @@ export default function Products() {
       return response.json();
     },
     onSuccess: (result) => {
+      const message = result.SkippedCount > 0 
+        ? `Import hoàn tất! Thêm mới: ${result.SuccessCount}, Bỏ qua (trùng lặp): ${result.SkippedCount}, Lỗi: ${result.ErrorCount}`
+        : `Import thành công ${result.SuccessCount} sản phẩm!`;
+      
       toast({
-        title: "Import thành công",
-        description: `${result.message || `Đã import ${result.successCount} sản phẩm`}`,
+        title: "Import hoàn tất",
+        description: message,
+        variant: result.ErrorCount > 0 ? "destructive" : "default",
       });
+      
+      // Hiển thị chi tiết lỗi nếu có
+      if (result.Errors && result.Errors.length > 0) {
+        console.error('Import errors:', result.Errors);
+      }
+      
       queryClient.invalidateQueries({ queryKey: ['/api/products'] });
       setIsImportDialogOpen(false);
       setImportFile(null);
@@ -464,6 +475,8 @@ export default function Products() {
                       <li>Chỉ hỗ trợ file .xlsx và .xls</li>
                       <li>Tải template mẫu để biết định dạng chính xác</li>
                       <li>Các trường có dấu (*) là bắt buộc</li>
+                      <li><strong>Sản phẩm trùng tên hoặc mã vạch sẽ bị bỏ qua</strong></li>
+                      <li>Chỉ thêm mới sản phẩm chưa tồn tại</li>
                     </ul>
                   </div>
                   <div className="flex justify-end space-x-2">
