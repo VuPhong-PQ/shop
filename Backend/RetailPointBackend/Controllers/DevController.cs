@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using RetailPointBackend.Models;
+using RetailPointBackend.Services;
 
 namespace RetailPointBackend.Controllers
 {
@@ -70,6 +71,70 @@ namespace RetailPointBackend.Controllers
             catch (Exception ex)
             {
                 return StatusCode(500, new { message = "Error adding permissions", error = ex.Message });
+            }
+        }
+
+        // Reseed permissions (add new ones if missing)
+        [HttpPost("reseed-permissions")]
+        public async Task<IActionResult> ReseedPermissions()
+        {
+            try
+            {
+                var seedDataService = new SeedDataService(_context);
+                await seedDataService.SeedAsync();
+
+                return Ok(new { message = "Permissions reseeded successfully" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Error reseeding permissions", error = ex.Message });
+            }
+        }
+
+        // Add ViewDashboard permission to Admin role
+        [HttpPost("add-dashboard-permission")]
+        public async Task<IActionResult> AddDashboardPermission()
+        {
+            try
+            {
+                // Get admin role
+                var adminRole = await _context.Roles.FirstOrDefaultAsync(r => r.RoleName == "Admin");
+                if (adminRole == null)
+                {
+                    return BadRequest("Admin role not found");
+                }
+
+                // Get ViewDashboard permission
+                var dashboardPermission = await _context.Permissions
+                    .FirstOrDefaultAsync(p => p.PermissionName == "ViewDashboard");
+                if (dashboardPermission == null)
+                {
+                    return BadRequest("ViewDashboard permission not found");
+                }
+
+                // Check if already exists
+                var exists = await _context.RolePermissions
+                    .AnyAsync(rp => rp.RoleId == adminRole.RoleId && rp.PermissionId == dashboardPermission.PermissionId);
+
+                if (!exists)
+                {
+                    _context.RolePermissions.Add(new RolePermission
+                    {
+                        RoleId = adminRole.RoleId,
+                        PermissionId = dashboardPermission.PermissionId
+                    });
+                    await _context.SaveChangesAsync();
+                    
+                    return Ok(new { message = "ViewDashboard permission added to Admin role successfully" });
+                }
+                else
+                {
+                    return Ok(new { message = "ViewDashboard permission already exists for Admin role" });
+                }
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Error adding dashboard permission", error = ex.Message });
             }
         }
 

@@ -25,6 +25,9 @@ namespace RetailPointBackend.Services
             // Define all permissions
             var permissions = new List<Permission>
             {
+                // Dashboard
+                new Permission { PermissionName = "ViewDashboard", Description = "Xem dashboard", Category = "Dashboard" },
+
                 // Product Management
                 new Permission { PermissionName = "ViewProducts", Description = "Xem danh sách sản phẩm", Category = "Products" },
                 new Permission { PermissionName = "CreateProducts", Description = "Tạo sản phẩm mới", Category = "Products" },

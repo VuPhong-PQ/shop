@@ -1,15 +1,19 @@
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { api } from "@/lib/api";
 import { useAuth } from "@/contexts/auth-context";
+import { useLocation } from "wouter";
 import { 
   TrendingUp, 
   DollarSign, 
   ShoppingCart, 
   Users, 
   Package,
-  AlertTriangle 
+  AlertTriangle,
+  Store,
+  ArrowRight
 } from "lucide-react";
 
 interface DashboardMetrics {
@@ -25,6 +29,7 @@ interface DashboardMetrics {
 
 export default function Dashboard() {
   const { currentStore } = useAuth();
+  const [, navigate] = useLocation();
 
   const { data: metricsResponse, isLoading } = useQuery({
     queryKey: ["/api/dashboard/metrics", currentStore?.storeId],
@@ -36,7 +41,27 @@ export default function Dashboard() {
     enabled: !!currentStore?.storeId,
   });
 
+  const { data: storesResponse } = useQuery({
+    queryKey: ["/api/dashboard/metrics/stores"],
+    queryFn: async () => {
+      const response = await fetch("http://localhost:5271/api/dashboard/metrics/stores");
+      if (!response.ok) throw new Error("Failed to fetch stores");
+      return response.json();
+    },
+  });
+
   const metrics = metricsResponse as DashboardMetrics;
+
+  const handleStoreClick = (storeId: number) => {
+    // Chuyển đến trang bán hàng với storeId
+    console.log('Dashboard - Clicking store with ID:', storeId);
+    navigate(`/sales?storeId=${storeId}`);
+  };
+
+  const handleChangeStore = () => {
+    // Chuyển đến trang chọn cửa hàng
+    navigate("/store-selection");
+  };
 
   if (isLoading) {
     return (
@@ -50,6 +75,14 @@ export default function Dashboard() {
     <div className="container mx-auto px-4 py-6">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">Dashboard</h1>
+        <Button 
+          variant="outline" 
+          onClick={handleChangeStore}
+          className="flex items-center gap-2"
+        >
+          <Store className="w-4 h-4" />
+          Đổi cửa hàng
+        </Button>
       </div>
 
       {currentStore && (
@@ -58,6 +91,59 @@ export default function Dashboard() {
             Đang xem dữ liệu của: {currentStore.name}
           </h2>
           <p className="text-blue-600">{currentStore.address}</p>
+        </div>
+      )}
+
+      {/* Store Selection Cards */}
+      {storesResponse && storesResponse.length > 0 && (
+        <div className="mb-6">
+          <h2 className="text-xl font-semibold mb-4">Các cửa hàng khả dụng</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {storesResponse.map((store: any) => (
+              <Card 
+                key={store.id}
+                className={`cursor-pointer transition-all hover:shadow-md ${
+                  currentStore?.storeId === store.id 
+                    ? "ring-2 ring-blue-500 bg-blue-50" 
+                    : "hover:border-blue-300"
+                }`}
+                onClick={() => handleStoreClick(store.id)}
+              >
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <Store className="w-5 h-5" />
+                      {store.name}
+                    </CardTitle>
+                    <ArrowRight className="w-4 h-4 text-gray-400" />
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  {store.address && (
+                    <p className="text-sm text-gray-600">{store.address}</p>
+                  )}
+                  <div className="flex justify-between text-sm">
+                    <span>Doanh thu hôm nay:</span>
+                    <span className="font-medium">{store.todayRevenue?.toLocaleString('vi-VN') || '0'} đ</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span>Tổng đơn hàng:</span>
+                    <span className="font-medium">{store.totalOrders || 0}</span>
+                  </div>
+                  <Button 
+                    size="sm" 
+                    className="w-full mt-2" 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleStoreClick(store.id);
+                    }}
+                  >
+                    Vào bán hàng
+                  </Button>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
         </div>
       )}
 

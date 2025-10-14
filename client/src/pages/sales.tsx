@@ -71,7 +71,7 @@ const getPaymentColor = (id: string) => {
 };
 
 export default function Sales() {
-  const { currentStore, user } = useAuth();
+  const { currentStore, user, switchStore, availableStores, loadAvailableStores } = useAuth();
   const [location, navigate] = useLocation();
   const [cart, setCart] = useState<CartItem[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -83,6 +83,37 @@ export default function Sales() {
   const [checkLocalStorage, setCheckLocalStorage] = useState(0); // Counter to trigger localStorage check
   const [qrCodeData, setQrCodeData] = useState<any>(null);
   const [showQRCode, setShowQRCode] = useState(false);
+
+  // Load available stores when component mounts
+  useEffect(() => {
+    if (!availableStores || availableStores.length === 0) {
+      loadAvailableStores();
+    }
+  }, [availableStores, loadAvailableStores]);
+
+  // Check for storeId in URL params
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const storeId = urlParams.get('storeId');
+    
+    console.log('Sales page - URL storeId:', storeId);
+    console.log('Sales page - Current store:', currentStore);
+    console.log('Sales page - Available stores:', availableStores);
+    
+    if (storeId && parseInt(storeId) !== currentStore?.storeId) {
+      // Switch to the specified store
+      const targetStore = availableStores?.find(store => store.storeId === parseInt(storeId));
+      console.log('Sales page - Target store found:', targetStore);
+      
+      if (targetStore) {
+        console.log('Sales page - Switching to store:', parseInt(storeId));
+        switchStore(parseInt(storeId));
+        // Remove storeId from URL after switching
+        const newUrl = window.location.pathname;
+        window.history.replaceState({}, '', newUrl);
+      }
+    }
+  }, [currentStore?.storeId, availableStores, switchStore]);
   
   // State for order detail popup
   const [showOrderDetail, setShowOrderDetail] = useState(false);
