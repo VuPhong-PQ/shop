@@ -91,6 +91,62 @@ namespace RetailPointBackend.Controllers
             }
         }
 
+        // Add store management permissions to admin role
+        [HttpPost("add-store-permissions")]
+        public async Task<IActionResult> AddStorePermissions()
+        {
+            try
+            {
+                // Get admin role
+                var adminRole = await _context.Roles.FirstOrDefaultAsync(r => r.RoleName == "Admin");
+                if (adminRole == null)
+                {
+                    return BadRequest("Admin role not found");
+                }
+
+                // Get store management permissions
+                var storePermissions = await _context.Permissions
+                    .Where(p => p.Category == "Stores")
+                    .ToListAsync();
+
+                if (!storePermissions.Any())
+                {
+                    return BadRequest("Store permissions not found. Make sure SeedDataService has run.");
+                }
+
+                var addedPermissions = new List<string>();
+                
+                foreach (var permission in storePermissions)
+                {
+                    var exists = await _context.RolePermissions
+                        .AnyAsync(rp => rp.RoleId == adminRole.RoleId && rp.PermissionId == permission.PermissionId);
+                    
+                    if (!exists)
+                    {
+                        _context.RolePermissions.Add(new RolePermission
+                        {
+                            RoleId = adminRole.RoleId,
+                            PermissionId = permission.PermissionId
+                        });
+                        addedPermissions.Add(permission.PermissionName);
+                    }
+                }
+
+                await _context.SaveChangesAsync();
+
+                return Ok(new
+                {
+                    message = "Store permissions added to Admin role successfully",
+                    addedPermissions = addedPermissions,
+                    allStorePermissions = storePermissions.Select(p => p.PermissionName).ToList()
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Error adding store permissions", error = ex.Message });
+            }
+        }
+
         // Add ViewDashboard permission to Admin role
         [HttpPost("add-dashboard-permission")]
         public async Task<IActionResult> AddDashboardPermission()

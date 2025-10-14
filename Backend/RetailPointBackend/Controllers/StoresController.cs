@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using RetailPointBackend.Models;
+using System.ComponentModel.DataAnnotations;
 
 namespace RetailPointBackend.Controllers
 {
@@ -139,9 +140,146 @@ namespace RetailPointBackend.Controllers
             return staff;
         }
 
+        // GET: api/Stores/all (For admin - includes inactive stores)
+        [HttpGet("all")]
+        public async Task<ActionResult<IEnumerable<Store>>> GetAllStores()
+        {
+            return await _context.Stores
+                .OrderBy(s => s.Name)
+                .ToListAsync();
+        }
+
+        // POST: api/Stores/{id}/activate
+        [HttpPost("{id}/activate")]
+        public async Task<IActionResult> ActivateStore(int id)
+        {
+            var store = await _context.Stores.FindAsync(id);
+            if (store == null)
+            {
+                return NotFound();
+            }
+
+            store.IsActive = true;
+            store.UpdatedAt = DateTime.Now;
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "Cửa hàng đã được kích hoạt" });
+        }
+
+        // POST: api/Stores/{id}/deactivate
+        [HttpPost("{id}/deactivate")]
+        public async Task<IActionResult> DeactivateStore(int id)
+        {
+            var store = await _context.Stores.FindAsync(id);
+            if (store == null)
+            {
+                return NotFound();
+            }
+
+            // Check if store has active staff
+            var hasActiveStaff = await _context.Staffs.AnyAsync(s => s.StoreId == id && s.IsActive);
+            if (hasActiveStaff)
+            {
+                return BadRequest("Không thể vô hiệu hóa cửa hàng có nhân viên đang hoạt động");
+            }
+
+            store.IsActive = false;
+            store.UpdatedAt = DateTime.Now;
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "Cửa hàng đã được vô hiệu hóa" });
+        }
+
+        // GET: api/Stores/stats
+        [HttpGet("stats")]
+        public async Task<ActionResult> GetStoreStats()
+        {
+            var totalStores = await _context.Stores.CountAsync();
+            var activeStores = await _context.Stores.CountAsync(s => s.IsActive);
+            var inactiveStores = totalStores - activeStores;
+
+            var storeStats = await _context.Stores
+                .Select(s => new
+                {
+                    s.StoreId,
+                    s.Name,
+                    s.IsActive,
+                    StaffCount = _context.Staffs.Count(st => st.StoreId == s.StoreId && st.IsActive),
+                    ProductCount = _context.Products.Count(p => p.StoreId == s.StoreId),
+                    OrderCount = _context.Orders.Count(o => o.StoreId == s.StoreId.ToString())
+                })
+                .ToListAsync();
+
+            return Ok(new
+            {
+                summary = new
+                {
+                    totalStores,
+                    activeStores,
+                    inactiveStores
+                },
+                stores = storeStats
+            });
+        }
+
         private bool StoreExists(int id)
         {
             return _context.Stores.Any(e => e.StoreId == id);
         }
+    }
+
+    // DTO classes for better API design
+    public class CreateStoreDto
+    {
+        [Required]
+        [StringLength(200)]
+        public string Name { get; set; } = string.Empty;
+
+        [StringLength(500)]
+        public string? Address { get; set; }
+
+        [StringLength(20)]
+        public string? Phone { get; set; }
+
+        [StringLength(100)]
+        [EmailAddress]
+        public string? Email { get; set; }
+
+        [StringLength(50)]
+        public string? TaxCode { get; set; }
+
+        [StringLength(200)]
+        public string? Manager { get; set; }
+
+        [StringLength(500)]
+        public string? Notes { get; set; }
+    }
+
+    public class UpdateStoreDto
+    {
+        [Required]
+        [StringLength(200)]
+        public string Name { get; set; } = string.Empty;
+
+        [StringLength(500)]
+        public string? Address { get; set; }
+
+        [StringLength(20)]
+        public string? Phone { get; set; }
+
+        [StringLength(100)]
+        [EmailAddress]
+        public string? Email { get; set; }
+
+        [StringLength(50)]
+        public string? TaxCode { get; set; }
+
+        [StringLength(200)]
+        public string? Manager { get; set; }
+
+        [StringLength(500)]
+        public string? Notes { get; set; }
+
+        public bool IsActive { get; set; } = true;
     }
 }

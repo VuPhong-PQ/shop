@@ -117,7 +117,7 @@ function Router() {
         </ProtectedRoute>
       </Route>
       <Route path="/store-management">
-        <ProtectedRoute requiredPermission="ViewSettings">
+        <ProtectedRoute requiredPermission="ManageStores">
           <StoreManagement />
         </ProtectedRoute>
       </Route>

@@ -74,11 +74,19 @@ export default function StoreManagementPage() {
   const [editingStore, setEditingStore] = useState<StoreData | null>(null);
   const [formData, setFormData] = useState<StoreData>(initialFormData);
 
-  // Query to fetch stores
+  // Query to fetch all stores (including inactive)
   const { data: stores = [], isLoading } = useQuery({
-    queryKey: ["/api/Stores"],
+    queryKey: ["/api/Stores/all"],
     queryFn: async () => {
-      return await apiRequest("/api/Stores", { method: "GET" });
+      return await apiRequest("/api/Stores/all", { method: "GET" });
+    },
+  });
+
+  // Query to fetch store statistics
+  const { data: storeStats } = useQuery({
+    queryKey: ["/api/Stores/stats"],
+    queryFn: async () => {
+      return await apiRequest("/api/Stores/stats", { method: "GET" });
     },
   });
 
@@ -92,7 +100,8 @@ export default function StoreManagementPage() {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/Stores"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/Stores/all"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/Stores/stats"] });
       setIsDialogOpen(false);
       setFormData(initialFormData);
       toast({
@@ -119,7 +128,8 @@ export default function StoreManagementPage() {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/Stores"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/Stores/all"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/Stores/stats"] });
       setIsDialogOpen(false);
       setEditingStore(null);
       setFormData(initialFormData);
@@ -137,7 +147,7 @@ export default function StoreManagementPage() {
     },
   });
 
-  // Delete store mutation
+  // Delete store mutation (soft delete)
   const deleteStoreMutation = useMutation({
     mutationFn: async (storeId: number) => {
       return await apiRequest(`/api/Stores/${storeId}`, {
@@ -145,16 +155,65 @@ export default function StoreManagementPage() {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/Stores"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/Stores/all"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/Stores/stats"] });
       toast({
         title: "Thành công",
-        description: "Cửa hàng đã được xóa thành công!",
+        description: "Cửa hàng đã được vô hiệu hóa!",
       });
     },
     onError: (error: any) => {
       toast({
         title: "Lỗi",
-        description: error.message || "Có lỗi xảy ra khi xóa cửa hàng",
+        description: error.message || "Có lỗi xảy ra khi vô hiệu hóa cửa hàng",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Activate store mutation
+  const activateStoreMutation = useMutation({
+    mutationFn: async (storeId: number) => {
+      return await apiRequest(`/api/Stores/${storeId}/activate`, {
+        method: "POST",
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/Stores/all"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/Stores/stats"] });
+      toast({
+        title: "Thành công",
+        description: "Cửa hàng đã được kích hoạt!",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Lỗi",
+        description: error.message || "Có lỗi xảy ra khi kích hoạt cửa hàng",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Deactivate store mutation
+  const deactivateStoreMutation = useMutation({
+    mutationFn: async (storeId: number) => {
+      return await apiRequest(`/api/Stores/${storeId}/deactivate`, {
+        method: "POST",
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/Stores/all"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/Stores/stats"] });
+      toast({
+        title: "Thành công",
+        description: "Cửa hàng đã được vô hiệu hóa!",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Lỗi",
+        description: error.message || "Có lỗi xảy ra khi vô hiệu hóa cửa hàng",
         variant: "destructive",
       });
     },
@@ -177,6 +236,14 @@ export default function StoreManagementPage() {
 
   const handleDelete = (storeId: number) => {
     deleteStoreMutation.mutate(storeId);
+  };
+
+  const handleActivate = (storeId: number) => {
+    activateStoreMutation.mutate(storeId);
+  };
+
+  const handleDeactivate = (storeId: number) => {
+    deactivateStoreMutation.mutate(storeId);
   };
 
   const resetForm = () => {

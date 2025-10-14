@@ -63,6 +63,13 @@ namespace RetailPointBackend.Services
                 new Permission { PermissionName = "UpdateRoles", Description = "Cập nhật roles", Category = "Roles" },
                 new Permission { PermissionName = "DeleteRoles", Description = "Xóa roles", Category = "Roles" },
 
+                // Store Management
+                new Permission { PermissionName = "ViewStores", Description = "Xem danh sách cửa hàng", Category = "Stores" },
+                new Permission { PermissionName = "CreateStores", Description = "Tạo cửa hàng mới", Category = "Stores" },
+                new Permission { PermissionName = "UpdateStores", Description = "Cập nhật thông tin cửa hàng", Category = "Stores" },
+                new Permission { PermissionName = "DeleteStores", Description = "Xóa/vô hiệu hóa cửa hàng", Category = "Stores" },
+                new Permission { PermissionName = "ManageStores", Description = "Quản lý toàn bộ cửa hàng", Category = "Stores" },
+
                 // System Settings
                 new Permission { PermissionName = "ViewSettings", Description = "Xem cài đặt hệ thống", Category = "Settings" },
                 new Permission { PermissionName = "UpdateSettings", Description = "Cập nhật cài đặt hệ thống", Category = "Settings" },
