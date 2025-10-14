@@ -70,9 +70,10 @@ namespace RetailPointBackend.Controllers
             var query = _context.Products.AsQueryable();
             
             // Filter by store if storeId is provided
+            // Include products with null StoreId (shared products) and products belonging to the specific store
             if (storeId.HasValue)
             {
-                query = query.Where(p => p.StoreId == storeId.Value);
+                query = query.Where(p => p.StoreId == storeId.Value || p.StoreId == null);
             }
             
             return await query.ToListAsync();

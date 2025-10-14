@@ -378,14 +378,39 @@ export default function Sales() {
   };
 
   // Fetch products and customers
-  const { data: products = [] } = useQuery<Product[]>({
-    queryKey: ['/api/products', currentStore?.storeId],
-    queryFn: () => {
-      const storeParam = currentStore?.storeId ? `?storeId=${currentStore.storeId}` : '';
-      return apiRequest(`/api/products${storeParam}`);
+  const { data: products = [], isLoading: productsLoading, error: productsError } = useQuery<Product[]>({
+    queryKey: ['products-sales', currentStore?.storeId], // Fixed: removed Date.now()
+    queryFn: async () => {
+      try {
+        const storeParam = currentStore?.storeId ? `?storeId=${currentStore.storeId}` : '';
+        console.log('PRODUCTS QUERY - Starting fetch with param:', storeParam);
+        
+        const response = await fetch(`/api/products${storeParam}`);
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const result = await response.json();
+        console.log('PRODUCTS QUERY - Success! Got', result?.length, 'products');
+        
+        return result;
+      } catch (error) {
+        console.error('PRODUCTS QUERY - Error:', error);
+        throw error;
+      }
     },
-    enabled: !!currentStore?.storeId,
+    enabled: !!currentStore?.storeId, // Only when we have storeId
   });
+
+  // Debug logs for products
+  console.log('Sales page - Products data:', products);
+  console.log('Sales page - Products count:', products.length);
+  console.log('Sales page - Products loading:', productsLoading);
+  console.log('Sales page - Products error:', productsError);
+  console.log('Sales page - Current store for products:', currentStore);
+  console.log('Sales page - currentStore?.storeId:', currentStore?.storeId);
+  console.log('Sales page - Query enabled?:', !!currentStore?.storeId);
 
   const { data: customers = [] } = useQuery<Customer[]>({
     queryKey: ['/api/customers', currentStore?.storeId],
