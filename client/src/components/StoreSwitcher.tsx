@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronDown, Store, MapPin } from 'lucide-react';
+import { useAuth } from '@/contexts/auth-context';
 
 interface Store {
   storeId: number;
@@ -14,103 +15,34 @@ interface StoreSwitcherProps {
 }
 
 export default function StoreSwitcher({ onStoreChange }: StoreSwitcherProps) {
-  const [stores, setStores] = useState<Store[]>([]);
+  const { availableStores, currentStore: authCurrentStore, switchStore } = useAuth();
   const [currentStore, setCurrentStore] = useState<Store | null>(null);
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // Fetch available stores for current user
+  // Sử dụng availableStores từ auth context thay vì fetch riêng
+  const stores = availableStores || [];
+
+  // Sync with auth context current store
   useEffect(() => {
-    fetchMyStores();
-    fetchCurrentStore();
-  }, []);
-
-  const fetchMyStores = async () => {
-    try {
-      // Get username from localStorage or session
-      const currentUser = localStorage.getItem('currentUser');
-      const username = currentUser ? JSON.parse(currentUser).username : 'admin';
-      
-      const response = await fetch('http://localhost:5271/api/storeswitch/my-stores', {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Username': username
-        },
-        credentials: 'include'
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setStores(data);
-      }
-    } catch (error) {
-      console.error('Error fetching stores:', error);
+    if (authCurrentStore) {
+      setCurrentStore(authCurrentStore);
     }
-  };
-
-  const fetchCurrentStore = async () => {
-    try {
-      // Get username from localStorage or session
-      const currentUser = localStorage.getItem('currentUser');
-      const username = currentUser ? JSON.parse(currentUser).username : 'admin';
-      
-      const response = await fetch('http://localhost:5271/api/storeswitch/current', {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Username': username
-        },
-        credentials: 'include'
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        if (data.storeId) {
-          const store = stores.find(s => s.storeId === data.storeId);
-          if (store) {
-            setCurrentStore(store);
-          }
-        }
-      }
-    } catch (error) {
-      console.error('Error fetching current store:', error);
-    }
-  };
+  }, [authCurrentStore]);
 
   const handleStoreSelect = async (store: Store) => {
     setLoading(true);
     try {
-      // Get username from localStorage or session
-      const currentUser = localStorage.getItem('currentUser');
-      const username = currentUser ? JSON.parse(currentUser).username : 'admin';
+      // Sử dụng switchStore từ auth context - đã có validation bên trong
+      await switchStore(store.storeId);
+      setCurrentStore(store);
+      setIsOpen(false);
+      onStoreChange?.(store);
       
-      const response = await fetch('http://localhost:5271/api/storeswitch/set-current', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Username': username
-        },
-        credentials: 'include',
-        body: JSON.stringify({ storeId: store.storeId })
-      });
-
-      if (response.ok) {
-        setCurrentStore(store);
-        setIsOpen(false);
-        onStoreChange?.(store);
-        
-        // Gửi event để các component khác biết store đã thay đổi
-        window.dispatchEvent(new CustomEvent('storeChanged', { detail: store }));
-        
-        // Show success message
-        alert(`Đã chuyển sang ${store.name}`);
-      } else {
-        const error = await response.json();
-        alert(error.message || 'Có lỗi xảy ra khi chuyển cửa hàng');
-      }
+      // Gửi event để các component khác biết store đã thay đổi
+      window.dispatchEvent(new CustomEvent('storeChanged', { detail: store }));
     } catch (error) {
-      console.error('Error setting current store:', error);
+      console.error('Error switching store:', error);
       alert('Có lỗi xảy ra khi chuyển cửa hàng');
     } finally {
       setLoading(false);

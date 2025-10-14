@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/contexts/auth-context";
 type StoreInfo = {
   name: string;
@@ -10,9 +10,11 @@ type StoreInfo = {
 };
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useLocation } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
-import { Trash2, RotateCcw, AlertTriangle, X, Printer } from "lucide-react";
+import { Trash2, RotateCcw, AlertTriangle, X, Printer, Search, Filter } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
   AlertDialog,
@@ -49,6 +51,8 @@ type Order = {
   subtotal?: number;
   discountAmount?: number;
   cancellationReason?: string;
+  storeId?: string;
+  storeName?: string;
 };
 
 
@@ -61,6 +65,12 @@ export default function OrdersPage() {
   
   // State for cancellation reason
   const [cancellationReason, setCancellationReason] = useState("");
+  
+  // Filter and search states
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedStoreId, setSelectedStoreId] = useState<string>("all");
+  const [selectedPaymentStatus, setSelectedPaymentStatus] = useState<string>("all");
+  const [selectedOrderStatus, setSelectedOrderStatus] = useState<string>("all");
   
   const { data: orders = [], isLoading, refetch } = useQuery<Order[]>({
     queryKey: ["/api/orders"],
@@ -109,6 +119,26 @@ export default function OrdersPage() {
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes
   });
 
+  // Fetch available stores for filter
+  const { data: stores = [] } = useQuery({
+    queryKey: ["/api/storeswitch/my-stores"],
+    queryFn: async () => {
+      try {
+        const res = await apiRequest("/api/storeswitch/my-stores", { 
+          method: "GET",
+          headers: {
+            "Username": "admin" // Tạm thời hardcode, sau này sẽ lấy từ auth context
+          }
+        });
+        return typeof res === "string" ? JSON.parse(res) : res;
+      } catch (error) {
+        console.error("Error fetching stores:", error);
+        return [];
+      }
+    },
+    staleTime: 10 * 60 * 1000, // Cache for 10 minutes
+  });
+
   // Generate QR URL based on settings
   const generateQRUrl = (amount: number, orderId?: number) => {
     if (!qrSettings?.isEnabled || !qrSettings?.bankCode || !qrSettings?.bankAccountNumber) {
@@ -133,6 +163,42 @@ export default function OrdersPage() {
   };
 
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+
+  // Filter orders based on search query and selected filters
+  const filteredOrders = useMemo(() => {
+    if (!orders) return [];
+    
+    return orders.filter(order => {
+      // Search query filter
+      if (searchQuery.trim()) {
+        const query = searchQuery.toLowerCase();
+        const matchesOrderId = order.orderId.toString().includes(query);
+        const matchesCustomerName = order.customerName?.toLowerCase().includes(query) || false;
+        const matchesStoreName = order.storeName?.toLowerCase().includes(query) || false;
+        
+        if (!matchesOrderId && !matchesCustomerName && !matchesStoreName) {
+          return false;
+        }
+      }
+      
+      // Store filter
+      if (selectedStoreId !== "all" && order.storeId !== selectedStoreId) {
+        return false;
+      }
+      
+      // Payment status filter
+      if (selectedPaymentStatus !== "all" && order.paymentStatus !== selectedPaymentStatus) {
+        return false;
+      }
+      
+      // Order status filter
+      if (selectedOrderStatus !== "all" && order.status !== selectedOrderStatus) {
+        return false;
+      }
+      
+      return true;
+    });
+  }, [orders, searchQuery, selectedStoreId, selectedPaymentStatus, selectedOrderStatus]);
 
   // Helper functions để format trạng thái
   const formatPaymentStatus = (status?: string) => {
@@ -272,24 +338,81 @@ export default function OrdersPage() {
     navigate('/sales');
   };
 
-  // Tính toán thống kê trạng thái
-  const getOrderStats = () => {
-    const total = orders.length;
-    const paid = orders.filter(o => o.paymentStatus === 'paid').length;
-    const pending = orders.filter(o => o.paymentStatus === 'pending').length;
-    const failed = orders.filter(o => o.paymentStatus === 'failed').length;
-    const completed = orders.filter(o => o.status === 'completed').length;
-    const processing = orders.filter(o => o.status === 'pending').length;
-    const cancelled = orders.filter(o => o.status === 'cancelled').length;
+  // Tính toán thống kê trạng thái (dựa trên kết quả filter)
+  const stats = useMemo(() => {
+    const total = filteredOrders.length;
+    const paid = filteredOrders.filter(o => o.paymentStatus === 'paid').length;
+    const pending = filteredOrders.filter(o => o.paymentStatus === 'pending').length;
+    const failed = filteredOrders.filter(o => o.paymentStatus === 'failed').length;
+    const completed = filteredOrders.filter(o => o.status === 'completed').length;
+    const processing = filteredOrders.filter(o => o.status === 'pending').length;
+    const cancelled = filteredOrders.filter(o => o.status === 'cancelled').length;
     
     return { total, paid, pending, failed, completed, processing, cancelled };
-  };
-
-  const stats = getOrderStats();
+  }, [filteredOrders]);
 
   return (
     <div className="p-6">
       <h1 className="text-2xl font-bold mb-4">Danh sách đơn hàng</h1>
+      
+      {/* Filter và Search */}
+      <Card className="mb-6">
+        <CardContent className="p-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            {/* Search box */}
+            <div className="relative">
+              <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+              <Input
+                placeholder="Tìm theo mã đơn, khách hàng, cửa hàng..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+            
+            {/* Store filter */}
+            <Select value={selectedStoreId} onValueChange={setSelectedStoreId}>
+              <SelectTrigger>
+                <SelectValue placeholder="Tất cả cửa hàng" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tất cả cửa hàng</SelectItem>
+                {stores.map((store: any) => (
+                  <SelectItem key={store.storeId} value={store.storeId.toString()}>
+                    {store.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            
+            {/* Payment status filter */}
+            <Select value={selectedPaymentStatus} onValueChange={setSelectedPaymentStatus}>
+              <SelectTrigger>
+                <SelectValue placeholder="Trạng thái thanh toán" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tất cả</SelectItem>
+                <SelectItem value="paid">Đã thanh toán</SelectItem>
+                <SelectItem value="pending">Chờ thanh toán</SelectItem>
+                <SelectItem value="failed">Thanh toán thất bại</SelectItem>
+              </SelectContent>
+            </Select>
+            
+            {/* Order status filter */}
+            <Select value={selectedOrderStatus} onValueChange={setSelectedOrderStatus}>
+              <SelectTrigger>
+                <SelectValue placeholder="Trạng thái đơn hàng" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tất cả</SelectItem>
+                <SelectItem value="completed">Hoàn thành</SelectItem>
+                <SelectItem value="pending">Đang xử lý</SelectItem>
+                <SelectItem value="cancelled">Đã hủy</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </CardContent>
+      </Card>
       
       {/* Thống kê trạng thái */}
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4 mb-6">
@@ -349,7 +472,7 @@ export default function OrdersPage() {
         <div>Đang tải...</div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {orders.map((order) => (
+          {filteredOrders.map((order) => (
             <Card key={order.orderId} className={getCardBorderClass(order.paymentStatus, order.status)}>
               <CardContent className="p-4">
                 <div className="flex justify-between items-start">
@@ -357,6 +480,7 @@ export default function OrdersPage() {
                     <div className="font-semibold text-lg mb-2">Mã đơn: #{order.orderId}</div>
                     <div className="space-y-1 text-sm">
                       <div>Khách hàng: <span className="font-medium">{order.customerName || "Khách lẻ"}</span></div>
+                      <div>Cửa hàng: <span className="font-medium text-purple-600">{order.storeName || "Cửa hàng chính"}</span></div>
                       <div>Ngày tạo: <span className="font-medium">{new Date(order.createdAt).toLocaleDateString('vi-VN')}</span></div>
                       <div>Giờ tạo: <span className="font-medium">{new Date(order.createdAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</span></div>
                       <div className="flex items-center gap-2">
@@ -520,6 +644,7 @@ export default function OrdersPage() {
             </div>
             <h2 className="text-xl font-bold mb-2">Đơn hàng #{selectedOrder.orderId}</h2>
             <div>Khách hàng: {selectedOrder.customerName || "Khách lẻ"}</div>
+            <div>Cửa hàng: <b className="text-purple-600">{selectedOrder.storeName || "Cửa hàng chính"}</b></div>
             <div>Ngày tạo: {new Date(selectedOrder.createdAt).toLocaleDateString('vi-VN')}</div>
             <div>Giờ tạo: {new Date(selectedOrder.createdAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</div>
             

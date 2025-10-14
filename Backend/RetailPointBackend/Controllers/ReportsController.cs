@@ -17,7 +17,7 @@ namespace RetailPointBackend.Controllers
         }
 
         [HttpGet("sales-summary")]
-        public async Task<IActionResult> GetSalesSummary([FromQuery] string startDate, [FromQuery] string endDate)
+        public async Task<IActionResult> GetSalesSummary([FromQuery] string startDate, [FromQuery] string endDate, [FromQuery] int? storeId = null)
         {
             try
             {
@@ -25,12 +25,18 @@ namespace RetailPointBackend.Controllers
                 var end = DateTime.Parse(endDate).AddDays(1); // Include end date
 
                 // Lấy đơn hàng trong khoảng thời gian đã thanh toán và chưa bị hủy
-                var orders = await _context.Orders
+                var ordersQuery = _context.Orders
                     .Where(o => o.CreatedAt >= start && o.CreatedAt < end && 
                            (o.PaymentStatus == "paid" || o.PaymentStatus == "completed") &&
-                           o.Status != "cancelled") // Loại trừ đơn hàng đã hủy
-                    .Include(o => o.Items)
-                    .ToListAsync();
+                           o.Status != "cancelled"); // Loại trừ đơn hàng đã hủy
+                
+                // Filter by storeId if provided
+                if (storeId.HasValue)
+                {
+                    ordersQuery = ordersQuery.Where(o => o.StoreId == storeId.Value.ToString());
+                }
+
+                var orders = await ordersQuery.Include(o => o.Items).ToListAsync();
 
                 // Tính tổng doanh thu
                 var totalRevenue = orders.Sum(o => o.TotalAmount);
@@ -38,15 +44,27 @@ namespace RetailPointBackend.Controllers
                 // Tổng số đơn hàng
                 var totalOrders = orders.Count;
 
-                // Tổng số khách hàng unique
-                var totalCustomers = await _context.Customers.CountAsync();
+                // Tổng số khách hàng unique - filter by store if needed
+                var customersQuery = _context.Customers.AsQueryable();
+                if (storeId.HasValue)
+                {
+                    customersQuery = customersQuery.Where(c => c.StoreId == storeId.Value);
+                }
+                var totalCustomers = await customersQuery.CountAsync();
 
                 // Tính tổng số sản phẩm bán ra từ OrderItems (loại trừ đơn hàng đã hủy)
-                var totalProductsSold = await _context.OrderItems
+                var orderItemsQuery = _context.OrderItems
                     .Where(oi => oi.Order != null && oi.Order.CreatedAt >= start && oi.Order.CreatedAt < end && 
                                 (oi.Order.PaymentStatus == "paid" || oi.Order.PaymentStatus == "completed") &&
-                                oi.Order.Status != "cancelled") // Loại trừ đơn hàng đã hủy
-                    .SumAsync(oi => oi.Quantity);
+                                oi.Order.Status != "cancelled"); // Loại trừ đơn hàng đã hủy
+                
+                // Filter by storeId if provided
+                if (storeId.HasValue)
+                {
+                    orderItemsQuery = orderItemsQuery.Where(oi => oi.Order != null && oi.Order.StoreId == storeId.Value.ToString());
+                }
+
+                var totalProductsSold = await orderItemsQuery.SumAsync(oi => oi.Quantity);
 
                 // Tính tổng số tiền giảm giá
                 var totalDiscountAmount = await _context.OrderDiscounts
@@ -84,7 +102,7 @@ namespace RetailPointBackend.Controllers
         }
 
         [HttpGet("product-performance")]
-        public async Task<IActionResult> GetProductPerformance([FromQuery] string startDate, [FromQuery] string endDate)
+        public async Task<IActionResult> GetProductPerformance([FromQuery] string startDate, [FromQuery] string endDate, [FromQuery] int? storeId = null)
         {
             try
             {
@@ -92,14 +110,26 @@ namespace RetailPointBackend.Controllers
                 var end = DateTime.Parse(endDate).AddDays(1);
 
                 // Lấy các sản phẩm bán chạy từ OrderItems với thông tin cost (loại trừ đơn hàng đã hủy)
-                var orderItems = await _context.OrderItems
+                var orderItemsQuery = _context.OrderItems
                     .Where(oi => oi.Order != null && oi.Order.CreatedAt >= start && oi.Order.CreatedAt < end && 
                                 (oi.Order.PaymentStatus == "paid" || oi.Order.PaymentStatus == "completed") &&
-                                oi.Order.Status != "cancelled") // Loại trừ đơn hàng đã hủy
-                    .Include(oi => oi.Order)
-                    .ToListAsync();
+                                oi.Order.Status != "cancelled"); // Loại trừ đơn hàng đã hủy
+                
+                // Filter by storeId if provided
+                if (storeId.HasValue)
+                {
+                    orderItemsQuery = orderItemsQuery.Where(oi => oi.Order != null && oi.Order.StoreId == storeId.Value.ToString());
+                }
 
-                var products = await _context.Products.ToListAsync();
+                var orderItems = await orderItemsQuery.Include(oi => oi.Order).ToListAsync();
+
+                // Filter products by store if needed
+                var productsQuery = _context.Products.AsQueryable();
+                if (storeId.HasValue)
+                {
+                    productsQuery = productsQuery.Where(p => p.StoreId == storeId.Value);
+                }
+                var products = await productsQuery.ToListAsync();
                 
                 var productStats = orderItems
                     .GroupBy(oi => new { oi.ProductId, oi.ProductName })
@@ -155,51 +185,87 @@ namespace RetailPointBackend.Controllers
         }
 
         [HttpGet("customer-analytics")]
-        public async Task<IActionResult> GetCustomerAnalytics([FromQuery] string startDate, [FromQuery] string endDate)
+        public async Task<IActionResult> GetCustomerAnalytics([FromQuery] string startDate, [FromQuery] string endDate, [FromQuery] int? storeId = null)
         {
             try
             {
                 var start = DateTime.Parse(startDate);
                 var end = DateTime.Parse(endDate).AddDays(1);
 
-                // Tổng số khách hàng
-                var totalCustomers = await _context.Customers.CountAsync();
+                // Tổng số khách hàng - filter by store if needed
+                var customersQuery = _context.Customers.AsQueryable();
+                if (storeId.HasValue)
+                {
+                    customersQuery = customersQuery.Where(c => c.StoreId == storeId.Value);
+                }
+                var totalCustomers = await customersQuery.CountAsync();
 
                 // Khách hàng mới trong kỳ (nếu có trường CreatedAt)
                 var newCustomers = 0; // Tạm thời = 0 vì Customer model chưa có CreatedAt
 
                 // Tổng số đơn hàng trong kỳ (bao gồm cả khách lẻ, loại trừ đơn hàng đã hủy)
-                var totalOrdersInPeriod = await _context.Orders
+                var ordersQuery = _context.Orders
                     .Where(o => o.CreatedAt >= start && o.CreatedAt < end && 
                                (o.PaymentStatus == "paid" || o.PaymentStatus == "completed") &&
-                               o.Status != "cancelled") // Loại trừ đơn hàng đã hủy
-                    .CountAsync();
+                               o.Status != "cancelled"); // Loại trừ đơn hàng đã hủy
+                
+                // Filter by storeId if provided
+                if (storeId.HasValue)
+                {
+                    ordersQuery = ordersQuery.Where(o => o.StoreId == storeId.Value.ToString());
+                }
+
+                var totalOrdersInPeriod = await ordersQuery.CountAsync();
 
                 // Khách hàng có đơn hàng trong kỳ (chỉ tính những đơn có CustomerId, loại trừ đơn hàng đã hủy)
-                var activeCustomers = await _context.Orders
+                var activeCustomersQuery = _context.Orders
                     .Where(o => o.CreatedAt >= start && o.CreatedAt < end && 
                                (o.PaymentStatus == "paid" || o.PaymentStatus == "completed") && 
                                o.CustomerId.HasValue &&
-                               o.Status != "cancelled") // Loại trừ đơn hàng đã hủy
+                               o.Status != "cancelled"); // Loại trừ đơn hàng đã hủy
+                
+                // Filter by storeId if provided
+                if (storeId.HasValue)
+                {
+                    activeCustomersQuery = activeCustomersQuery.Where(o => o.StoreId == storeId.Value.ToString());
+                }
+
+                var activeCustomers = await activeCustomersQuery
                     .Select(o => o.CustomerId)
                     .Distinct()
                     .CountAsync();
 
                 // Khách hàng quay lại (có > 1 đơn hàng, loại trừ đơn hàng đã hủy)
-                var returningCustomers = await _context.Orders
+                var returningCustomersQuery = _context.Orders
                     .Where(o => (o.PaymentStatus == "paid" || o.PaymentStatus == "completed") && 
                                o.CustomerId.HasValue &&
-                               o.Status != "cancelled") // Loại trừ đơn hàng đã hủy
+                               o.Status != "cancelled"); // Loại trừ đơn hàng đã hủy
+                
+                // Filter by storeId if provided
+                if (storeId.HasValue)
+                {
+                    returningCustomersQuery = returningCustomersQuery.Where(o => o.StoreId == storeId.Value.ToString());
+                }
+
+                var returningCustomers = await returningCustomersQuery
                     .GroupBy(o => o.CustomerId)
                     .Where(g => g.Count() > 1)
                     .CountAsync();
 
                 // Top khách hàng VIP (loại trừ đơn hàng đã hủy)
-                var topCustomers = await _context.Orders
+                var topCustomersQuery = _context.Orders
                     .Where(o => o.CreatedAt >= start && o.CreatedAt < end && 
                                (o.PaymentStatus == "paid" || o.PaymentStatus == "completed") && 
                                o.CustomerId.HasValue &&
-                               o.Status != "cancelled") // Loại trừ đơn hàng đã hủy
+                               o.Status != "cancelled"); // Loại trừ đơn hàng đã hủy
+                
+                // Filter by storeId if provided
+                if (storeId.HasValue)
+                {
+                    topCustomersQuery = topCustomersQuery.Where(o => o.StoreId == storeId.Value.ToString());
+                }
+
+                var topCustomers = await topCustomersQuery
                     .Include(o => o.Customer)
                     .GroupBy(o => new { o.CustomerId, CustomerName = o.Customer != null ? o.Customer.HoTen : null })
                     .Select(g => new
@@ -245,7 +311,7 @@ namespace RetailPointBackend.Controllers
         }
 
         [HttpGet("profit-analysis")]
-        public async Task<IActionResult> GetProfitAnalysis([FromQuery] string startDate, [FromQuery] string endDate)
+        public async Task<IActionResult> GetProfitAnalysis([FromQuery] string startDate, [FromQuery] string endDate, [FromQuery] int? storeId = null)
         {
             try
             {
@@ -253,15 +319,26 @@ namespace RetailPointBackend.Controllers
                 var end = DateTime.Parse(endDate).AddDays(1);
 
                 // Lấy đơn hàng trong kỳ với OrderItems (loại trừ đơn hàng đã hủy)
-                var orders = await _context.Orders
+                var ordersQuery = _context.Orders
                     .Where(o => o.CreatedAt >= start && o.CreatedAt < end && 
                                (o.PaymentStatus == "paid" || o.PaymentStatus == "completed") &&
-                               o.Status != "cancelled") // Loại trừ đơn hàng đã hủy
-                    .Include(o => o.Items)
-                    .ToListAsync();
+                               o.Status != "cancelled"); // Loại trừ đơn hàng đã hủy
+                
+                // Filter by storeId if provided
+                if (storeId.HasValue)
+                {
+                    ordersQuery = ordersQuery.Where(o => o.StoreId == storeId.Value.ToString());
+                }
 
-                // Lấy thông tin sản phẩm để có CostPrice
-                var products = await _context.Products.ToListAsync();
+                var orders = await ordersQuery.Include(o => o.Items).ToListAsync();
+
+                // Lấy thông tin sản phẩm để có CostPrice - filter by store if needed
+                var productsQuery = _context.Products.AsQueryable();
+                if (storeId.HasValue)
+                {
+                    productsQuery = productsQuery.Where(p => p.StoreId == storeId.Value);
+                }
+                var products = await productsQuery.ToListAsync();
 
                 // Lấy cấu hình thuế
                 var taxConfig = await _context.TaxConfigs.FirstOrDefaultAsync() ?? new TaxConfig();

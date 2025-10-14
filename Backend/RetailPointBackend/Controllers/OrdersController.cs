@@ -248,7 +248,8 @@ namespace RetailPointBackend.Controllers
                 query = query.Where(o => o.StoreId == storeId.Value.ToString());
             }
             
-            var orders = query
+            // Lấy danh sách orders trước
+            var ordersData = query
                 .Select(o => new {
                     o.OrderId,
                     o.CustomerId,
@@ -271,6 +272,7 @@ namespace RetailPointBackend.Controllers
                     o.PaymentMethod,
                     o.StoreId,
                     CashierName = "Admin", // Tạm thời hardcode vì Staff chưa có trong context
+                    o.CancellationReason, // Thêm lý do hủy nếu có
                     Items = o.Items.Select(i => new {
                         i.ProductName,
                         i.Quantity,
@@ -280,6 +282,39 @@ namespace RetailPointBackend.Controllers
                 })
                 .OrderByDescending(o => o.OrderId)
                 .ToList();
+
+            // Lấy thông tin stores từ AppDbContext
+            var storeIds = ordersData.Where(o => !string.IsNullOrEmpty(o.StoreId) && int.TryParse(o.StoreId, out _))
+                .Select(o => int.Parse(o.StoreId!))
+                .Distinct()
+                .ToList();
+                
+            var stores = _notificationContext.Stores
+                .Where(s => storeIds.Contains(s.StoreId))
+                .ToDictionary(s => s.StoreId.ToString(), s => s.Name);
+
+            // Gắn tên store vào orders
+            var orders = ordersData.Select(o => new {
+                o.OrderId,
+                o.CustomerId,
+                o.Customer,
+                o.CustomerName,
+                o.CreatedAt,
+                o.TotalAmount,
+                o.SubTotal,
+                o.TaxAmount,
+                o.DiscountAmount,
+                o.PaymentStatus,
+                o.Status,
+                o.PaymentMethod,
+                o.StoreId,
+                StoreName = !string.IsNullOrEmpty(o.StoreId) && stores.ContainsKey(o.StoreId) ?
+                    stores[o.StoreId] : "Cửa hàng chính",
+                o.CashierName,
+                o.CancellationReason,
+                o.Items
+            }).ToList();
+            
             return Ok(orders);
         }
 
@@ -313,6 +348,7 @@ namespace RetailPointBackend.Controllers
                     o.StaffId,
                     o.StoreId,
                     o.Notes,
+                    o.CancellationReason,
                     Items = o.Items.Select(i => new {
                         i.ProductId,
                         i.ProductName,
@@ -322,8 +358,43 @@ namespace RetailPointBackend.Controllers
                     }).ToList()
                 })
                 .FirstOrDefault();
+            
             if (order == null) return NotFound();
-            return Ok(order);
+            
+            // Lấy tên store nếu có StoreId
+            string storeName = "Cửa hàng chính";
+            if (!string.IsNullOrEmpty(order.StoreId) && int.TryParse(order.StoreId, out int storeId))
+            {
+                var store = _notificationContext.Stores.FirstOrDefault(s => s.StoreId == storeId);
+                if (store != null)
+                {
+                    storeName = store.Name;
+                }
+            }
+            
+            var result = new {
+                order.OrderId,
+                order.CustomerId,
+                order.Customer,
+                order.CustomerName,
+                order.CreatedAt,
+                order.TotalAmount,
+                order.SubTotal,
+                order.TaxAmount,
+                order.DiscountAmount,
+                order.PaymentMethod,
+                order.PaymentStatus,
+                order.Status,
+                order.OrderNumber,
+                order.StaffId,
+                order.StoreId,
+                StoreName = storeName,
+                order.Notes,
+                order.CancellationReason,
+                order.Items
+            };
+            
+            return Ok(result);
         }
 
         // Cập nhật đơn hàng từ pending thành completed

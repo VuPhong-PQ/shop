@@ -60,6 +60,7 @@ export default function Reports() {
     endDate: tomorrowString     // Đến ngày mai (để include hết hôm nay)
   });
   const [reportType, setReportType] = useState("summary");
+  const [selectedStoreId, setSelectedStoreId] = useState<string>("all"); // Store filter state
 
   // Auto refresh khi window focus (người dùng quay lại tab)
   useEffect(() => {
@@ -100,11 +101,33 @@ export default function Reports() {
     };
   }, [queryClient]);
 
-  // Fetch report data
-  const { data: salesSummary, isLoading: salesLoading } = useQuery({
-    queryKey: ['/api/reports/sales-summary', dateRange.startDate, dateRange.endDate],
+  // Fetch available stores for filter
+  const { data: stores = [] } = useQuery({
+    queryKey: ["/api/storeswitch/my-stores"],
     queryFn: async () => {
-      const response = await fetch(`http://localhost:5271/api/reports/sales-summary?startDate=${dateRange.startDate}&endDate=${dateRange.endDate}`);
+      try {
+        const res = await fetch("http://localhost:5271/api/storeswitch/my-stores", {
+          headers: {
+            "Username": "admin" // Tạm thời hardcode, sau này sẽ lấy từ auth context
+          }
+        });
+        if (!res.ok) throw new Error('Failed to fetch stores');
+        return res.json();
+      } catch (error) {
+        console.error("Error fetching stores:", error);
+        return [];
+      }
+    },
+    staleTime: 10 * 60 * 1000, // Cache for 10 minutes
+  });
+
+  // Fetch report data với store filter
+  const storeParam = selectedStoreId !== "all" ? `&storeId=${selectedStoreId}` : "";
+  
+  const { data: salesSummary, isLoading: salesLoading } = useQuery({
+    queryKey: ['/api/reports/sales-summary', dateRange.startDate, dateRange.endDate, selectedStoreId],
+    queryFn: async () => {
+      const response = await fetch(`http://localhost:5271/api/reports/sales-summary?startDate=${dateRange.startDate}&endDate=${dateRange.endDate}${storeParam}`);
       if (!response.ok) {
         throw new Error('Failed to fetch sales summary');
       }
@@ -115,9 +138,9 @@ export default function Reports() {
   });
 
   const { data: productPerformance, isLoading: productLoading } = useQuery({
-    queryKey: ['/api/reports/product-performance', dateRange.startDate, dateRange.endDate],
+    queryKey: ['/api/reports/product-performance', dateRange.startDate, dateRange.endDate, selectedStoreId],
     queryFn: async () => {
-      const response = await fetch(`http://localhost:5271/api/reports/product-performance?startDate=${dateRange.startDate}&endDate=${dateRange.endDate}`);
+      const response = await fetch(`http://localhost:5271/api/reports/product-performance?startDate=${dateRange.startDate}&endDate=${dateRange.endDate}${storeParam}`);
       if (!response.ok) {
         throw new Error('Failed to fetch product performance');
       }
@@ -128,9 +151,9 @@ export default function Reports() {
   });
 
   const { data: customerAnalytics, isLoading: customerLoading } = useQuery({
-    queryKey: ['/api/reports/customer-analytics', dateRange.startDate, dateRange.endDate],
+    queryKey: ['/api/reports/customer-analytics', dateRange.startDate, dateRange.endDate, selectedStoreId],
     queryFn: async () => {
-      const response = await fetch(`http://localhost:5271/api/reports/customer-analytics?startDate=${dateRange.startDate}&endDate=${dateRange.endDate}`);
+      const response = await fetch(`http://localhost:5271/api/reports/customer-analytics?startDate=${dateRange.startDate}&endDate=${dateRange.endDate}${storeParam}`);
       if (!response.ok) {
         throw new Error('Failed to fetch customer analytics');
       }
@@ -141,9 +164,9 @@ export default function Reports() {
   });
 
   const { data: profitAnalysis, isLoading: profitLoading } = useQuery({
-    queryKey: ['/api/reports/profit-analysis', dateRange.startDate, dateRange.endDate],
+    queryKey: ['/api/reports/profit-analysis', dateRange.startDate, dateRange.endDate, selectedStoreId],
     queryFn: async () => {
-      const response = await fetch(`http://localhost:5271/api/reports/profit-analysis?startDate=${dateRange.startDate}&endDate=${dateRange.endDate}`);
+      const response = await fetch(`http://localhost:5271/api/reports/profit-analysis?startDate=${dateRange.startDate}&endDate=${dateRange.endDate}${storeParam}`);
       if (!response.ok) {
         throw new Error('Failed to fetch profit analysis');
       }
@@ -338,7 +361,7 @@ export default function Reports() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
               <div className="space-y-2">
                 <Label>Từ ngày</Label>
                 <Input
@@ -356,6 +379,22 @@ export default function Reports() {
                   onChange={(e) => setDateRange(prev => ({ ...prev, endDate: e.target.value }))}
                   data-testid="input-end-date"
                 />
+              </div>
+              <div className="space-y-2">
+                <Label>Cửa hàng</Label>
+                <Select value={selectedStoreId} onValueChange={setSelectedStoreId}>
+                  <SelectTrigger data-testid="select-store">
+                    <SelectValue placeholder="Tất cả cửa hàng" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Tất cả cửa hàng</SelectItem>
+                    {stores.map((store: any) => (
+                      <SelectItem key={store.storeId} value={store.storeId.toString()}>
+                        {store.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2">
                 <Label>Loại báo cáo</Label>
