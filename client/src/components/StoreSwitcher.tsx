@@ -88,6 +88,9 @@ export default function StoreSwitcher({ onStoreChange }: StoreSwitcherProps) {
         setIsOpen(false);
         onStoreChange?.(store);
         
+        // Gửi event để các component khác biết store đã thay đổi
+        window.dispatchEvent(new CustomEvent('storeChanged', { detail: store }));
+        
         // Show success message
         alert(`Đã chuyển sang ${store.name}`);
       } else {
@@ -150,30 +153,40 @@ export default function StoreSwitcher({ onStoreChange }: StoreSwitcherProps) {
       </button>
 
       {isOpen && (
-        <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 max-h-60 overflow-y-auto">
+        <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 max-h-80 overflow-y-auto min-w-[400px] max-w-[500px]">
           {stores.map((store) => (
             <button
               key={store.storeId}
               onClick={() => handleStoreSelect(store)}
               disabled={loading}
-              className={`w-full text-left p-3 hover:bg-gray-50 transition-colors duration-200 ${
+              className={`w-full text-left p-4 hover:bg-gray-50 transition-colors duration-200 border-b border-gray-100 last:border-b-0 ${
                 currentStore?.storeId === store.storeId ? 'bg-blue-50 border-l-4 border-blue-500' : ''
               }`}
             >
-              <div className="flex items-center space-x-2">
-                <Store className={`w-4 h-4 ${currentStore?.storeId === store.storeId ? 'text-blue-600' : 'text-gray-400'}`} />
-                <div>
-                  <div className="font-medium text-sm">{store.name}</div>
-                  <div className="text-gray-500 text-xs flex items-center mt-1">
-                    <MapPin className="w-3 h-3 mr-1" />
-                    {store.address}
+              <div className="flex items-start space-x-3">
+                <Store className={`w-5 h-5 mt-0.5 ${currentStore?.storeId === store.storeId ? 'text-blue-600' : 'text-gray-400'}`} />
+                <div className="flex-1 min-w-0">
+                  <div className="font-medium text-sm text-gray-900 truncate">{store.name}</div>
+                  <div className="text-gray-500 text-xs flex items-center mt-2">
+                    <MapPin className="w-3 h-3 mr-1 text-red-400" />
+                    <span className="truncate">{store.address}</span>
                   </div>
                   {store.manager && (
-                    <div className="text-gray-400 text-xs mt-1">
+                    <div className="text-blue-600 text-xs mt-1 flex items-center">
+                      <span className="mr-1">👤</span>
                       Quản lý: {store.manager}
                     </div>
                   )}
+                  {store.phone && (
+                    <div className="text-green-600 text-xs mt-1 flex items-center">
+                      <span className="mr-1">📞</span>
+                      {store.phone}
+                    </div>
+                  )}
                 </div>
+                {currentStore?.storeId === store.storeId && (
+                  <div className="text-blue-600 text-sm font-medium">✓</div>
+                )}
               </div>
             </button>
           ))}

@@ -14,6 +14,7 @@ import { useNotifications } from "@/hooks/use-notifications";
 import { useAuth } from "@/contexts/auth-context";
 import { RefreshPermissionsButton } from "@/components/debug/refresh-permissions-button";
 import StoreSwitcher from "@/components/StoreSwitcher";
+import StoreInfoHeader from "@/components/StoreInfoHeader";
 
 interface HeaderProps {
   title: string;
@@ -67,6 +68,7 @@ export function Header({ title, onToggleNotifications, isWebSocketConnected }: H
         </div>
         
         <div className="flex items-center space-x-4">
+          <StoreInfoHeader />
           <RefreshPermissionsButton />
           
           <button

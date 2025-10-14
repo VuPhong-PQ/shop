@@ -56,7 +56,8 @@ const staffFormSchema = z.object({
   phoneNumber: z.string().optional(),
   roleId: z.number().min(1, "Vai trò là bắt buộc"),
   isActive: z.boolean().default(true),
-  notes: z.string().optional()
+  notes: z.string().optional(),
+  assignedStores: z.array(z.number()).optional()
 }).refine((data) => {
   // For new staff, password is required and must be at least 6 chars
   // For editing staff, password is optional but if provided must be at least 6 chars
@@ -140,7 +141,74 @@ export default function Staff() {
     },
   });
 
-  const isLoading = staffLoading || rolesLoading || permissionsLoading;
+  // Fetch stores for assignment
+  const { data: stores = [], isLoading: storesLoading } = useQuery<any[]>({
+    queryKey: ['/api/stores'],
+    queryFn: async () => {
+      const response = await fetch('http://localhost:5271/api/stores');
+      if (!response.ok) throw new Error('Failed to fetch stores');
+      return response.json();
+    },
+  });
+
+  // Fetch staff-store assignments
+  const { data: staffStoreAssignments = [], isLoading: assignmentsLoading } = useQuery<any[]>({
+    queryKey: ['/api/staffstores/staff-assignments'],
+    queryFn: async () => {
+      const response = await fetch('http://localhost:5271/api/staffstores/staff-assignments');
+      if (!response.ok) throw new Error('Failed to fetch staff assignments');
+      return response.json();
+    },
+  });
+
+  const isLoading = staffLoading || rolesLoading || permissionsLoading || storesLoading || assignmentsLoading;
+
+  // Helper function to handle store assignments
+  const handleStoreAssignments = async (staffId: number, assignedStores: number[] = []) => {
+    try {
+      // First, get current assignments
+      const currentAssignments = staffStoreAssignments.find((s: any) => s.staffId === staffId)?.assignedStores || [];
+      const currentStoreIds = currentAssignments.map((s: any) => s.storeId);
+      
+      // Find stores to add and remove
+      const storesToAdd = assignedStores.filter((storeId: number) => !currentStoreIds.includes(storeId));
+      const storesToRemove = currentStoreIds.filter((storeId: number) => !assignedStores.includes(storeId));
+      
+      // Add new store assignments
+      for (const storeId of storesToAdd) {
+        const response = await fetch('http://localhost:5271/api/staffstores/assign', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ staffId, storeId }),
+          credentials: 'include'
+        });
+        
+        if (!response.ok) {
+          console.error(`Failed to assign store ${storeId} to staff ${staffId}`);
+        }
+      }
+      
+      // Remove old store assignments
+      for (const storeId of storesToRemove) {
+        const response = await fetch(`http://localhost:5271/api/staffstores/unassign?staffId=${staffId}&storeId=${storeId}`, {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include'
+        });
+        
+        if (!response.ok) {
+          console.error(`Failed to unassign store ${storeId} from staff ${staffId}`);
+        }
+      }
+      
+      // Refresh assignments data
+      queryClient.invalidateQueries({ queryKey: ['/api/staffstores/staff-assignments'] });
+      
+    } catch (error) {
+      console.error('Error handling store assignments:', error);
+      throw error;
+    }
+  };
 
   // Form
   const form = useForm<StaffFormData>({
@@ -170,10 +238,13 @@ export default function Staff() {
   // Mutations
   const addStaffMutation = useMutation({
     mutationFn: async (staffData: StaffFormData) => {
+      // Separate store assignments from staff data
+      const { assignedStores, ...staffInfo } = staffData;
+      
       const response = await fetch('/api/staff', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(staffData)
+        body: JSON.stringify(staffInfo)
       });
       
       if (!response.ok) {
@@ -181,21 +252,49 @@ export default function Staff() {
         throw new Error(`Failed to create staff: ${response.status} - ${errorText}`);
       }
       
+      let staffResult = null;
       // Handle 204 No Content response
       if (response.status === 204) {
-        return null;
+        // For new staff, we need to get the ID somehow. Let's refetch staff list
+        await queryClient.invalidateQueries({ queryKey: ['/api/staff'] });
+        // We'll handle store assignments after getting the new staff ID
+        return { assignedStores };
+      } else {
+        staffResult = await response.json();
+        return { ...staffResult, assignedStores };
       }
-      
-      return response.json();
     },
-    onSuccess: () => {
-      toast({
-        title: "Thành công",
-        description: "Nhân viên đã được thêm thành công",
-      });
-      queryClient.invalidateQueries({ queryKey: ['/api/staff'] });
-      setIsAddDialogOpen(false);
-      form.reset();
+    onSuccess: async (result) => {
+      try {
+        // Refresh staff data first
+        await queryClient.invalidateQueries({ queryKey: ['/api/staff'] });
+        
+        // If we have store assignments, handle them
+        if (result?.assignedStores && result.assignedStores.length > 0) {
+          // Find the newly created staff ID
+          const updatedStaff = queryClient.getQueryData<any[]>(['/api/staff']);
+          if (updatedStaff) {
+            const newStaff = updatedStaff[updatedStaff.length - 1]; // Assuming newest is last
+            if (newStaff?.staffId) {
+              await handleStoreAssignments(newStaff.staffId, result.assignedStores);
+            }
+          }
+        }
+        
+        toast({
+          title: "Thành công",
+          description: "Nhân viên đã được thêm thành công",
+        });
+        setIsAddDialogOpen(false);
+        form.reset();
+      } catch (error) {
+        console.error('Error in post-creation steps:', error);
+        toast({
+          title: "Cảnh báo", 
+          description: "Nhân viên đã được tạo nhưng có lỗi khi phân quyền cửa hàng",
+          variant: "destructive"
+        });
+      }
     },
     onError: () => {
       toast({
@@ -211,10 +310,13 @@ export default function Staff() {
       console.log('Updating staff with ID:', id);
       console.log('Data being sent:', data);
       
+      // Separate store assignments from staff data
+      const { assignedStores, ...staffInfo } = data;
+      
       const response = await fetch(`/api/staff/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
+        body: JSON.stringify(staffInfo)
       });
       
       console.log('Response status:', response.status);
@@ -225,23 +327,37 @@ export default function Staff() {
         throw new Error(`Failed to update staff: ${response.status} - ${errorText}`);
       }
       
-      // Handle 204 No Content response
-      if (response.status === 204) {
-        console.log('Success: 204 No Content');
-        return null;
+      // Return both staff update result and store assignments
+      let result = null;
+      if (response.status !== 204) {
+        result = await response.json();
       }
       
-      return response.json();
+      return { staffResult: result, assignedStores, staffId: id };
     },
-    onSuccess: () => {
-      toast({
-        title: "Thành công",
-        description: "Thông tin nhân viên đã được cập nhật",
-      });
-      queryClient.invalidateQueries({ queryKey: ['/api/staff'] });
-      setEditingStaff(null);
-      setIsAddDialogOpen(false);
-      form.reset();
+    onSuccess: async (result) => {
+      try {
+        // Handle store assignments if provided
+        if (result?.assignedStores !== undefined) {
+          await handleStoreAssignments(result.staffId, result.assignedStores);
+        }
+        
+        toast({
+          title: "Thành công",
+          description: "Thông tin nhân viên đã được cập nhật",
+        });
+        queryClient.invalidateQueries({ queryKey: ['/api/staff'] });
+        setEditingStaff(null);
+        setIsAddDialogOpen(false);
+        form.reset();
+      } catch (error) {
+        console.error('Error in update steps:', error);
+        toast({
+          title: "Cảnh báo",
+          description: "Thông tin nhân viên đã được cập nhật nhưng có lỗi khi phân quyền cửa hàng", 
+          variant: "destructive"
+        });
+      }
     },
     onError: () => {
       toast({
@@ -588,6 +704,11 @@ export default function Staff() {
 
   const handleEditStaff = (member: any) => {
     setEditingStaff(member);
+    
+    // Get current store assignments for this staff
+    const staffAssignment = staffStoreAssignments.find((s: any) => s.staffId === member.staffId);
+    const assignedStoreIds = staffAssignment?.assignedStores?.map((store: any) => store.storeId) || [];
+    
     form.reset({
       fullName: member.fullName || "",
       username: member.username || "",
@@ -596,7 +717,8 @@ export default function Staff() {
       phoneNumber: member.phoneNumber || "",
       roleId: member.roleId || 0,
       isActive: member.isActive ?? true,
-      notes: member.notes || ""
+      notes: member.notes || "",
+      assignedStores: assignedStoreIds
     });
     setIsAddDialogOpen(true);
   };
@@ -814,6 +936,55 @@ export default function Staff() {
                         )}
                       />
 
+                      {/* Phân quyền cửa hàng */}
+                      <FormField
+                        control={form.control}
+                        name="assignedStores"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Cửa hàng được phép truy cập</FormLabel>
+                            <FormControl>
+                              <div className="space-y-2">
+                                {stores.map((store: any) => (
+                                  <div key={store.storeId} className="flex items-center space-x-2">
+                                    <Checkbox
+                                      id={`store-${store.storeId}`}
+                                      checked={field.value?.includes(store.storeId) || false}
+                                      onCheckedChange={(checked) => {
+                                        const currentStores = field.value || [];
+                                        if (checked) {
+                                          field.onChange([...currentStores, store.storeId]);
+                                        } else {
+                                          field.onChange(currentStores.filter((id: number) => id !== store.storeId));
+                                        }
+                                      }}
+                                      data-testid={`checkbox-store-${store.storeId}`}
+                                    />
+                                    <Label 
+                                      htmlFor={`store-${store.storeId}`}
+                                      className="text-sm font-normal cursor-pointer flex-1"
+                                    >
+                                      <div>
+                                        <div className="font-medium">{store.name}</div>
+                                        <div className="text-xs text-muted-foreground">{store.address}</div>
+                                        <div className="text-xs text-muted-foreground">Quản lý: {store.manager}</div>
+                                      </div>
+                                    </Label>
+                                  </div>
+                                ))}
+                                {stores.length === 0 && (
+                                  <p className="text-sm text-muted-foreground">Không có cửa hàng nào</p>
+                                )}
+                              </div>
+                            </FormControl>
+                            <FormMessage />
+                            <p className="text-xs text-muted-foreground">
+                              Chọn các cửa hàng mà nhân viên này có quyền truy cập. Admin có quyền truy cập tất cả cửa hàng.
+                            </p>
+                          </FormItem>
+                        )}
+                      />
+
                       <FormField
                         control={form.control}
                         name="isActive"
@@ -992,6 +1163,46 @@ export default function Staff() {
                             {member.isActive ? 'Hoạt động' : 'Không hoạt động'}
                           </Badge>
                         </div>
+
+                        {/* Hiển thị cửa hàng được phân quyền */}
+                        {(() => {
+                          const staffAssignment = staffStoreAssignments.find((s: any) => s.staffId === member.staffId);
+                          const assignedStores = staffAssignment?.assignedStores || [];
+                          
+                          if (staffAssignment?.isAdmin) {
+                            return (
+                              <div className="flex items-center text-sm">
+                                <Package className="w-4 h-4 mr-2 text-blue-500" />
+                                <span className="text-blue-600 font-medium">Tất cả cửa hàng (Admin)</span>
+                              </div>
+                            );
+                          }
+                          
+                          if (assignedStores.length > 0) {
+                            return (
+                              <div className="space-y-1">
+                                <div className="flex items-center text-sm">
+                                  <Package className="w-4 h-4 mr-2 text-green-500" />
+                                  <span className="text-green-600 font-medium">Cửa hàng được phân quyền:</span>
+                                </div>
+                                <div className="flex flex-wrap gap-1">
+                                  {assignedStores.map((store: any) => (
+                                    <Badge key={store.storeId} variant="outline" className="text-xs">
+                                      {store.name}
+                                    </Badge>
+                                  ))}
+                                </div>
+                              </div>
+                            );
+                          }
+                          
+                          return (
+                            <div className="flex items-center text-sm">
+                              <Package className="w-4 h-4 mr-2 text-gray-400" />
+                              <span className="text-gray-500">Chưa được phân quyền cửa hàng nào</span>
+                            </div>
+                          );
+                        })()}
 
                         <div className="space-y-2 text-sm text-gray-600">
                           <div className="flex items-center">

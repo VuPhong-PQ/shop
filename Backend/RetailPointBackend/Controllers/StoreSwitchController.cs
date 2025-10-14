@@ -144,6 +144,76 @@ namespace RetailPointBackend.Controllers
                 manager = store.Manager
             });
         }
+
+        // GET: api/StoreSwitch/current-info - Lấy thông tin ngắn gọn cho header
+        [HttpGet("current-info")]
+        public async Task<ActionResult<object>> GetCurrentStoreInfo()
+        {
+            var username = HttpContext.Request.Headers["Username"].FirstOrDefault() ?? "admin";
+            var currentStoreId = HttpContext.Session.GetInt32("CurrentStoreId");
+            
+            // Nếu chưa có store được set, lấy store đầu tiên mà user có quyền
+            if (currentStoreId == null)
+            {
+                var staff = await _context.Staffs
+                    .Include(s => s.Role)
+                    .FirstOrDefaultAsync(s => s.Username == username && s.IsActive);
+                    
+                if (staff != null)
+                {
+                    Store? firstStore = null;
+                    
+                    if (staff.Role.RoleName == "Admin")
+                    {
+                        firstStore = await _context.Stores
+                            .Where(s => s.IsActive)
+                            .OrderBy(s => s.Name)
+                            .FirstOrDefaultAsync();
+                    }
+                    else
+                    {
+                        var staffStore = await _context.StaffStores
+                            .Include(ss => ss.Store)
+                            .Where(ss => ss.StaffId == staff.StaffId && ss.Store.IsActive)
+                            .OrderBy(ss => ss.Store.Name)
+                            .FirstOrDefaultAsync();
+                        firstStore = staffStore?.Store;
+                    }
+
+                    if (firstStore != null)
+                    {
+                        currentStoreId = firstStore.StoreId;
+                        HttpContext.Session.SetInt32("CurrentStoreId", currentStoreId.Value);
+                        HttpContext.Session.SetString("CurrentStoreName", firstStore.Name);
+                        
+                        return Ok(new {
+                            storeId = firstStore.StoreId,
+                            storeName = firstStore.Name,
+                            shortName = firstStore.Name.Length > 20 ? firstStore.Name.Substring(0, 20) + "..." : firstStore.Name
+                        });
+                    }
+                }
+                
+                return Ok(new { message = "Chưa có cửa hàng được chọn" });
+            }
+
+            // Lấy thông tin store hiện tại
+            var store = await _context.Stores
+                .FirstOrDefaultAsync(s => s.StoreId == currentStoreId && s.IsActive);
+                
+            if (store == null)
+            {
+                HttpContext.Session.Remove("CurrentStoreId");
+                HttpContext.Session.Remove("CurrentStoreName");
+                return Ok(new { message = "Cửa hàng không hoạt động" });
+            }
+
+            return Ok(new {
+                storeId = store.StoreId,
+                storeName = store.Name,
+                shortName = store.Name.Length > 20 ? store.Name.Substring(0, 20) + "..." : store.Name
+            });
+        }
     }
 
     public class SetCurrentStoreDto
