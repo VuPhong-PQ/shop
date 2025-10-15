@@ -13,7 +13,7 @@ namespace RetailPointBackend.Models
             if (!optionsBuilder.IsConfigured)
             {
                 // Lấy connection string mặc định cho migration
-                optionsBuilder.UseSqlServer("Server=TEST-PC\\KTEAM;Database=RetailPoint;User Id=sa;Password=123;MultipleActiveResultSets=True;TrustServerCertificate=True;");
+                optionsBuilder.UseSqlServer("Server=TEST-PC\\KTEAM;Database=RetailPoint;User Id=sa;Password=sa@123;MultipleActiveResultSets=True;TrustServerCertificate=True;");
             }
         }
 
