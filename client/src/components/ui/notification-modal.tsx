@@ -26,8 +26,10 @@ export function NotificationModal({ show, onClose }: NotificationModalProps) {
 
   const handleNotificationItemClick = async (notification: NotificationItem) => {
     try {
+      console.log('Clicking notification:', notification);
       // Get navigation info from API
       const navigationInfo = await getNavigationInfo(parseInt(notification.id));
+      console.log('Navigation info received:', navigationInfo);
       
       if (navigationInfo.type === 'order' && navigationInfo.data.orderId) {
         // Handle order notifications (new order, payment success)
@@ -164,7 +166,8 @@ export function NotificationModal({ show, onClose }: NotificationModalProps) {
         <div className="p-4 space-y-3">
           {notifications.map((notification, index) => {
             const Icon = getIcon(notification.type);
-            const isClickable = notification.type === 'info' && notification.title === 'Đơn hàng mới';
+            const isClickable = (notification.type === 'info' && notification.title === 'Đơn hàng mới') ||
+                               (notification.type === 'warning' && (notification.title === 'Cảnh báo tồn kho thấp' || notification.title === 'Hết hàng'));
             
             return (
               <div 

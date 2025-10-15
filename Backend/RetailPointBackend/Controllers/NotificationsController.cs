@@ -269,10 +269,28 @@ namespace RetailPointBackend.Controllers
             try
             {
                 using var metadataObj = JsonSerializer.Deserialize<JsonDocument>(metadata);
+                
+                // Try to get from Products array (current format)
+                if (metadataObj?.RootElement.TryGetProperty("Products", out var productsElement) == true && 
+                    productsElement.ValueKind == JsonValueKind.Array && 
+                    productsElement.GetArrayLength() > 0)
+                {
+                    var firstProduct = productsElement[0].GetString();
+                    if (!string.IsNullOrEmpty(firstProduct))
+                    {
+                        // Extract product name from "Dép nam (còn 2)" format
+                        var nameMatch = System.Text.RegularExpressions.Regex.Match(firstProduct, @"^(.+?)\s*\(");
+                        return nameMatch.Success ? nameMatch.Groups[1].Value.Trim() : firstProduct;
+                    }
+                }
+                
+                // Fallback: Try to get from ProductName property
                 if (metadataObj?.RootElement.TryGetProperty("ProductName", out var productNameElement) == true)
                 {
                     return productNameElement.GetString();
                 }
+                
+                // Fallback: Try to get from LowStockProducts array (old format)
                 if (metadataObj?.RootElement.TryGetProperty("LowStockProducts", out var lowStockElement) == true && 
                     lowStockElement.ValueKind == JsonValueKind.Array && 
                     lowStockElement.GetArrayLength() > 0)
