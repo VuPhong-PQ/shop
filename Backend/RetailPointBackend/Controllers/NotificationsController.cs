@@ -120,6 +120,174 @@ namespace RetailPointBackend.Controllers
             return NoContent();
         }
 
+        // GET: api/notifications/{id}/navigate
+        [HttpGet("{id}/navigate")]
+        public async Task<IActionResult> GetNavigationInfo(int id)
+        {
+            var notification = await _context.Notifications.FindAsync(id);
+            if (notification == null)
+            {
+                return NotFound();
+            }
+
+            // Mark as read if unread
+            if (notification.Status == NotificationStatus.Unread)
+            {
+                notification.Status = NotificationStatus.Read;
+                notification.ReadAt = DateTime.Now;
+                await _context.SaveChangesAsync();
+            }
+
+            // Return navigation info based on notification type
+            object navigationInfo = notification.Type switch
+            {
+                NotificationType.NewOrder => new
+                {
+                    type = "order",
+                    path = "/orders",
+                    orderId = notification.OrderId,
+                    title = "Chi tiết đơn hàng",
+                    data = new
+                    {
+                        orderId = notification.OrderId
+                    }
+                },
+                NotificationType.LowStock or NotificationType.OutOfStock => await GetProductNavigationInfo(notification),
+                NotificationType.PaymentSuccess => new
+                {
+                    type = "order",
+                    path = "/orders",
+                    orderId = notification.OrderId,
+                    title = "Chi tiết thanh toán",
+                    data = new
+                    {
+                        orderId = notification.OrderId
+                    }
+                },
+                _ => new
+                {
+                    type = "general",
+                    path = "/",
+                    title = "Trang chủ",
+                    data = new { }
+                }
+            };
+
+            return Ok(navigationInfo);
+        }
+
+        private async Task<object> GetProductNavigationInfo(Notification notification)
+        {
+            string? productName = null;
+            int? productId = notification.ProductId;
+
+            // Try to get product name from metadata first
+            productName = GetProductNameFromMetadata(notification.Metadata);
+            
+            // If we have productId but no product name from metadata, fetch from database
+            if (productId.HasValue && string.IsNullOrEmpty(productName))
+            {
+                var product = await _context.Products.FindAsync(productId.Value);
+                productName = product?.Name; // Correct field name
+            }
+            
+            // If still no product name and we have metadata, try to extract from LowStockProducts array
+            if (string.IsNullOrEmpty(productName))
+            {
+                var productFromMetadata = GetFirstProductFromLowStockMetadata(notification.Metadata);
+                if (productFromMetadata.HasValue)
+                {
+                    productName = productFromMetadata.Value.Name;
+                    if (!productId.HasValue)
+                        productId = productFromMetadata.Value.Id;
+                }
+            }
+
+            return new
+            {
+                type = "product",
+                path = "/inventory",
+                productId = productId,
+                title = "Chi tiết sản phẩm",
+                data = new
+                {
+                    productId = productId,
+                    searchTerm = productName ?? "Sản phẩm"
+                }
+            };
+        }
+
+        private (int? Id, string? Name)? GetFirstProductFromLowStockMetadata(string? metadata)
+        {
+            if (string.IsNullOrEmpty(metadata))
+                return null;
+
+            try
+            {
+                using var metadataObj = JsonSerializer.Deserialize<JsonDocument>(metadata);
+                if (metadataObj?.RootElement.TryGetProperty("LowStockProducts", out var lowStockElement) == true && 
+                    lowStockElement.ValueKind == JsonValueKind.Array && 
+                    lowStockElement.GetArrayLength() > 0)
+                {
+                    var firstProduct = lowStockElement[0];
+                    if (firstProduct.ValueKind == JsonValueKind.Object)
+                    {
+                        int? id = null;
+                        string? name = null;
+                        
+                        if (firstProduct.TryGetProperty("ProductId", out var idElement))
+                        {
+                            id = idElement.GetInt32();
+                        }
+                        if (firstProduct.TryGetProperty("Name", out var nameElement))
+                        {
+                            name = nameElement.GetString();
+                        }
+                        
+                        return (id, name);
+                    }
+                    // Fallback for simple string array
+                    else if (firstProduct.ValueKind == JsonValueKind.String)
+                    {
+                        return (null, firstProduct.GetString());
+                    }
+                }
+            }
+            catch
+            {
+                // Ignore JSON parsing errors
+            }
+
+            return null;
+        }
+
+        private string? GetProductNameFromMetadata(string? metadata)
+        {
+            if (string.IsNullOrEmpty(metadata))
+                return null;
+
+            try
+            {
+                using var metadataObj = JsonSerializer.Deserialize<JsonDocument>(metadata);
+                if (metadataObj?.RootElement.TryGetProperty("ProductName", out var productNameElement) == true)
+                {
+                    return productNameElement.GetString();
+                }
+                if (metadataObj?.RootElement.TryGetProperty("LowStockProducts", out var lowStockElement) == true && 
+                    lowStockElement.ValueKind == JsonValueKind.Array && 
+                    lowStockElement.GetArrayLength() > 0)
+                {
+                    return lowStockElement[0].GetString();
+                }
+            }
+            catch
+            {
+                // Ignore JSON parsing errors
+            }
+
+            return null;
+        }
+
         // Internal method to create notifications (used by other controllers)
         public static async Task<Notification> CreateNotificationAsync(
             AppDbContext context,

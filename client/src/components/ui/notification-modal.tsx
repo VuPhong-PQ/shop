@@ -15,7 +15,7 @@ interface NotificationModalProps {
 }
 
 export function NotificationModal({ show, onClose }: NotificationModalProps) {
-  const { notifications, markAsRead, markAllAsRead, deleteNotification, handleNotificationClick, isLoading } = useNotifications();
+  const { notifications, markAsRead, markAllAsRead, deleteNotification, getNavigationInfo, handleNotificationClick, isLoading } = useNotifications();
   const { playNotificationSound } = useNotificationSound();
   const { toast } = useToast();
   const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
@@ -24,12 +24,44 @@ export function NotificationModal({ show, onClose }: NotificationModalProps) {
   
   if (!show) return null;
 
-  const handleNotificationItemClick = (notification: NotificationItem) => {
-    const clickData = handleNotificationClick(notification);
-    
-    if (clickData && clickData.type === 1 && clickData.orderId) { // NewOrder type = 1
-      setSelectedOrderId(clickData.orderId);
-      setShowOrderDetail(true);
+  const handleNotificationItemClick = async (notification: NotificationItem) => {
+    try {
+      // Get navigation info from API
+      const navigationInfo = await getNavigationInfo(parseInt(notification.id));
+      
+      if (navigationInfo.type === 'order' && navigationInfo.data.orderId) {
+        // Handle order notifications (new order, payment success)
+        setSelectedOrderId(navigationInfo.data.orderId);
+        setShowOrderDetail(true);
+      } else if (navigationInfo.type === 'product') {
+        // Handle product notifications (low stock, out of stock)
+        const searchParams = new URLSearchParams();
+        if (navigationInfo.data.productId) {
+          searchParams.set('productId', navigationInfo.data.productId.toString());
+        }
+        if (navigationInfo.data.searchTerm) {
+          searchParams.set('search', navigationInfo.data.searchTerm);
+        }
+        
+        toast({
+          title: "Chuyển đến quản lý kho 📦",
+          description: `Đang mở trang kho hàng để xem chi tiết sản phẩm`,
+        });
+        
+        navigate(`/inventory?${searchParams.toString()}`);
+        onClose(); // Close notification modal
+      } else {
+        // Handle other notification types
+        navigate(navigationInfo.path || '/');
+        onClose();
+      }
+    } catch (error) {
+      console.error('Error getting navigation info:', error);
+      toast({
+        title: "Lỗi",
+        description: "Không thể mở chi tiết thông báo",
+        variant: "destructive"
+      });
     }
   };
 

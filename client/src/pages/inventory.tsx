@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { AppLayout } from "@/components/layout/app-layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -46,6 +46,27 @@ export default function Inventory() {
   const [isAdjustmentDialogOpen, setIsAdjustmentDialogOpen] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState<InventoryTransaction | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+
+  // Handle URL search params for navigation from notifications
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const search = urlParams.get('search');
+    const productId = urlParams.get('productId');
+    
+    if (search) {
+      setSearchTerm(search);
+      // Show toast to indicate navigation from notification
+      toast({
+        title: "🔍 Tìm kiếm sản phẩm",
+        description: `Đang tìm kiếm: "${search}"`,
+      });
+    }
+    
+    if (productId) {
+      // Additional logic can be added here if needed for specific product highlighting
+      setStockFilter("all"); // Make sure we show all stock levels when searching for specific product
+    }
+  }, [toast]);
   
   // Transaction filters
   const [transactionSearchTerm, setTransactionSearchTerm] = useState("");

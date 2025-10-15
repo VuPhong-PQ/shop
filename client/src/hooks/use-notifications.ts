@@ -99,6 +99,18 @@ export const useNotifications = () => {
     },
   });
 
+  // Navigation info mutation
+  const getNavigationInfoMutation = useMutation({
+    mutationFn: (notificationId: number) => 
+      apiRequest(`/api/notifications/${notificationId}/navigate`, {
+        method: 'GET',
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/notifications'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/notifications/count'] });
+    },
+  });
+
   // Convert to frontend format
   const notifications: NotificationItem[] = backendNotifications.map(convertNotification);
   const unreadCount = notificationCount?.unreadCount || 0;
@@ -132,6 +144,7 @@ export const useNotifications = () => {
     markAsRead: markAsReadMutation.mutate,
     markAllAsRead: markAllAsReadMutation.mutate,
     deleteNotification: deleteNotificationMutation.mutate,
+    getNavigationInfo: getNavigationInfoMutation.mutateAsync,
     handleNotificationClick,
     refetch,
     isLoading: markAsReadMutation.isPending || markAllAsReadMutation.isPending || deleteNotificationMutation.isPending,
