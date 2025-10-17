@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiRequest } from "../lib/utils";
+import { apiRequest } from "@/lib/queryClient";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Printer } from "lucide-react";
@@ -36,15 +36,18 @@ export function PrintSettings() {
   });
 
   // Get installed printers
-  const { data: printersData } = useQuery<{printers: string[]} | null>({
+  const { data: printersData, isLoading: printersLoading, error: printersError } = useQuery<{printers: string[]} | null>({
     queryKey: ["/api/PrintConfig/printers"],
     queryFn: async () => {
+      console.log('Loading printers...');
       const res = await apiRequest("/api/PrintConfig/printers", { method: "GET" });
+      console.log('Printers data:', res);
       return res;
     },
   });
 
   const installedPrinters = printersData?.printers || [];
+  console.log('Available printers:', installedPrinters);
 
   const [form, setForm] = useState<PrintConfig>({
     printerName: "",
@@ -109,10 +112,12 @@ export function PrintSettings() {
   }
 
   function handleTestPrint() {
+    console.log('Test print clicked, printer:', form.printerName);
     if (!form.printerName) {
       alert("Vui lòng chọn máy in trước khi test!");
       return;
     }
+    console.log('Calling test print API...');
     testPrintMutation.mutate(form.printerName);
   }
   return (
