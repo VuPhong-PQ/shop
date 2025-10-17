@@ -25,14 +25,27 @@ const paperSizes = [
 
 export function PrintSettings() {
   const queryClient = useQueryClient();
+  
+  // Get current print config
   const { data: config } = useQuery<PrintConfig | null>({
     queryKey: ["/api/PrintConfig"],
     queryFn: async () => {
-      const res = await apiRequest("GET", "/api/PrintConfig");
-      if (res.status === 404) return null;
-      return res.json();
+      const res = await apiRequest("/api/PrintConfig", { method: "GET" });
+      return res;
     },
   });
+
+  // Get installed printers
+  const { data: printersData } = useQuery<{printers: string[]} | null>({
+    queryKey: ["/api/PrintConfig/printers"],
+    queryFn: async () => {
+      const res = await apiRequest("/api/PrintConfig/printers", { method: "GET" });
+      return res;
+    },
+  });
+
+  const installedPrinters = printersData?.printers || [];
+
   const [form, setForm] = useState<PrintConfig>({
     printerName: "",
     paperSize: "80mm",
@@ -44,25 +57,63 @@ export function PrintSettings() {
     billHeader: "",
     billFooter: "",
   });
+  
   useEffect(() => {
     if (config) setForm(config);
   }, [config]);
+  
   const mutation = useMutation({
     mutationFn: async (data: PrintConfig) => {
-      const res = await apiRequest("POST", "/api/PrintConfig", data);
-      return res.json();
+      const res = await apiRequest("/api/PrintConfig", { 
+        method: "PUT", 
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data)
+      });
+      return res;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(["/api/PrintConfig"]);
+      queryClient.invalidateQueries({ queryKey: ["/api/PrintConfig"] });
       alert("Đã lưu cấu hình in ấn!");
     },
   });
+
+  const testPrintMutation = useMutation({
+    mutationFn: async (printerName: string) => {
+      const res = await apiRequest("/api/PrintConfig/test-printer", { 
+        method: "POST", 
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ printerName })
+      });
+      return res;
+    },
+    onSuccess: (data) => {
+      if (data.isConnected) {
+        alert(`✅ Kết nối thành công với máy in: ${data.printerName}`);
+      } else {
+        alert(`❌ ${data.message || 'Không thể kết nối với máy in'}`);
+      }
+    },
+    onError: () => {
+      alert("❌ Lỗi khi test máy in");
+    }
+  });
+
   function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) {
-    const { name, value, type, checked } = e.target;
+    const target = e.target as HTMLInputElement;
+    const { name, value, type } = target;
+    const checked = target.checked;
     setForm(f => ({
       ...f,
       [name]: type === "checkbox" ? checked : value,
     }));
+  }
+
+  function handleTestPrint() {
+    if (!form.printerName) {
+      alert("Vui lòng chọn máy in trước khi test!");
+      return;
+    }
+    testPrintMutation.mutate(form.printerName);
   }
   return (
     <Card>
@@ -72,7 +123,17 @@ export function PrintSettings() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label className="block font-medium">Tên máy in</label>
-              <input name="printerName" value={form.printerName || ""} onChange={handleChange} className="border rounded px-2 py-1 w-full" placeholder="Chọn máy in..." />
+              <select 
+                name="printerName" 
+                value={form.printerName || ""} 
+                onChange={handleChange} 
+                className="border rounded px-2 py-1 w-full"
+              >
+                <option value="">Chọn máy in...</option>
+                {installedPrinters.map(printer => (
+                  <option key={printer} value={printer}>{printer}</option>
+                ))}
+              </select>
             </div>
             <div>
               <label className="block font-medium">Khổ giấy</label>
@@ -124,9 +185,15 @@ export function PrintSettings() {
             <textarea name="billFooter" value={form.billFooter || ""} onChange={handleChange} className="border rounded px-2 py-1 w-full" rows={2} />
           </div>
           <div className="flex justify-between pt-2">
-            <Button type="button" variant="outline" className="flex items-center gap-2">
+            <Button 
+              type="button" 
+              variant="outline" 
+              className="flex items-center gap-2"
+              onClick={handleTestPrint}
+              disabled={testPrintMutation.isPending || !form.printerName}
+            >
               <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 8v6M8 8v6m-4 4h16a2 2 0 002-2V6a2 2 0 00-2-2H4a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-              In thử nghiệm
+              {testPrintMutation.isPending ? "Đang test..." : "In thử nghiệm"}
             </Button>
             <Button type="submit" disabled={mutation.isPending}>
               <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
