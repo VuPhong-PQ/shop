@@ -1,6 +1,6 @@
 {
   "Version": 1,
-  "Hash": "yaftpgfNgxGYTiZtjaRB9GGPPtJ+JDGhuIK1Y2QHQ44=",
+  "Hash": "/FMwFBmFPfHwPxJzQJc78sDNS6mbTt6EH+NaCji0dQg=",
   "Source": "RetailPointBackend",
   "BasePath": "_content/RetailPointBackend",
   "Mode": "Default",
@@ -288,6 +288,27 @@
       "CopyToOutputDirectory": "Never",
       "CopyToPublishDirectory": "PreserveNewest",
       "OriginalItemSpec": "wwwroot\\uploads\\2b581d7d-76e6-4815-b895-9b625bd7cc60.jpeg"
+    },
+    {
+      "Identity": "D:\\laptrinh\\thiekepm\\RetailPoint\\Backend\\RetailPointBackend\\wwwroot\\uploads\\2bbcada1-781d-484b-b958-050a54d79183.jpeg",
+      "SourceId": "RetailPointBackend",
+      "SourceType": "Discovered",
+      "ContentRoot": "D:\\laptrinh\\thiekepm\\RetailPoint\\Backend\\RetailPointBackend\\wwwroot\\",
+      "BasePath": "_content/RetailPointBackend",
+      "RelativePath": "uploads/2bbcada1-781d-484b-b958-050a54d79183#[.{fingerprint}]?.jpeg",
+      "AssetKind": "All",
+      "AssetMode": "All",
+      "AssetRole": "Primary",
+      "AssetMergeBehavior": "",
+      "AssetMergeSource": "",
+      "RelatedAsset": "",
+      "AssetTraitName": "",
+      "AssetTraitValue": "",
+      "Fingerprint": "1s6dwduwbw",
+      "Integrity": "b0gRT9fVFCKLXV/LRV9tuIvXNAP4ZpLQ89dE5KEhGF8=",
+      "CopyToOutputDirectory": "Never",
+      "CopyToPublishDirectory": "PreserveNewest",
+      "OriginalItemSpec": "wwwroot\\uploads\\2bbcada1-781d-484b-b958-050a54d79183.jpeg"
     },
     {
       "Identity": "D:\\laptrinh\\thiekepm\\RetailPoint\\Backend\\RetailPointBackend\\wwwroot\\uploads\\30a1f8bc-3d34-4e21-8224-6211733e35dd.jpeg",
@@ -582,6 +603,27 @@
       "CopyToOutputDirectory": "Never",
       "CopyToPublishDirectory": "PreserveNewest",
       "OriginalItemSpec": "wwwroot\\uploads\\6623d245-57b3-4e7e-ae8b-2d04e1ae356b.jpeg"
+    },
+    {
+      "Identity": "D:\\laptrinh\\thiekepm\\RetailPoint\\Backend\\RetailPointBackend\\wwwroot\\uploads\\67081c9d-7a5c-4ebc-8cc7-67782c930653.jpg",
+      "SourceId": "RetailPointBackend",
+      "SourceType": "Discovered",
+      "ContentRoot": "D:\\laptrinh\\thiekepm\\RetailPoint\\Backend\\RetailPointBackend\\wwwroot\\",
+      "BasePath": "_content/RetailPointBackend",
+      "RelativePath": "uploads/67081c9d-7a5c-4ebc-8cc7-67782c930653#[.{fingerprint}]?.jpg",
+      "AssetKind": "All",
+      "AssetMode": "All",
+      "AssetRole": "Primary",
+      "AssetMergeBehavior": "",
+      "AssetMergeSource": "",
+      "RelatedAsset": "",
+      "AssetTraitName": "",
+      "AssetTraitValue": "",
+      "Fingerprint": "f6176aef96",
+      "Integrity": "STCNYxKEEaekXbqLb2uWMi+tOQKJPPX4cRisyJ9QqqI=",
+      "CopyToOutputDirectory": "Never",
+      "CopyToPublishDirectory": "PreserveNewest",
+      "OriginalItemSpec": "wwwroot\\uploads\\67081c9d-7a5c-4ebc-8cc7-67782c930653.jpg"
     },
     {
       "Identity": "D:\\laptrinh\\thiekepm\\RetailPoint\\Backend\\RetailPointBackend\\wwwroot\\uploads\\682ee980-dfa1-4060-a0c4-0003a8f2566f.jpeg",
@@ -1359,6 +1401,27 @@
       "CopyToOutputDirectory": "Never",
       "CopyToPublishDirectory": "PreserveNewest",
       "OriginalItemSpec": "wwwroot\\uploads\\d2fc3546-a1b8-4f13-91f4-6dab1e037950.jpg"
+    },
+    {
+      "Identity": "D:\\laptrinh\\thiekepm\\RetailPoint\\Backend\\RetailPointBackend\\wwwroot\\uploads\\dcf7bc6f-b966-4425-af06-33e106f61263.jpg",
+      "SourceId": "RetailPointBackend",
+      "SourceType": "Discovered",
+      "ContentRoot": "D:\\laptrinh\\thiekepm\\RetailPoint\\Backend\\RetailPointBackend\\wwwroot\\",
+      "BasePath": "_content/RetailPointBackend",
+      "RelativePath": "uploads/dcf7bc6f-b966-4425-af06-33e106f61263#[.{fingerprint}]?.jpg",
+      "AssetKind": "All",
+      "AssetMode": "All",
+      "AssetRole": "Primary",
+      "AssetMergeBehavior": "",
+      "AssetMergeSource": "",
+      "RelatedAsset": "",
+      "AssetTraitName": "",
+      "AssetTraitValue": "",
+      "Fingerprint": "p99to4gluu",
+      "Integrity": "00M34utdmKW8Rot5EM4DSOI2rTeLtQmoND5SZHHZsw0=",
+      "CopyToOutputDirectory": "Never",
+      "CopyToPublishDirectory": "PreserveNewest",
+      "OriginalItemSpec": "wwwroot\\uploads\\dcf7bc6f-b966-4425-af06-33e106f61263.jpg"
     },
     {
       "Identity": "D:\\laptrinh\\thiekepm\\RetailPoint\\Backend\\RetailPointBackend\\wwwroot\\uploads\\de104911-23c7-4e7c-a995-af1eceec171a.jpg",
@@ -2555,6 +2618,88 @@
       ]
     },
     {
+      "Route": "uploads/2bbcada1-781d-484b-b958-050a54d79183.1s6dwduwbw.jpeg",
+      "AssetFile": "D:\\laptrinh\\thiekepm\\RetailPoint\\Backend\\RetailPointBackend\\wwwroot\\uploads\\2bbcada1-781d-484b-b958-050a54d79183.jpeg",
+      "Selectors": [],
+      "ResponseHeaders": [
+        {
+          "Name": "Accept-Ranges",
+          "Value": "bytes"
+        },
+        {
+          "Name": "Content-Length",
+          "Value": "4929"
+        },
+        {
+          "Name": "Content-Type",
+          "Value": "image/jpeg"
+        },
+        {
+          "Name": "ETag",
+          "Value": "\"b0gRT9fVFCKLXV/LRV9tuIvXNAP4ZpLQ89dE5KEhGF8=\""
+        },
+        {
+          "Name": "Last-Modified",
+          "Value": "Tue, 21 Oct 2025 05:23:05 GMT"
+        },
+        {
+          "Name": "Cache-Control",
+          "Value": "max-age=31536000, immutable"
+        }
+      ],
+      "EndpointProperties": [
+        {
+          "Name": "fingerprint",
+          "Value": "1s6dwduwbw"
+        },
+        {
+          "Name": "label",
+          "Value": "uploads/2bbcada1-781d-484b-b958-050a54d79183.jpeg"
+        },
+        {
+          "Name": "integrity",
+          "Value": "sha256-b0gRT9fVFCKLXV/LRV9tuIvXNAP4ZpLQ89dE5KEhGF8="
+        }
+      ]
+    },
+    {
+      "Route": "uploads/2bbcada1-781d-484b-b958-050a54d79183.jpeg",
+      "AssetFile": "D:\\laptrinh\\thiekepm\\RetailPoint\\Backend\\RetailPointBackend\\wwwroot\\uploads\\2bbcada1-781d-484b-b958-050a54d79183.jpeg",
+      "Selectors": [],
+      "ResponseHeaders": [
+        {
+          "Name": "Accept-Ranges",
+          "Value": "bytes"
+        },
+        {
+          "Name": "Content-Length",
+          "Value": "4929"
+        },
+        {
+          "Name": "Content-Type",
+          "Value": "image/jpeg"
+        },
+        {
+          "Name": "ETag",
+          "Value": "\"b0gRT9fVFCKLXV/LRV9tuIvXNAP4ZpLQ89dE5KEhGF8=\""
+        },
+        {
+          "Name": "Last-Modified",
+          "Value": "Tue, 21 Oct 2025 05:23:05 GMT"
+        },
+        {
+          "Name": "Cache-Control",
+          "Value": "max-age=3600, must-revalidate"
+        }
+      ],
+      "EndpointProperties": [
+        {
+          "Name": "integrity",
+          "Value": "sha256-b0gRT9fVFCKLXV/LRV9tuIvXNAP4ZpLQ89dE5KEhGF8="
+        }
+      ]
+    },
+    {
       "Route": "uploads/30a1f8bc-3d34-4e21-8224-6211733e35dd.0l4yht363p.jpeg",
       "AssetFile": "D:\\laptrinh\\thiekepm\\RetailPoint\\Backend\\RetailPointBackend\\wwwroot\\uploads\\30a1f8bc-3d34-4e21-8224-6211733e35dd.jpeg",
       "Selectors": [],
@@ -3699,6 +3844,88 @@
         {
           "Name": "integrity",
           "Value": "sha256-TL/FW228WB6x78m4vB/adHDa7GKvqhTexPwm78CfFQE="
+        }
+      ]
+    },
+    {
+      "Route": "uploads/67081c9d-7a5c-4ebc-8cc7-67782c930653.f6176aef96.jpg",
+      "AssetFile": "D:\\laptrinh\\thiekepm\\RetailPoint\\Backend\\RetailPointBackend\\wwwroot\\uploads\\67081c9d-7a5c-4ebc-8cc7-67782c930653.jpg",
+      "Selectors": [],
+      "ResponseHeaders": [
+        {
+          "Name": "Accept-Ranges",
+          "Value": "bytes"
+        },
+        {
+          "Name": "Content-Length",
+          "Value": "6045"
+        },
+        {
+          "Name": "Content-Type",
+          "Value": "image/jpeg"
+        },
+        {
+          "Name": "ETag",
+          "Value": "\"STCNYxKEEaekXbqLb2uWMi+tOQKJPPX4cRisyJ9QqqI=\""
+        },
+        {
+          "Name": "Last-Modified",
+          "Value": "Tue, 21 Oct 2025 05:23:13 GMT"
+        },
+        {
+          "Name": "Cache-Control",
+          "Value": "max-age=31536000, immutable"
+        }
+      ],
+      "EndpointProperties": [
+        {
+          "Name": "fingerprint",
+          "Value": "f6176aef96"
+        },
+        {
+          "Name": "label",
+          "Value": "uploads/67081c9d-7a5c-4ebc-8cc7-67782c930653.jpg"
+        },
+        {
+          "Name": "integrity",
+          "Value": "sha256-STCNYxKEEaekXbqLb2uWMi+tOQKJPPX4cRisyJ9QqqI="
+        }
+      ]
+    },
+    {
+      "Route": "uploads/67081c9d-7a5c-4ebc-8cc7-67782c930653.jpg",
+      "AssetFile": "D:\\laptrinh\\thiekepm\\RetailPoint\\Backend\\RetailPointBackend\\wwwroot\\uploads\\67081c9d-7a5c-4ebc-8cc7-67782c930653.jpg",
+      "Selectors": [],
+      "ResponseHeaders": [
+        {
+          "Name": "Accept-Ranges",
+          "Value": "bytes"
+        },
+        {
+          "Name": "Content-Length",
+          "Value": "6045"
+        },
+        {
+          "Name": "Content-Type",
+          "Value": "image/jpeg"
+        },
+        {
+          "Name": "ETag",
+          "Value": "\"STCNYxKEEaekXbqLb2uWMi+tOQKJPPX4cRisyJ9QqqI=\""
+        },
+        {
+          "Name": "Last-Modified",
+          "Value": "Tue, 21 Oct 2025 05:23:13 GMT"
+        },
+        {
+          "Name": "Cache-Control",
+          "Value": "max-age=3600, must-revalidate"
+        }
+      ],
+      "EndpointProperties": [
+        {
+          "Name": "integrity",
+          "Value": "sha256-STCNYxKEEaekXbqLb2uWMi+tOQKJPPX4cRisyJ9QqqI="
         }
       ]
     },
@@ -6733,6 +6960,88 @@
         {
           "Name": "integrity",
           "Value": "sha256-rB3mChd/nREpoO+v9MQzAMwJlPC0HC0jQjlWOttkckk="
+        }
+      ]
+    },
+    {
+      "Route": "uploads/dcf7bc6f-b966-4425-af06-33e106f61263.jpg",
+      "AssetFile": "D:\\laptrinh\\thiekepm\\RetailPoint\\Backend\\RetailPointBackend\\wwwroot\\uploads\\dcf7bc6f-b966-4425-af06-33e106f61263.jpg",
+      "Selectors": [],
+      "ResponseHeaders": [
+        {
+          "Name": "Accept-Ranges",
+          "Value": "bytes"
+        },
+        {
+          "Name": "Content-Length",
+          "Value": "3043"
+        },
+        {
+          "Name": "Content-Type",
+          "Value": "image/jpeg"
+        },
+        {
+          "Name": "ETag",
+          "Value": "\"00M34utdmKW8Rot5EM4DSOI2rTeLtQmoND5SZHHZsw0=\""
+        },
+        {
+          "Name": "Last-Modified",
+          "Value": "Tue, 21 Oct 2025 05:28:05 GMT"
+        },
+        {
+          "Name": "Cache-Control",
+          "Value": "max-age=3600, must-revalidate"
+        }
+      ],
+      "EndpointProperties": [
+        {
+          "Name": "integrity",
+          "Value": "sha256-00M34utdmKW8Rot5EM4DSOI2rTeLtQmoND5SZHHZsw0="
+        }
+      ]
+    },
+    {
+      "Route": "uploads/dcf7bc6f-b966-4425-af06-33e106f61263.p99to4gluu.jpg",
+      "AssetFile": "D:\\laptrinh\\thiekepm\\RetailPoint\\Backend\\RetailPointBackend\\wwwroot\\uploads\\dcf7bc6f-b966-4425-af06-33e106f61263.jpg",
+      "Selectors": [],
+      "ResponseHeaders": [
+        {
+          "Name": "Accept-Ranges",
+          "Value": "bytes"
+        },
+        {
+          "Name": "Content-Length",
+          "Value": "3043"
+        },
+        {
+          "Name": "Content-Type",
+          "Value": "image/jpeg"
+        },
+        {
+          "Name": "ETag",
+          "Value": "\"00M34utdmKW8Rot5EM4DSOI2rTeLtQmoND5SZHHZsw0=\""
+        },
+        {
+          "Name": "Last-Modified",
+          "Value": "Tue, 21 Oct 2025 05:28:05 GMT"
+        },
+        {
+          "Name": "Cache-Control",
+          "Value": "max-age=31536000, immutable"
+        }
+      ],
+      "EndpointProperties": [
+        {
+          "Name": "fingerprint",
+          "Value": "p99to4gluu"
+        },
+        {
+          "Name": "label",
+          "Value": "uploads/dcf7bc6f-b966-4425-af06-33e106f61263.jpg"
+        },
+        {
+          "Name": "integrity",
+          "Value": "sha256-00M34utdmKW8Rot5EM4DSOI2rTeLtQmoND5SZHHZsw0="
         }
       ]
     },

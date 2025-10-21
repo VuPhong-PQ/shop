@@ -190,7 +190,7 @@ namespace RetailPointBackend.Controllers
                     return NotFound(new { message = "Sản phẩm không tồn tại" });
                 }
 
-                // Update properties
+                // Update properties (chỉ cập nhật khi có giá trị mới)
                 existingProduct.Name = updatedProduct.Name;
                 existingProduct.Barcode = updatedProduct.Barcode;
                 existingProduct.CategoryId = updatedProduct.CategoryId;
@@ -200,7 +200,13 @@ namespace RetailPointBackend.Controllers
                 existingProduct.StockQuantity = updatedProduct.StockQuantity;
                 existingProduct.MinStockLevel = updatedProduct.MinStockLevel;
                 existingProduct.Unit = updatedProduct.Unit;
-                existingProduct.ImageUrl = updatedProduct.ImageUrl;
+                
+                // Chỉ cập nhật ImageUrl khi có giá trị mới và không rỗng
+                if (!string.IsNullOrEmpty(updatedProduct.ImageUrl))
+                {
+                    existingProduct.ImageUrl = updatedProduct.ImageUrl;
+                }
+                
                 existingProduct.Description = updatedProduct.Description;
                 existingProduct.IsFeatured = updatedProduct.IsFeatured;
 

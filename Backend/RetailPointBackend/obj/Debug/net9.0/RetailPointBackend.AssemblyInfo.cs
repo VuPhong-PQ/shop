@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("RetailPointBackend")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+967a8f39fae9f47db3c1b9674cee5b5a991b89ad")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+c411cd255d160d01b399dd983f9681d60e0e81b1")]
 [assembly: System.Reflection.AssemblyProductAttribute("RetailPointBackend")]
 [assembly: System.Reflection.AssemblyTitleAttribute("RetailPointBackend")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

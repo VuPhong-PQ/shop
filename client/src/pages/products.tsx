@@ -193,7 +193,7 @@ export default function Products() {
   const editProductMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: Partial<ProductFormData> }) => {
       // Map lại dữ liệu cho đúng backend
-      const mappedData = {
+      const mappedData: any = {
         productId: parseInt(id),
         name: data.name,
         barcode: data.barcode,
@@ -203,10 +203,14 @@ export default function Products() {
         stockQuantity: data.stockQuantity !== undefined ? Number(data.stockQuantity) : 0,
         minStockLevel: data.minStockLevel !== undefined ? Number(data.minStockLevel) : 0,
         unit: data.unit,
-        imageUrl: data.image, // map image (frontend) -> imageUrl (backend)
         description: data.description,
         isFeatured: data.isFeatured !== undefined ? Boolean(data.isFeatured) : false,
       };
+      
+      // Chỉ gửi imageUrl khi có giá trị mới (không rỗng và không undefined)
+      if (data.image && data.image.trim() !== '') {
+        mappedData.imageUrl = data.image;
+      }
       
       try {
         const response = await fetch(`/api/products/${id}`, {
@@ -239,8 +243,12 @@ export default function Products() {
         title: "Thành công",
         description: "Sản phẩm đã được cập nhật",
       });
-  queryClient.invalidateQueries({ queryKey: ['/api/products'] });
-  setTimeout(() => queryClient.refetchQueries({ queryKey: ['/api/products'] }), 300);
+      queryClient.invalidateQueries({ queryKey: ['/api/products'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/products/featured'] });
+      setTimeout(() => {
+        queryClient.refetchQueries({ queryKey: ['/api/products'] });
+        queryClient.refetchQueries({ queryKey: ['/api/products/featured'] });
+      }, 300);
       setIsAddDialogOpen(false);
       setEditingProduct(null);
       form.reset();
