@@ -20,6 +20,7 @@ namespace RetailPointBackend.Models
         public string? Unit { get; set; }
         public string? ImageUrl { get; set; }
         public string? Description { get; set; }
+        public bool IsFeatured { get; set; } = false; // Sản phẩm hay bán
         
         // Multi-store support
         public int? StoreId { get; set; }

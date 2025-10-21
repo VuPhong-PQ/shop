@@ -1,4 +1,5 @@
-// Backend API response types matching C# moexport interface OrderItem {
+// Backend API response types matching C# models
+export interface OrderItem {
   orderItemId: number;
   orderId: number;
   productId: number;
@@ -88,6 +89,7 @@ export interface Product {
   unit: string | null;
   imageUrl: string | null;
   description: string | null;
+  isFeatured: boolean; // Sản phẩm hay bán
 }
 
 export interface Customer {

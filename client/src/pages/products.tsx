@@ -11,7 +11,7 @@ async function uploadImage(file) {
   const data = await res.json();
   return data.url.startsWith("/") ? `http://localhost:5271${data.url}` : data.url;
 }
-import { useState } from "react";
+import React, { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { AppLayout } from "@/components/layout/app-layout";
 import { Card, CardContent } from "@/components/ui/card";
@@ -27,6 +27,16 @@ import { Plus, Search, Edit, Trash2, Package, AlertTriangle, Download, Upload } 
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Switch } from "@/components/ui/switch";
+import { 
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 import { insertProductSchema } from "@shared/schema";
 import { z } from "zod";
 import type { Product, Category } from "@shared/schema";
@@ -41,6 +51,7 @@ const productFormSchema = z.object({
   productGroupId: z.string().min(1, "Nhóm sản phẩm là bắt buộc"),
   storeId: z.string().default("550e8400-e29b-41d4-a716-446655440002"),
   isActive: z.boolean().default(true),
+  isFeatured: z.boolean().default(false), // Sản phẩm hay bán
   stockQuantity: z.number().min(0, "Số lượng tồn kho phải >= 0").default(0),
   minStockLevel: z.number().min(0, "Mức tồn kho tối thiểu phải >= 0").default(5),
   unit: z.string().default("chiếc"),
@@ -57,11 +68,29 @@ export default function Products() {
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [importFile, setImportFile] = useState<File | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize] = useState(20);
 
-  // Fetch products and categories
-  const { data: products = [], isLoading } = useQuery<Product[]>({
-    queryKey: ['/api/products'],
+  // Fetch products with pagination
+  const { data: productsResponse, isLoading } = useQuery({
+    queryKey: ['/api/products', currentPage, pageSize, searchTerm, selectedGroup],
+    queryFn: async () => {
+      const params = new URLSearchParams({
+        page: currentPage.toString(),
+        pageSize: pageSize.toString()
+      });
+      
+      const response = await fetch(`/api/products?${params}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch products');
+      }
+      return response.json();
+    }
   });
+  
+  const products = productsResponse?.products || productsResponse?.Products || [];
+  const totalCount = productsResponse?.totalCount || productsResponse?.TotalCount || 0;
+  const totalPages = productsResponse?.totalPages || productsResponse?.TotalPages || 0;
 
   // Debug logs
   console.log('Products data:', products);
@@ -103,7 +132,8 @@ export default function Products() {
       stockQuantity: 0,
       minStockLevel: 5,
       unit: "chiếc",
-      image: ""
+      image: "",
+      isFeatured: false
     },
   });
 
@@ -118,6 +148,7 @@ export default function Products() {
         costPrice: productData.costPrice !== undefined ? Number(productData.costPrice) : 0,
         stockQuantity: Number(productData.stockQuantity),
         minStockLevel: Number(productData.minStockLevel),
+        isFeatured: Boolean(productData.isFeatured),
       };
       
       const response = await fetch('/api/products', {
@@ -174,6 +205,7 @@ export default function Products() {
         unit: data.unit,
         imageUrl: data.image, // map image (frontend) -> imageUrl (backend)
         description: data.description,
+        isFeatured: data.isFeatured !== undefined ? Boolean(data.isFeatured) : false,
       };
       
       try {
@@ -331,23 +363,16 @@ export default function Products() {
     }
   });
 
-  // Filter products with Vietnamese diacritics support
-  const filteredProducts = products.filter(product => {
-    const searchNormalized = normalizeSearchText(searchTerm);
-    const productNameNormalized = normalizeSearchText(product.name || '');
-    
-    const matchesSearch = productNameNormalized.includes(searchNormalized);
-    const matchesCategory = selectedCategory === "all" || String(product.productGroupId) === String(selectedCategory);
-    const matchesGroup = selectedGroup === "all" || String(product.productGroupId) === String(selectedGroup);
-    
-    return matchesSearch && matchesCategory && matchesGroup;
-  });
+  // Reset page when filters change
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, selectedGroup]);
 
-  // Debug filtered products
-  console.log('Filtered products:', filteredProducts);
-  console.log('Filtered products count:', filteredProducts.length);
-  console.log('Search term:', searchTerm);
-  console.log('Selected category:', selectedCategory);
+  // Debug products
+  console.log('Products data:', products);
+  console.log('Products count:', products.length);
+  console.log('Current page:', currentPage);
+  console.log('Total pages:', totalPages);
 
   // Handle form submission
   const onSubmit = (data: ProductFormData) => {
@@ -382,6 +407,7 @@ export default function Products() {
       minStockLevel: Number(product.minStockLevel),
       unit: product.unit,
       image: product.image || "",
+      isFeatured: Boolean(product.isFeatured),
     });
     setIsAddDialogOpen(true);
   };
@@ -688,6 +714,31 @@ export default function Products() {
                         </FormItem>
                       )}
                     />
+                    
+                    {/* Checkbox sản phẩm hay bán */}
+                    <FormField
+                      control={form.control}
+                      name="isFeatured"
+                      render={({ field }) => (
+                        <FormItem className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
+                          <div className="space-y-0.5">
+                            <FormLabel className="text-base">
+                              Sản phẩm hay bán
+                            </FormLabel>
+                            <div className="text-sm text-muted-foreground">
+                              Hiển thị sản phẩm này trong tab "Sản phẩm hay bán" tại trang bán hàng
+                            </div>
+                          </div>
+                          <FormControl>
+                            <Switch
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                              data-testid="switch-product-featured"
+                            />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
                   </div>
                   <div className="flex justify-end space-x-2">
                     <Button
@@ -737,7 +788,7 @@ export default function Products() {
                 </CardContent>
               </Card>
             ))
-          ) : filteredProducts.length === 0 ? (
+          ) : products.length === 0 ? (
             <Card className="col-span-full">
               <CardContent className="p-12 text-center">
                 <Package className="w-16 h-16 mx-auto mb-4 text-gray-400" />
@@ -753,7 +804,7 @@ export default function Products() {
               </CardContent>
             </Card>
           ) : (
-            filteredProducts.map((product) => {
+            products.map((product) => {
               const stockStatus = getStockStatus(product);
               // Ưu tiên imageUrl, sau đó đến image, cuối cùng là ảnh mặc định
               let imageUrl = product.imageUrl || product.image || "https://images.unsplash.com/photo-1559056199-641a0ac8b55e?w=300&h=200&fit=crop";
@@ -836,6 +887,55 @@ export default function Products() {
             })
           )}
         </div>
+
+        {/* Pagination Controls */}
+        {totalPages > 1 && (
+          <div className="mt-8 flex flex-col items-center space-y-4">
+            <div className="text-sm text-gray-600">
+              Hiển thị trang {currentPage} / {totalPages} ({totalCount} sản phẩm)
+            </div>
+            
+            <Pagination>
+              <PaginationContent>
+                <PaginationItem>
+                  <PaginationPrevious 
+                    onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                    className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                  />
+                </PaginationItem>
+                
+                {/* Page numbers */}
+                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                  const pageNumber = Math.max(1, Math.min(totalPages, currentPage - 2 + i));
+                  return (
+                    <PaginationItem key={pageNumber}>
+                      <PaginationLink 
+                        onClick={() => setCurrentPage(pageNumber)}
+                        isActive={currentPage === pageNumber}
+                        className="cursor-pointer"
+                      >
+                        {pageNumber}
+                      </PaginationLink>
+                    </PaginationItem>
+                  );
+                })}
+                
+                {totalPages > 5 && currentPage < totalPages - 2 && (
+                  <PaginationItem>
+                    <PaginationEllipsis />
+                  </PaginationItem>
+                )}
+                
+                <PaginationItem>
+                  <PaginationNext 
+                    onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                    className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                  />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
+          </div>
+        )}
       </div>
     </AppLayout>
   );

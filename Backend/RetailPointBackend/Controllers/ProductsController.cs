@@ -65,7 +65,7 @@ namespace RetailPointBackend.Controllers
 
         // GET: api/products
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Product>>> GetProducts([FromQuery] int? storeId = null)
+        public async Task<ActionResult> GetProducts([FromQuery] int? storeId = null, [FromQuery] int page = 1, [FromQuery] int pageSize = 20)
         {
             var query = _context.Products.AsQueryable();
             
@@ -76,7 +76,24 @@ namespace RetailPointBackend.Controllers
                 query = query.Where(p => p.StoreId == storeId.Value || p.StoreId == null);
             }
             
-            return await query.ToListAsync();
+            // Get total count for pagination
+            var totalCount = await query.CountAsync();
+            
+            // Apply pagination
+            var products = await query
+                .OrderBy(p => p.Name)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+            
+            return Ok(new 
+            {
+                Products = products,
+                TotalCount = totalCount,
+                Page = page,
+                PageSize = pageSize,
+                TotalPages = (int)Math.Ceiling((double)totalCount / pageSize)
+            });
         }
 
         // GET: api/products/low-stock
@@ -105,6 +122,42 @@ namespace RetailPointBackend.Controllers
             { 
                 Count = lowStockProducts.Count,
                 Products = lowStockProducts 
+            });
+        }
+
+        // GET: api/products/featured
+        [HttpGet("featured")]
+        public async Task<ActionResult> GetFeaturedProducts([FromQuery] int? storeId = null)
+        {
+            var query = _context.Products.AsQueryable();
+            
+            // Filter by store if storeId is provided
+            if (storeId.HasValue)
+            {
+                query = query.Where(p => p.StoreId == storeId.Value || p.StoreId == null);
+            }
+            
+            var featuredProducts = await query
+                .Where(p => p.IsFeatured)
+                .OrderBy(p => p.Name)
+                .Take(20) // Tối đa 20 sản phẩm hay bán
+                .Select(p => new {
+                    p.ProductId,
+                    p.Name,
+                    p.Barcode,
+                    p.Price,
+                    p.StockQuantity,
+                    p.Unit,
+                    p.ImageUrl,
+                    p.Description,
+                    p.IsFeatured
+                })
+                .ToListAsync();
+
+            return Ok(new 
+            { 
+                Count = featuredProducts.Count,
+                Products = featuredProducts 
             });
         }
 
@@ -149,6 +202,7 @@ namespace RetailPointBackend.Controllers
                 existingProduct.Unit = updatedProduct.Unit;
                 existingProduct.ImageUrl = updatedProduct.ImageUrl;
                 existingProduct.Description = updatedProduct.Description;
+                existingProduct.IsFeatured = updatedProduct.IsFeatured;
 
                 await _context.SaveChangesAsync();
                 Console.WriteLine($"[UpdateProduct] Successfully updated product: {id}");
@@ -251,6 +305,35 @@ namespace RetailPointBackend.Controllers
             };
 
             return Ok(stockInfo);
+        }
+
+        // POST: api/products/{id}/toggle-featured
+        [HttpPost("{id}/toggle-featured")]
+        public async Task<ActionResult> ToggleFeatured(int id)
+        {
+            try
+            {
+                var product = await _context.Products.FindAsync(id);
+                if (product == null)
+                {
+                    return NotFound(new { message = "Sản phẩm không tồn tại" });
+                }
+
+                product.IsFeatured = !product.IsFeatured;
+                await _context.SaveChangesAsync();
+
+                return Ok(new 
+                { 
+                    message = product.IsFeatured ? "Đã thêm vào sản phẩm hay bán" : "Đã xóa khỏi sản phẩm hay bán",
+                    productId = product.ProductId,
+                    productName = product.Name,
+                    isFeatured = product.IsFeatured
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Lỗi khi cập nhật trạng thái sản phẩm", error = ex.Message });
+            }
         }
 
         // GET: api/products/export-template
