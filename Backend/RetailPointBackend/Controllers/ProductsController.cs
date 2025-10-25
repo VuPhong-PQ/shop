@@ -1,4 +1,4 @@
-4976558005636using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using RetailPointBackend.Models;
 using OfficeOpenXml;
