@@ -29,9 +29,20 @@ jobs:
       env:
         NODE_ENV: production
 
+    - name: List files after build 📂
+      run: |
+        echo "Root directory:"
+        ls -la
+        echo "Client directory:"
+        ls -la client/ || echo "No client directory"
+        echo "Dist directory:"
+        ls -la dist/ || echo "No dist directory"
+        echo "Looking for build output..."
+        find . -name "*.html" -type f | head -10
+
     - name: Deploy to GitHub Pages 🚀
       uses: JamesIves/github-pages-deploy-action@v4
       with:
-        folder: client/dist
+        folder: dist
         clean: true
         single-commit: false
