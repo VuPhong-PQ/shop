@@ -299,7 +299,7 @@ export default function ProductGroups() {
     if (typeof idOrGroup === 'object' && idOrGroup !== null) {
       id = idOrGroup.productGroupId ?? idOrGroup.ProductGroupId ?? idOrGroup.id;
     }
-    const productsInGroup = products.filter((p: any) => p.productGroupId === id || p.productGroupId === Number(id)).length;
+    const productsInGroup = Array.isArray(products) ? products.filter((p: any) => p.productGroupId === id || p.productGroupId === Number(id)).length : 0;
     if (productsInGroup > 0) {
       toast({
         title: "Không thể xóa",
@@ -314,7 +314,7 @@ export default function ProductGroups() {
   };
 
   const getProductCount = (groupId: string) => {
-    return products.filter((p: any) => (p.productGroupId === groupId || p.productGroupId === Number(groupId))).length;
+    return Array.isArray(products) ? products.filter((p: any) => (p.productGroupId === groupId || p.productGroupId === Number(groupId))).length : 0;
   };
 
   return (
@@ -679,7 +679,7 @@ export default function ProductGroups() {
                 <Package className="w-5 h-5 text-purple-600" />
                 <div>
                   <p className="text-sm font-medium">Tổng sản phẩm</p>
-                  <p className="text-2xl font-bold">{products.length}</p>
+                  <p className="text-2xl font-bold">{Array.isArray(products) ? products.length : 0}</p>
                 </div>
               </div>
             </CardContent>
