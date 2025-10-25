@@ -28,7 +28,15 @@ export default defineConfig({
   build: {
     outDir: "../dist",
     emptyOutDir: true,
+    rollupOptions: {
+      input: {
+        main: path.resolve(import.meta.dirname, "client/index.html"),
+      }
+    },
+    // Copy 404.html for GitHub Pages SPA routing
+    copyPublicDir: true,
   },
+  publicDir: path.resolve(import.meta.dirname, "client/public"),
   server: {
     fs: {
       strict: true,
