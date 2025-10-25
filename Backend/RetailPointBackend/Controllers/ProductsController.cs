@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Mvc;
+4976558005636using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using RetailPointBackend.Models;
 using OfficeOpenXml;
@@ -18,12 +18,52 @@ namespace RetailPointBackend.Controllers
 
 
         [HttpPost]
-        public async Task<IActionResult> CreateProduct([FromBody] Product product)
+        public async Task<IActionResult> CreateProduct([FromBody] CreateProductRequest request)
         {
             try
             {
                 // Log thông tin nhận được
-                Console.WriteLine($"[CreateProduct] Nhận product: {System.Text.Json.JsonSerializer.Serialize(product)}");
+                Console.WriteLine($"[CreateProduct] Nhận request: {System.Text.Json.JsonSerializer.Serialize(request)}");
+                
+                // Validate required fields
+                if (string.IsNullOrEmpty(request.Name))
+                {
+                    return BadRequest(new { message = "Tên sản phẩm là bắt buộc" });
+                }
+
+                if (request.Price <= 0)
+                {
+                    return BadRequest(new { message = "Giá bán phải lớn hơn 0" });
+                }
+
+                if (!request.ProductGroupId.HasValue)
+                {
+                    return BadRequest(new { message = "Nhóm sản phẩm là bắt buộc" });
+                }
+
+                // Check if ProductGroup exists
+                var productGroup = await _context.ProductGroups.FindAsync(request.ProductGroupId.Value);
+                if (productGroup == null)
+                {
+                    return BadRequest(new { message = "Nhóm sản phẩm không tồn tại" });
+                }
+
+                // Create Product entity
+                var product = new Product
+                {
+                    Name = request.Name,
+                    Description = request.Description,
+                    Barcode = request.Barcode,
+                    Price = request.Price,
+                    CostPrice = request.CostPrice ?? 0,
+                    ProductGroupId = request.ProductGroupId.Value,
+                    StockQuantity = request.StockQuantity,
+                    MinStockLevel = request.MinStockLevel,
+                    Unit = request.Unit ?? "chiếc",
+                    ImageUrl = request.ImageUrl,
+                    IsFeatured = request.IsFeatured,
+                    StoreId = null // Set to null for now, will handle multi-store later
+                };
                 
                 // Tạo sản phẩm
                 _context.Products.Add(product);
@@ -628,5 +668,21 @@ namespace RetailPointBackend.Controllers
     {
         public int NewQuantity { get; set; }
         public string? Reason { get; set; }
+    }
+
+    // Model cho request tạo sản phẩm mới
+    public class CreateProductRequest
+    {
+        public string Name { get; set; } = string.Empty;
+        public string? Description { get; set; }
+        public string? Barcode { get; set; }
+        public decimal Price { get; set; }
+        public decimal? CostPrice { get; set; }
+        public int? ProductGroupId { get; set; }
+        public int StockQuantity { get; set; }
+        public int MinStockLevel { get; set; } = 5;
+        public string? Unit { get; set; }
+        public string? ImageUrl { get; set; }
+        public bool IsFeatured { get; set; } = false;
     }
 }

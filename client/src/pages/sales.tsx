@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { AppLayout } from "@/components/layout/app-layout";
@@ -73,9 +73,14 @@ const getPaymentColor = (id: string) => {
 
 export default function Sales() {
   const { currentStore, user, switchStore, availableStores, loadAvailableStores } = useAuth();
+  const { toast } = useToast();
+  const { playNotificationSound } = useNotificationSound();
   const [location, navigate] = useLocation();
   const [cart, setCart] = useState<CartItem[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const [barcodeInput, setBarcodeInput] = useState("");
+  const [barcodeInputRef, setBarcodeInputRef] = useState<HTMLInputElement | null>(null);
+  const barcodeTimerRef = useRef<NodeJS.Timeout | null>(null);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [selectedPayment, setSelectedPayment] = useState<string>("cash");
   const [showPayment, setShowPayment] = useState(false);
@@ -85,6 +90,32 @@ export default function Sales() {
   const [qrCodeData, setQrCodeData] = useState<any>(null);
   const [showQRCode, setShowQRCode] = useState(false);
   const [activeProductTab, setActiveProductTab] = useState("all"); // "all" hoặc "featured"
+
+  // Auto-focus barcode input on keypress
+  useEffect(() => {
+    const handleGlobalKeyPress = (e: KeyboardEvent) => {
+      // Only auto-focus if not already typing in an input field
+      const activeElement = document.activeElement;
+      const isInputActive = activeElement?.tagName === 'INPUT' || 
+                           activeElement?.tagName === 'TEXTAREA' ||
+                           activeElement?.getAttribute('contenteditable') === 'true';
+      
+      // If typing a digit or letter and not in an input, focus barcode scanner
+      if (!isInputActive && /^[a-zA-Z0-9]$/.test(e.key) && barcodeInputRef) {
+        e.preventDefault();
+        barcodeInputRef.focus();
+        setBarcodeInput(e.key);
+      }
+    };
+
+    document.addEventListener('keypress', handleGlobalKeyPress);
+    return () => {
+      document.removeEventListener('keypress', handleGlobalKeyPress);
+      if (barcodeTimerRef.current) {
+        clearTimeout(barcodeTimerRef.current);
+      }
+    };
+  }, [barcodeInputRef]);
 
   // Load available stores when component mounts
   useEffect(() => {
@@ -155,10 +186,6 @@ export default function Sales() {
   const [manualDiscountValue, setManualDiscountValue] = useState<string>('');
   const [manualDiscountAmount, setManualDiscountAmount] = useState<number>(0);
   const [showManualDiscount, setShowManualDiscount] = useState(false);
-  
-  // Initialize hooks
-  const { toast } = useToast();
-  const { playNotificationSound } = useNotificationSound();
   
   // Initialize discount management
   const { availableDiscounts, isLoading: isLoadingDiscounts, calculateDiscountForCart } = useCartDiscount(
@@ -456,14 +483,20 @@ export default function Sales() {
     queryKey: ['/api/customers', currentStore?.storeId],
     queryFn: async () => {
       const storeParam = currentStore?.storeId ? `?storeId=${currentStore.storeId}` : '';
-      const rawCustomers = await apiRequest(`/api/customers${storeParam}`);
+      const rawCustomers = await apiRequest(`/api/customers${storeParam}`, { method: 'GET' });
       return rawCustomers;
     },
     select: (rawCustomers: any[]) => rawCustomers.map((c) => ({
+      customerId: c.customerId,
+      hoTen: c.hoTen || '',
+      soDienThoai: c.soDienThoai || '',
+      email: c.email || '',
+      diaChi: c.diaChi || '',
+      hangKhachHang: c.hangKhachHang || '',
+      // Mapped fields for compatibility
       id: c.customerId?.toString(),
       name: c.hoTen || '',
       phone: c.soDienThoai || '',
-      email: c.email || '',
       address: c.diaChi || '',
       customerType: c.hangKhachHang || '',
     })),
@@ -845,6 +878,83 @@ export default function Sales() {
     };
     setCart([...cart, newItem]);
     console.log('Cart after adding:', [...cart, newItem]);
+  };
+
+  // Handle barcode scan
+  const handleBarcodeSubmit = (barcode: string) => {
+    console.log('Scanning barcode:', barcode);
+    
+    if (!barcode.trim()) {
+      return;
+    }
+    
+    // Find product by barcode
+    const product = (products || []).find(p => 
+      p.barcode && p.barcode.toLowerCase() === barcode.toLowerCase()
+    );
+    
+    if (product) {
+      addToCart(product);
+      
+      // Play success sound (using existing notification sound)
+      playNotificationSound();
+      
+      toast({
+        title: "✅ Quét thành công",
+        description: `${product.name} đã được thêm vào giỏ hàng`,
+        duration: 2000,
+      });
+      setBarcodeInput(""); // Clear barcode input
+      
+      // Focus back to barcode input for next scan
+      if (barcodeInputRef) {
+        setTimeout(() => barcodeInputRef.focus(), 100);
+      }
+    } else {
+      toast({
+        title: "❌ Không tìm thấy sản phẩm",
+        description: `Không có sản phẩm nào có mã vạch: ${barcode}`,
+        variant: "destructive",
+        duration: 3000,
+      });
+      
+      // Clear invalid barcode after showing error
+      setTimeout(() => {
+        setBarcodeInput("");
+        if (barcodeInputRef) {
+          barcodeInputRef.focus();
+        }
+      }, 1000);
+    }
+  };
+
+  // Handle barcode input change with auto-submit timer
+  const handleBarcodeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setBarcodeInput(value);
+    
+    // Clear any existing timer
+    if (barcodeTimerRef.current) {
+      clearTimeout(barcodeTimerRef.current);
+    }
+    
+    // Auto-submit after 500ms of no typing (typical barcode scanner behavior)
+    if (value.length >= 3) { // Minimum barcode length
+      barcodeTimerRef.current = setTimeout(() => {
+        handleBarcodeSubmit(value);
+      }, 500);
+    }
+  };
+
+  // Handle barcode input keydown for immediate scanning
+  const handleBarcodeKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      if (barcodeTimerRef.current) {
+        clearTimeout(barcodeTimerRef.current);
+      }
+      handleBarcodeSubmit(barcodeInput);
+    }
   };
 
   // Update quantity
@@ -1266,7 +1376,7 @@ export default function Sales() {
         <div className="flex-1 order-1 lg:order-1">
           <Card className="h-full">
             <CardContent className="p-6">
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4">
+              <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between mb-6 gap-4">
                 <div className="flex items-center gap-4">
                   <h2 className="text-xl font-semibold">Sản phẩm</h2>
                   <Button
@@ -1277,15 +1387,46 @@ export default function Sales() {
                     Xem lịch sử hóa đơn
                   </Button>
                 </div>
-                <div className="relative w-full sm:w-80">
-                  <Input
-                    placeholder="Tìm kiếm sản phẩm (có thể gõ không dấu)..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10"
-                    data-testid="input-product-search"
-                  />
-                  <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                
+                <div className="flex flex-col sm:flex-row gap-2 w-full lg:w-auto">
+                  <div className="relative w-full sm:w-80">
+                    <Input
+                      placeholder="Tìm kiếm sản phẩm (có thể gõ không dấu)..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="pl-10"
+                      data-testid="input-product-search"
+                    />
+                    <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                  </div>
+                  
+                  {/* Barcode Scanner Input */}
+                  <div className="relative w-full sm:w-80">
+                    <Input
+                      ref={setBarcodeInputRef}
+                      placeholder="Quét mã vạch hoặc nhập mã vạch..."
+                      value={barcodeInput}
+                      onChange={handleBarcodeChange}
+                      onKeyDown={handleBarcodeKeyDown}
+                      className="pl-10 pr-16 bg-yellow-50 border-yellow-200 focus:border-yellow-400"
+                      data-testid="input-barcode-scanner"
+                      autoComplete="off"
+                      title="Quét mã vạch để tự động thêm sản phẩm vào giỏ hàng"
+                    />
+                    <Tag className="absolute left-3 top-3 h-4 w-4 text-yellow-600" />
+                    {barcodeInput && (
+                      <Button
+                        size="sm"
+                        className="absolute right-1 top-1 h-8"
+                        onClick={() => handleBarcodeSubmit(barcodeInput)}
+                      >
+                        Quét
+                      </Button>
+                    )}
+                    <div className="text-xs text-yellow-600 mt-1 text-center">
+                      📱 Quét mã vạch tự động thêm vào giỏ hàng
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -1336,7 +1477,7 @@ export default function Sales() {
                                         ? (product.imageUrl.startsWith("http") ? product.imageUrl : `http://localhost:5271${product.imageUrl}`)
                                         : "https://images.unsplash.com/photo-1559056199-641a0ac8b55e?w=200&h=150&fit=crop"
                                     }
-                                    alt={product.name}
+                                    alt={product.name || 'Sản phẩm'}
                                     className="max-w-full max-h-full object-contain"
                                     style={{ width: '100%', height: '100%' }}
                                   />
@@ -1424,7 +1565,7 @@ export default function Sales() {
                                         ? (product.imageUrl.startsWith("http") ? product.imageUrl : `http://localhost:5271${product.imageUrl}`)
                                         : "https://images.unsplash.com/photo-1559056199-641a0ac8b55e?w=200&h=150&fit=crop"
                                     }
-                                    alt={product.name}
+                                    alt={product.name || 'Sản phẩm'}
                                     className="max-w-full max-h-full object-contain"
                                     style={{ width: '100%', height: '100%' }}
                                   />

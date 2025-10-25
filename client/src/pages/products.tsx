@@ -141,15 +141,20 @@ export default function Products() {
   const addProductMutation = useMutation({
     mutationFn: async (productData: ProductFormData) => {
       const formattedData = {
-        ...productData,
-        productGroupId: productData.productGroupId ? parseInt(productData.productGroupId) : null,
-        imageUrl: productData.image, // map image (frontend) -> imageUrl (backend)
+        name: productData.name,
+        description: productData.description || null,
+        barcode: productData.barcode || null,
         price: Number(productData.price),
-        costPrice: productData.costPrice !== undefined ? Number(productData.costPrice) : 0,
+        costPrice: productData.costPrice !== undefined ? Number(productData.costPrice) : null,
+        productGroupId: productData.productGroupId ? parseInt(productData.productGroupId) : null,
         stockQuantity: Number(productData.stockQuantity),
         minStockLevel: Number(productData.minStockLevel),
+        unit: productData.unit || "chiếc",
+        imageUrl: productData.image || null,
         isFeatured: Boolean(productData.isFeatured),
       };
+      
+      console.log('Sending product data:', formattedData);
       
       const response = await fetch('/api/products', {
         method: 'POST',
@@ -159,6 +164,7 @@ export default function Products() {
       
       if (!response.ok) {
         const errorText = await response.text();
+        console.error('API Error Response:', errorText);
         throw new Error(`HTTP ${response.status}: ${errorText}`);
       }
       
