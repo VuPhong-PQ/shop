@@ -404,7 +404,8 @@ namespace RetailPointBackend.Controllers
                     "Mức tồn kho tối thiểu", 
                     "Đơn vị", 
                     "Mô tả",
-                    "ID Nhóm sản phẩm (*)",
+                    "ID Nhóm sản phẩm",
+                    "Tên nhóm sản phẩm",
                     "Sản phẩm hay bán (0/1)"
                 };
 
@@ -420,6 +421,7 @@ namespace RetailPointBackend.Controllers
                 // Lấy dữ liệu thực tế từ database
                 var products = await _context.Products.ToListAsync(); // Lấy tất cả sản phẩm
                 var productGroups = await _context.ProductGroups.ToListAsync();
+                var groupDict = productGroups.ToDictionary(g => g.ProductGroupId, g => g.Name);
 
                 // Thêm dữ liệu sản phẩm thực tế làm ví dụ
                 int row = 2;
@@ -434,7 +436,9 @@ namespace RetailPointBackend.Controllers
                     worksheet.Cells[row, 7].Value = product.Unit ?? "chiếc";
                     worksheet.Cells[row, 8].Value = product.Description ?? "";
                     worksheet.Cells[row, 9].Value = product.ProductGroupId ?? 1;
-                    worksheet.Cells[row, 10].Value = product.IsFeatured ? 1 : 0;
+                    worksheet.Cells[row, 10].Value = product.ProductGroupId.HasValue && groupDict.ContainsKey(product.ProductGroupId.Value) 
+                        ? groupDict[product.ProductGroupId.Value] : "";
+                    worksheet.Cells[row, 11].Value = product.IsFeatured ? 1 : 0;
                     row++;
                 }
 
@@ -476,6 +480,12 @@ namespace RetailPointBackend.Controllers
                 instructionRow++;
                 worksheet.Cells[instructionRow, 1].Value = "- ID Nhóm sản phẩm: xem sheet 'Danh sách nhóm sản phẩm'";
                 instructionRow++;
+                worksheet.Cells[instructionRow, 1].Value = "- Tên nhóm sản phẩm: nếu nhập tên mới, hệ thống sẽ tự tạo nhóm mới";
+                instructionRow++;
+                worksheet.Cells[instructionRow, 1].Value = "- Nếu ID nhóm không tồn tại + có tên nhóm: tạo nhóm mới";
+                instructionRow++;
+                worksheet.Cells[instructionRow, 1].Value = "- Có thể để trống ID nhóm và chỉ nhập tên nhóm để tạo nhóm mới";
+                instructionRow++;
                 worksheet.Cells[instructionRow, 1].Value = "- Sản phẩm hay bán: nhập 1 (hay bán) hoặc 0 (thường)";
                 instructionRow++;
                 worksheet.Cells[instructionRow, 1].Value = "- Các dòng dữ liệu mẫu phía trên có thể sửa đổi hoặc xóa";
@@ -510,6 +520,7 @@ namespace RetailPointBackend.Controllers
                 // Thiết lập headers
                 var headers = new[] {
                     "ID Nhóm sản phẩm",
+                    "Tên nhóm sản phẩm",
                     "Mã vạch",
                     "Tên sản phẩm",
                     "Giá bán",
@@ -536,20 +547,26 @@ namespace RetailPointBackend.Controllers
                     .OrderBy(p => p.ProductId)
                     .ToListAsync();
 
+                // Lấy danh sách nhóm sản phẩm để mapping tên
+                var productGroups = await _context.ProductGroups.ToListAsync();
+                var groupDict = productGroups.ToDictionary(g => g.ProductGroupId, g => g.Name);
+
                 // Thêm dữ liệu sản phẩm
                 int row = 2;
                 foreach (var product in products)
                 {
                     worksheet.Cells[row, 1].Value = product.ProductGroupId;
-                    worksheet.Cells[row, 2].Value = product.Barcode ?? "";
-                    worksheet.Cells[row, 3].Value = product.Name;
-                    worksheet.Cells[row, 4].Value = product.Price;
-                    worksheet.Cells[row, 5].Value = product.CostPrice;
-                    worksheet.Cells[row, 6].Value = product.StockQuantity;
-                    worksheet.Cells[row, 7].Value = product.MinStockLevel;
-                    worksheet.Cells[row, 8].Value = product.Unit ?? "chiếc";
-                    worksheet.Cells[row, 9].Value = product.Description ?? "";
-                    worksheet.Cells[row, 10].Value = product.IsFeatured ? 1 : 0;
+                    worksheet.Cells[row, 2].Value = product.ProductGroupId.HasValue && groupDict.ContainsKey(product.ProductGroupId.Value) 
+                        ? groupDict[product.ProductGroupId.Value] : "";
+                    worksheet.Cells[row, 3].Value = product.Barcode ?? "";
+                    worksheet.Cells[row, 4].Value = product.Name;
+                    worksheet.Cells[row, 5].Value = product.Price;
+                    worksheet.Cells[row, 6].Value = product.CostPrice;
+                    worksheet.Cells[row, 7].Value = product.StockQuantity;
+                    worksheet.Cells[row, 8].Value = product.MinStockLevel;
+                    worksheet.Cells[row, 9].Value = product.Unit ?? "chiếc";
+                    worksheet.Cells[row, 10].Value = product.Description ?? "";
+                    worksheet.Cells[row, 11].Value = product.IsFeatured ? 1 : 0;
 
                     // Định dạng cho các ô
                     for (int col = 1; col <= headers.Length; col++)
@@ -644,7 +661,8 @@ namespace RetailPointBackend.Controllers
                         var unit = worksheet.Cells[row, 7].Text?.Trim();
                         var description = worksheet.Cells[row, 8].Text?.Trim();
                         var productGroupIdText = worksheet.Cells[row, 9].Text?.Trim();
-                        var isFeaturedText = worksheet.Cells[row, 10].Text?.Trim();
+                        var productGroupName = worksheet.Cells[row, 10].Text?.Trim();
+                        var isFeaturedText = worksheet.Cells[row, 11].Text?.Trim();
 
                         // Kiểm tra các trường bắt buộc
                         if (string.IsNullOrEmpty(name))
@@ -665,9 +683,68 @@ namespace RetailPointBackend.Controllers
                             continue;
                         }
 
-                        if (string.IsNullOrEmpty(productGroupIdText) || !int.TryParse(productGroupIdText, out var productGroupId) || !validGroupIds.Contains(productGroupId))
+                        // Xử lý ProductGroup - tự động tạo mới nếu cần
+                        int? finalProductGroupId = null;
+                        
+                        // Trường hợp 1: Có ID nhóm sản phẩm
+                        if (!string.IsNullOrEmpty(productGroupIdText) && int.TryParse(productGroupIdText, out var productGroupId))
                         {
-                            errors.Add($"Hàng {row}: ID Nhóm sản phẩm không hợp lệ");
+                            if (validGroupIds.Contains(productGroupId))
+                            {
+                                // ID tồn tại - sử dụng ID này
+                                finalProductGroupId = productGroupId;
+                            }
+                            else if (!string.IsNullOrEmpty(productGroupName))
+                            {
+                                // ID không tồn tại nhưng có tên nhóm - tạo nhóm mới với tên được cung cấp
+                                var existingGroup = productGroups.FirstOrDefault(g => g.Name.ToLower() == productGroupName.ToLower());
+                                if (existingGroup != null)
+                                {
+                                    finalProductGroupId = existingGroup.ProductGroupId;
+                                }
+                                else
+                                {
+                                    // Tạo nhóm sản phẩm mới
+                                    var newGroup = new ProductGroup { Name = productGroupName };
+                                    _context.ProductGroups.Add(newGroup);
+                                    await _context.SaveChangesAsync();
+                                    
+                                    finalProductGroupId = newGroup.ProductGroupId;
+                                    productGroups.Add(newGroup); // Thêm vào danh sách để tránh tạo trùng
+                                    validGroupIds.Add(newGroup.ProductGroupId);
+                                }
+                            }
+                            else
+                            {
+                                // ID không tồn tại và không có tên nhóm
+                                errors.Add($"Hàng {row}: ID Nhóm sản phẩm {productGroupId} không tồn tại. Vui lòng cung cấp tên nhóm để tạo mới.");
+                                continue;
+                            }
+                        }
+                        // Trường hợp 2: Chỉ có tên nhóm - tìm hoặc tạo mới
+                        else if (!string.IsNullOrEmpty(productGroupName))
+                        {
+                            var existingGroup = productGroups.FirstOrDefault(g => g.Name.ToLower() == productGroupName.ToLower());
+                            if (existingGroup != null)
+                            {
+                                finalProductGroupId = existingGroup.ProductGroupId;
+                            }
+                            else
+                            {
+                                // Tạo nhóm sản phẩm mới
+                                var newGroup = new ProductGroup { Name = productGroupName };
+                                _context.ProductGroups.Add(newGroup);
+                                await _context.SaveChangesAsync();
+                                
+                                finalProductGroupId = newGroup.ProductGroupId;
+                                productGroups.Add(newGroup); // Thêm vào danh sách để tránh tạo trùng
+                                validGroupIds.Add(newGroup.ProductGroupId);
+                            }
+                        }
+                        // Trường hợp 3: Không có cả ID và tên
+                        else
+                        {
+                            errors.Add($"Hàng {row}: Phải có ít nhất ID nhóm sản phẩm hoặc tên nhóm sản phẩm");
                             continue;
                         }
 
@@ -727,7 +804,7 @@ namespace RetailPointBackend.Controllers
                             MinStockLevel = minStock,
                             Unit = string.IsNullOrEmpty(unit) ? "chiếc" : unit,
                             Description = string.IsNullOrEmpty(description) ? null : description,
-                            ProductGroupId = productGroupId,
+                            ProductGroupId = finalProductGroupId,
                             IsFeatured = isFeatured
                         };
 
