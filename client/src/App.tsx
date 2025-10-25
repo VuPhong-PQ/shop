@@ -41,13 +41,15 @@ function Router() {
           <Dashboard />
         </ProtectedRoute>
       </Route>
-      <Route path="/sales">
+      <Route path="/">
         <ProtectedRoute requiredPermission="ViewOrders">
           <Sales />
         </ProtectedRoute>
       </Route>
-      <Route path="/">
-        <Login />
+      <Route path="/sales">
+        <ProtectedRoute requiredPermission="ViewOrders">
+          <Sales />
+        </ProtectedRoute>
       </Route>
       <Route path="/products">
         <ProtectedRoute requiredPermission="ViewProducts">
