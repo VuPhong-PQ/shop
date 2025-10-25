@@ -404,7 +404,8 @@ namespace RetailPointBackend.Controllers
                     "Mức tồn kho tối thiểu", 
                     "Đơn vị", 
                     "Mô tả",
-                    "ID Nhóm sản phẩm (*)"
+                    "ID Nhóm sản phẩm (*)",
+                    "Sản phẩm hay bán (0/1)"
                 };
 
                 // Thêm headers vào hàng đầu tiên
@@ -417,7 +418,7 @@ namespace RetailPointBackend.Controllers
                 }
 
                 // Lấy dữ liệu thực tế từ database
-                var products = await _context.Products.Take(5).ToListAsync(); // Lấy 5 sản phẩm mẫu
+                var products = await _context.Products.ToListAsync(); // Lấy tất cả sản phẩm
                 var productGroups = await _context.ProductGroups.ToListAsync();
 
                 // Thêm dữ liệu sản phẩm thực tế làm ví dụ
@@ -433,6 +434,7 @@ namespace RetailPointBackend.Controllers
                     worksheet.Cells[row, 7].Value = product.Unit ?? "chiếc";
                     worksheet.Cells[row, 8].Value = product.Description ?? "";
                     worksheet.Cells[row, 9].Value = product.ProductGroupId ?? 1;
+                    worksheet.Cells[row, 10].Value = product.IsFeatured ? 1 : 0;
                     row++;
                 }
 
@@ -474,6 +476,8 @@ namespace RetailPointBackend.Controllers
                 instructionRow++;
                 worksheet.Cells[instructionRow, 1].Value = "- ID Nhóm sản phẩm: xem sheet 'Danh sách nhóm sản phẩm'";
                 instructionRow++;
+                worksheet.Cells[instructionRow, 1].Value = "- Sản phẩm hay bán: nhập 1 (hay bán) hoặc 0 (thường)";
+                instructionRow++;
                 worksheet.Cells[instructionRow, 1].Value = "- Các dòng dữ liệu mẫu phía trên có thể sửa đổi hoặc xóa";
                 instructionRow++;
                 worksheet.Cells[instructionRow, 1].Value = "- Thêm dòng mới phía dưới để nhập sản phẩm mới";
@@ -488,6 +492,97 @@ namespace RetailPointBackend.Controllers
             catch (Exception ex)
             {
                 return StatusCode(500, new { message = "Lỗi khi tạo template Excel", error = ex.Message });
+            }
+        }
+
+        // GET: api/products/export
+        [HttpGet("export")]
+        public async Task<IActionResult> ExportProducts()
+        {
+            try
+            {
+                // Set license cho EPPlus 5.x
+                ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
+
+                using var package = new ExcelPackage();
+                var worksheet = package.Workbook.Worksheets.Add("Danh sách sản phẩm");
+
+                // Thiết lập headers
+                var headers = new[] {
+                    "ID Nhóm sản phẩm",
+                    "Mã vạch",
+                    "Tên sản phẩm",
+                    "Giá bán",
+                    "Giá vốn",
+                    "Số lượng tồn kho",
+                    "Mức tồn kho tối thiểu",
+                    "Đơn vị",
+                    "Mô tả",
+                    "Sản phẩm hay bán (0/1)"
+                };
+
+                // Thêm headers vào hàng đầu tiên
+                for (int i = 0; i < headers.Length; i++)
+                {
+                    worksheet.Cells[1, i + 1].Value = headers[i];
+                    worksheet.Cells[1, i + 1].Style.Font.Bold = true;
+                    worksheet.Cells[1, i + 1].Style.Fill.PatternType = ExcelFillStyle.Solid;
+                    worksheet.Cells[1, i + 1].Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.LightBlue);
+                    worksheet.Cells[1, i + 1].Style.Border.BorderAround(ExcelBorderStyle.Thin);
+                }
+
+                // Lấy tất cả sản phẩm từ database
+                var products = await _context.Products
+                    .OrderBy(p => p.ProductId)
+                    .ToListAsync();
+
+                // Thêm dữ liệu sản phẩm
+                int row = 2;
+                foreach (var product in products)
+                {
+                    worksheet.Cells[row, 1].Value = product.ProductGroupId;
+                    worksheet.Cells[row, 2].Value = product.Barcode ?? "";
+                    worksheet.Cells[row, 3].Value = product.Name;
+                    worksheet.Cells[row, 4].Value = product.Price;
+                    worksheet.Cells[row, 5].Value = product.CostPrice;
+                    worksheet.Cells[row, 6].Value = product.StockQuantity;
+                    worksheet.Cells[row, 7].Value = product.MinStockLevel;
+                    worksheet.Cells[row, 8].Value = product.Unit ?? "chiếc";
+                    worksheet.Cells[row, 9].Value = product.Description ?? "";
+                    worksheet.Cells[row, 10].Value = product.IsFeatured ? 1 : 0;
+
+                    // Định dạng cho các ô
+                    for (int col = 1; col <= headers.Length; col++)
+                    {
+                        worksheet.Cells[row, col].Style.Border.BorderAround(ExcelBorderStyle.Thin);
+                    }
+
+                    row++;
+                }
+
+                // Tự động điều chỉnh độ rộng cột
+                worksheet.Cells.AutoFitColumns();
+
+                // Thiết lập chiều rộng tối thiểu cho các cột
+                for (int col = 1; col <= headers.Length; col++)
+                {
+                    if (worksheet.Column(col).Width < 10)
+                        worksheet.Column(col).Width = 10;
+                    if (worksheet.Column(col).Width > 50)
+                        worksheet.Column(col).Width = 50;
+                }
+
+                var stream = new MemoryStream();
+                package.SaveAs(stream);
+                stream.Position = 0;
+
+                var fileName = $"Products_Export_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx";
+                return File(stream.ToArray(), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error exporting products: {ex.Message}");
+                return StatusCode(500, new { message = "Lỗi khi xuất dữ liệu sản phẩm", error = ex.Message });
             }
         }
 
@@ -549,6 +644,7 @@ namespace RetailPointBackend.Controllers
                         var unit = worksheet.Cells[row, 7].Text?.Trim();
                         var description = worksheet.Cells[row, 8].Text?.Trim();
                         var productGroupIdText = worksheet.Cells[row, 9].Text?.Trim();
+                        var isFeaturedText = worksheet.Cells[row, 10].Text?.Trim();
 
                         // Kiểm tra các trường bắt buộc
                         if (string.IsNullOrEmpty(name))
@@ -579,6 +675,13 @@ namespace RetailPointBackend.Controllers
                         decimal.TryParse(costPriceText, out var costPrice);
                         int.TryParse(minStockText, out var minStock);
                         if (minStock <= 0) minStock = 5; // Giá trị mặc định
+                        
+                        // Parse IsFeatured (1 = hay bán, 0 hoặc empty = thường)
+                        bool isFeatured = false;
+                        if (!string.IsNullOrEmpty(isFeaturedText) && int.TryParse(isFeaturedText, out var featuredValue))
+                        {
+                            isFeatured = featuredValue == 1;
+                        }
 
                         // Kiểm tra trùng tên sản phẩm
                         var existingProductByName = await _context.Products.FirstOrDefaultAsync(p => !string.IsNullOrEmpty(p.Name) && p.Name.ToLower() == name.ToLower());
@@ -624,7 +727,8 @@ namespace RetailPointBackend.Controllers
                             MinStockLevel = minStock,
                             Unit = string.IsNullOrEmpty(unit) ? "chiếc" : unit,
                             Description = string.IsNullOrEmpty(description) ? null : description,
-                            ProductGroupId = productGroupId
+                            ProductGroupId = productGroupId,
+                            IsFeatured = isFeatured
                         };
 
                         _context.Products.Add(product);

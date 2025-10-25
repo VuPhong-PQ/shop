@@ -301,6 +301,38 @@ export default function Products() {
     }
   });
 
+  // Export all products mutation
+  const exportAllProductsMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch('http://localhost:5271/api/products/export');
+      if (!response.ok) {
+        throw new Error('Failed to export products');
+      }
+      return response.blob();
+    },
+    onSuccess: (blob) => {
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Products_Export_${new Date().toISOString().slice(0, 10)}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      toast({
+        title: "Thành công",
+        description: "Dữ liệu sản phẩm đã được xuất thành công",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Lỗi",
+        description: "Không thể xuất dữ liệu sản phẩm",
+        variant: "destructive",
+      });
+    }
+  });
+
   // Export template mutation
   const exportTemplateMutation = useMutation({
     mutationFn: async () => {
@@ -476,6 +508,17 @@ export default function Products() {
           </div>
 
           <div className="flex items-center space-x-2">
+            {/* Export All Products Button */}
+            <Button
+              variant="outline"
+              onClick={() => exportAllProductsMutation.mutate()}
+              disabled={exportAllProductsMutation.isPending}
+              data-testid="button-export-all-products"
+            >
+              <Download className="w-4 h-4 mr-2" />
+              {exportAllProductsMutation.isPending ? "Đang xuất..." : "Xuất dữ liệu"}
+            </Button>
+            
             {/* Export Template Button */}
             <Button
               variant="outline"
