@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test FinalPinkWishShop</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin-top: 100px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 40px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+        }
+        h1 {
+            font-size: 3em;
+            margin-bottom: 20px;
+        }
+        p {
+            font-size: 1.2em;
+            margin-bottom: 30px;
+        }
+        .status {
+            background: rgba(0,255,0,0.2);
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        .info {
+            background: rgba(255,255,255,0.1);
+            padding: 15px;
+            border-radius: 10px;
+            margin: 10px 0;
+            text-align: left;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎉 Test Successful!</h1>
+        <p>FinalPinkWishShop đã được deploy thành công lên GitHub Pages!</p>
+        
+        <div class="status">
+            <h3>✅ Deployment Status: WORKING</h3>
+            <p>Thời gian: <span id="time"></span></p>
+        </div>
+        
+        <div class="info">
+            <h3>📋 Thông tin project:</h3>
+            <ul style="text-align: left;">
+                <li><strong>Repository:</strong> VuPhong-PQ/FinalPinkWishShop</li>
+                <li><strong>Framework:</strong> React + TypeScript</li>
+                <li><strong>Features:</strong> Barcode scanning, POS System</li>
+                <li><strong>Deploy method:</strong> GitHub Actions</li>
+            </ul>
+        </div>
+        
+        <div class="info">
+            <h3>🚀 Next Steps:</h3>
+            <ol style="text-align: left;">
+                <li>React app sẽ load ở đây khi hoàn thành</li>
+                <li>Backend API cần deploy riêng</li>
+                <li>Cấu hình database connection</li>
+            </ol>
+        </div>
+        
+        <p><em>GitHub Pages deployment thành công! 🎊</em></p>
+    </div>
+    
+    <script>
+        document.getElementById('time').textContent = new Date().toLocaleString('vi-VN');
+        
+        // Simple test for SPA routing
+        console.log('Current URL:', window.location.href);
+        console.log('Path:', window.location.pathname);
+        console.log('Search:', window.location.search);
+        
+        // Log deployment info
+        console.log('🚀 FinalPinkWishShop deployed successfully!');
+        console.log('📍 Base URL:', window.location.origin + window.location.pathname);
+    </script>
+</body>
+</html>
