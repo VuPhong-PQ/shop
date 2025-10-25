@@ -882,16 +882,81 @@ export default function Sales() {
 
   // Handle barcode scan
   const handleBarcodeSubmit = (barcode: string) => {
-    console.log('Scanning barcode:', barcode);
+    console.log('🔍 Scanning barcode:', barcode);
     
     if (!barcode.trim()) {
       return;
     }
     
-    // Find product by barcode
-    const product = (products || []).find(p => 
-      p.barcode && p.barcode.toLowerCase() === barcode.toLowerCase()
+    // Normalize barcode for search (remove spaces, lowercase)
+    const normalizedBarcode = barcode.trim().toLowerCase().replace(/\s+/g, '');
+    console.log('📝 Normalized barcode:', normalizedBarcode);
+    
+    // Combine all products and featured products for comprehensive search
+    const allProductsForSearch = [
+      ...(products || []),
+      ...(featuredProducts || [])
+    ];
+    
+    // Remove duplicates based on product ID
+    const uniqueProducts = allProductsForSearch.filter((product, index, self) => 
+      index === self.findIndex((p) => p.productId === product.productId)
     );
+    
+    // Debug: Log all products and their barcodes
+    console.log('📦 Total products loaded:', (products || []).length);
+    console.log('⭐ Total featured products loaded:', (featuredProducts || []).length);
+    console.log('🔗 Combined unique products for search:', uniqueProducts.length);
+    console.log('🏷️ All products with barcodes:', uniqueProducts
+      .filter(p => p.barcode)
+      .map(p => ({
+        id: p.productId,
+        name: p.name,
+        barcode: p.barcode,
+        normalized: p.barcode?.trim().toLowerCase().replace(/\s+/g, ''),
+        source: (products || []).find(prod => prod.productId === p.productId) ? 'products' : 'featured'
+      }))
+    );
+    
+    // Special debug for SP002322
+    if (normalizedBarcode === 'sp002322') {
+      console.log('🔍 Special debug for SP002322:');
+      const sp002322Products = uniqueProducts.filter(p => 
+        p.barcode && p.barcode.toLowerCase().includes('sp002322')
+      );
+      console.log('Found SP002322 products in combined search:', sp002322Products);
+      
+      const exactMatch = uniqueProducts.find(p => 
+        p.barcode && p.barcode.trim().toLowerCase() === 'sp002322'
+      );
+      console.log('Exact match for SP002322 in combined search:', exactMatch);
+    }
+    
+    // Find product by barcode with flexible matching - now searching in combined array
+    const product = uniqueProducts.find(p => {
+      if (!p.barcode) return false;
+      
+      // Normalize product barcode too
+      const normalizedProductBarcode = p.barcode.trim().toLowerCase().replace(/\s+/g, '');
+      
+      console.log(`🔄 Comparing: "${normalizedBarcode}" vs "${normalizedProductBarcode}"`);
+      
+      // Try exact match first
+      if (normalizedProductBarcode === normalizedBarcode) {
+        console.log('✅ Exact match found!');
+        return true;
+      }
+      
+      // Try partial match (contains)
+      if (normalizedProductBarcode.includes(normalizedBarcode) || normalizedBarcode.includes(normalizedProductBarcode)) {
+        console.log('🎯 Partial match found!');
+        return true;
+      }
+      
+      return false;
+    });
+    
+    console.log('🎁 Found product:', product);
     
     if (product) {
       addToCart(product);
@@ -911,20 +976,141 @@ export default function Sales() {
         setTimeout(() => barcodeInputRef.focus(), 100);
       }
     } else {
-      toast({
-        title: "❌ Không tìm thấy sản phẩm",
-        description: `Không có sản phẩm nào có mã vạch: ${barcode}`,
-        variant: "destructive",
-        duration: 3000,
-      });
+      console.log('❌ No product found for barcode:', barcode);
+      console.log('💡 Suggestion: Check if product exists or create new product with this barcode');
       
-      // Clear invalid barcode after showing error
+      // Try to refresh products data first
+      console.log('🔄 Refreshing products data to check for recently added products...');
+      queryClient.invalidateQueries({ queryKey: ['products-sales'] });
+      queryClient.invalidateQueries({ queryKey: ['products-featured'] });
+      
+      // Wait and try again after refresh
       setTimeout(() => {
-        setBarcodeInput("");
-        if (barcodeInputRef) {
-          barcodeInputRef.focus();
+        // Re-fetch products from query cache
+        const refreshedProducts = queryClient.getQueryData(['products-sales', currentStore?.storeId]) as Product[] || [];
+        const refreshedFeatured = queryClient.getQueryData(['products-featured', currentStore?.storeId]) as Product[] || [];
+        
+        // Combine refreshed data
+        const allRefreshedProducts = [
+          ...refreshedProducts,
+          ...refreshedFeatured
+        ];
+        
+        // Remove duplicates
+        const uniqueRefreshedProducts = allRefreshedProducts.filter((product, index, self) => 
+          index === self.findIndex((p) => p.productId === product.productId)
+        );
+        
+        console.log('🔄 After refresh - Total products:', refreshedProducts.length);
+        console.log('🔄 After refresh - Featured products:', refreshedFeatured.length);
+        console.log('🔄 After refresh - Combined unique products:', uniqueRefreshedProducts.length);
+        console.log('🔄 After refresh - Products with barcodes:', uniqueRefreshedProducts.filter(p => p.barcode).length);
+        
+        // Try to find the product again with refreshed data
+        const productAfterRefresh = uniqueRefreshedProducts.find(p => {
+          if (!p.barcode) return false;
+          
+          const normalizedProductBarcode = p.barcode.trim().toLowerCase().replace(/\s+/g, '');
+          console.log(`🔄 Re-checking: "${normalizedBarcode}" vs "${normalizedProductBarcode}"`);
+          
+          return normalizedProductBarcode === normalizedBarcode || 
+                 normalizedProductBarcode.includes(normalizedBarcode) || 
+                 normalizedBarcode.includes(normalizedProductBarcode);
+        });
+        
+        if (productAfterRefresh) {
+          console.log('✅ Found product after refresh!', productAfterRefresh);
+          addToCart(productAfterRefresh);
+          playNotificationSound();
+          toast({
+            title: "✅ Quét thành công (sau refresh)",
+            description: `${productAfterRefresh.name} đã được thêm vào giỏ hàng`,
+            duration: 2000,
+          });
+          setBarcodeInput("");
+          if (barcodeInputRef) {
+            setTimeout(() => barcodeInputRef.focus(), 100);
+          }
+          return;
         }
-      }, 1000);
+        
+        // Still not found after refresh
+        console.log('❌ Still not found after refresh. Product might not exist.');
+        
+        // Check if we can find any similar products to suggest
+        const similarProducts = (products || []).filter(p => 
+          p.barcode && p.barcode.toLowerCase().includes(normalizedBarcode.substring(0, 3))
+        );
+        
+        console.log('🔍 Similar products found:', similarProducts);
+        
+        toast({
+          title: "❌ Không tìm thấy sản phẩm",
+          description: (
+            <div>
+              <p>Không có sản phẩm nào có mã vạch: {barcode}</p>
+              <p className="text-xs mt-1">Kiểm tra console để xem chi tiết hoặc thêm sản phẩm mới.</p>
+              {similarProducts.length > 0 && (
+                <p className="text-xs mt-1 text-blue-600">
+                  Tìm thấy {similarProducts.length} sản phẩm tương tự. Kiểm tra console.
+                </p>
+              )}
+            </div>
+          ),
+          variant: "destructive",
+          duration: 10000,
+          action: (
+            <div className="flex gap-2">
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  
+                  // Navigate to products page to add new product with pre-filled barcode
+                  const params = new URLSearchParams({ barcode: barcode });
+                  navigate(`/products?${params.toString()}`);
+                }}
+                className="bg-white text-red-600 px-2 py-1 rounded text-xs hover:bg-gray-100"
+              >
+                Thêm sản phẩm
+              </button>
+              {similarProducts.length > 0 && (
+                <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
+                    // Show similar products in console and potentially add first one
+                    console.log('🎯 Similar products for', barcode, ':', similarProducts);
+                    if (similarProducts.length === 1) {
+                      console.log('🎯 Auto-adding the only similar product:', similarProducts[0]);
+                      addToCart(similarProducts[0]);
+                      playNotificationSound();
+                      toast({
+                        title: "✅ Thêm sản phẩm tương tự",
+                        description: `${similarProducts[0].name} đã được thêm vào giỏ hàng`,
+                        duration: 2000,
+                      });
+                      setBarcodeInput("");
+                    }
+                  }}
+                  className="bg-blue-500 text-white px-2 py-1 rounded text-xs hover:bg-blue-600"
+                >
+                  Sản phẩm tương tự
+                </button>
+              )}
+            </div>
+          ),
+        });
+        
+        // Clear invalid barcode after showing error
+        setTimeout(() => {
+          setBarcodeInput("");
+          if (barcodeInputRef) {
+            barcodeInputRef.focus();
+          }
+        }, 2000);
+      }, 1500); // Wait a bit longer for refresh to complete
     }
   };
 
@@ -1427,6 +1613,25 @@ export default function Sales() {
                       📱 Quét mã vạch tự động thêm vào giỏ hàng
                     </div>
                   </div>
+                  
+                  {/* Refresh Products Button */}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      console.log('🔄 Manual refresh products...');
+                      queryClient.invalidateQueries({ queryKey: ['products-sales'] });
+                      toast({
+                        title: "🔄 Đang cập nhật",
+                        description: "Đang tải lại danh sách sản phẩm...",
+                        duration: 2000,
+                      });
+                    }}
+                    className="self-start mt-0 h-10"
+                    title="Tải lại danh sách sản phẩm nếu vừa thêm sản phẩm mới"
+                  >
+                    🔄 Refresh
+                  </Button>
                 </div>
               </div>
 

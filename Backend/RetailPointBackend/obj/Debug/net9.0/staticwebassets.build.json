@@ -1,6 +1,6 @@
 {
   "Version": 1,
-  "Hash": "H6jXa2qqj6A2GY/2WdbE08uhbSDsWXrGREWjPCP6aJw=",
+  "Hash": "WYatRqekQeQZXG2fbTBTIZY0BBOJOM1y+aj2PuRjJLo=",
   "Source": "RetailPointBackend",
   "BasePath": "_content/RetailPointBackend",
   "Mode": "Default",
@@ -1443,6 +1443,27 @@
       "CopyToOutputDirectory": "Never",
       "CopyToPublishDirectory": "PreserveNewest",
       "OriginalItemSpec": "wwwroot\\uploads\\c9eaa530-358f-4204-8032-e13ed0827875.jpeg"
+    },
+    {
+      "Identity": "D:\\laptrinh\\thiekepm\\RetailPoint\\Backend\\RetailPointBackend\\wwwroot\\uploads\\cb4eab60-07f5-4c3f-8c81-187541805c6f.webp",
+      "SourceId": "RetailPointBackend",
+      "SourceType": "Discovered",
+      "ContentRoot": "D:\\laptrinh\\thiekepm\\RetailPoint\\Backend\\RetailPointBackend\\wwwroot\\",
+      "BasePath": "_content/RetailPointBackend",
+      "RelativePath": "uploads/cb4eab60-07f5-4c3f-8c81-187541805c6f#[.{fingerprint}]?.webp",
+      "AssetKind": "All",
+      "AssetMode": "All",
+      "AssetRole": "Primary",
+      "AssetMergeBehavior": "",
+      "AssetMergeSource": "",
+      "RelatedAsset": "",
+      "AssetTraitName": "",
+      "AssetTraitValue": "",
+      "Fingerprint": "swk0iid7kj",
+      "Integrity": "3NOEJ4wclgwyCvoRGQhbEs8/DXOyJe3MUESlQtqT7vU=",
+      "CopyToOutputDirectory": "Never",
+      "CopyToPublishDirectory": "PreserveNewest",
+      "OriginalItemSpec": "wwwroot\\uploads\\cb4eab60-07f5-4c3f-8c81-187541805c6f.webp"
     },
     {
       "Identity": "D:\\laptrinh\\thiekepm\\RetailPoint\\Backend\\RetailPointBackend\\wwwroot\\uploads\\ce39f3e8-6ce2-48f2-ba22-279f6e469eed.jpg",
@@ -7208,6 +7229,88 @@
         {
           "Name": "integrity",
           "Value": "sha256-b0gRT9fVFCKLXV/LRV9tuIvXNAP4ZpLQ89dE5KEhGF8="
+        }
+      ]
+    },
+    {
+      "Route": "uploads/cb4eab60-07f5-4c3f-8c81-187541805c6f.swk0iid7kj.webp",
+      "AssetFile": "D:\\laptrinh\\thiekepm\\RetailPoint\\Backend\\RetailPointBackend\\wwwroot\\uploads\\cb4eab60-07f5-4c3f-8c81-187541805c6f.webp",
+      "Selectors": [],
+      "ResponseHeaders": [
+        {
+          "Name": "Accept-Ranges",
+          "Value": "bytes"
+        },
+        {
+          "Name": "Content-Length",
+          "Value": "8298"
+        },
+        {
+          "Name": "Content-Type",
+          "Value": "image/webp"
+        },
+        {
+          "Name": "ETag",
+          "Value": "\"3NOEJ4wclgwyCvoRGQhbEs8/DXOyJe3MUESlQtqT7vU=\""
+        },
+        {
+          "Name": "Last-Modified",
+          "Value": "Sat, 25 Oct 2025 09:40:51 GMT"
+        },
+        {
+          "Name": "Cache-Control",
+          "Value": "max-age=31536000, immutable"
+        }
+      ],
+      "EndpointProperties": [
+        {
+          "Name": "fingerprint",
+          "Value": "swk0iid7kj"
+        },
+        {
+          "Name": "label",
+          "Value": "uploads/cb4eab60-07f5-4c3f-8c81-187541805c6f.webp"
+        },
+        {
+          "Name": "integrity",
+          "Value": "sha256-3NOEJ4wclgwyCvoRGQhbEs8/DXOyJe3MUESlQtqT7vU="
+        }
+      ]
+    },
+    {
+      "Route": "uploads/cb4eab60-07f5-4c3f-8c81-187541805c6f.webp",
+      "AssetFile": "D:\\laptrinh\\thiekepm\\RetailPoint\\Backend\\RetailPointBackend\\wwwroot\\uploads\\cb4eab60-07f5-4c3f-8c81-187541805c6f.webp",
+      "Selectors": [],
+      "ResponseHeaders": [
+        {
+          "Name": "Accept-Ranges",
+          "Value": "bytes"
+        },
+        {
+          "Name": "Content-Length",
+          "Value": "8298"
+        },
+        {
+          "Name": "Content-Type",
+          "Value": "image/webp"
+        },
+        {
+          "Name": "ETag",
+          "Value": "\"3NOEJ4wclgwyCvoRGQhbEs8/DXOyJe3MUESlQtqT7vU=\""
+        },
+        {
+          "Name": "Last-Modified",
+          "Value": "Sat, 25 Oct 2025 09:40:51 GMT"
+        },
+        {
+          "Name": "Cache-Control",
+          "Value": "max-age=3600, must-revalidate"
+        }
+      ],
+      "EndpointProperties": [
+        {
+          "Name": "integrity",
+          "Value": "sha256-3NOEJ4wclgwyCvoRGQhbEs8/DXOyJe3MUESlQtqT7vU="
         }
       ]
     },
