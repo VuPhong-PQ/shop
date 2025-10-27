@@ -194,7 +194,7 @@ export default function Inventory() {
   });
 
   // Filter products with Vietnamese diacritics support
-  const filteredProducts = products.filter(product => {
+  const filteredProducts = Array.isArray(products) ? products.filter(product => {
     const searchNormalized = normalizeSearchText(searchTerm);
     const productNameNormalized = normalizeSearchText(product.name || '');
     const productBarcodeNormalized = normalizeSearchText(product.barcode || '');
@@ -212,7 +212,7 @@ export default function Inventory() {
     }
     
     return matchesSearch && matchesStock;
-  });
+  }) : [];
 
   // Filter transactions with Vietnamese diacritics support
   const filteredTransactions = (transactionsResponse?.data || []).filter(transaction => {
@@ -292,10 +292,10 @@ export default function Inventory() {
   };
 
   // Calculate inventory metrics
-  const totalProducts = products.length;
-  const lowStockProducts = products.filter(p => p.stockQuantity <= p.minStockLevel).length;
-  const outOfStockProducts = products.filter(p => p.stockQuantity === 0).length;
-  const totalValue = products.reduce((sum, p) => sum + (Number(p.price) * p.stockQuantity), 0);
+  const totalProducts = Array.isArray(products) ? products.length : 0;
+  const lowStockProducts = Array.isArray(products) ? products.filter(p => p.stockQuantity <= p.minStockLevel).length : 0;
+  const outOfStockProducts = Array.isArray(products) ? products.filter(p => p.stockQuantity === 0).length : 0;
+  const totalValue = Array.isArray(products) ? products.reduce((sum, p) => sum + (Number(p.price) * p.stockQuantity), 0) : 0;
 
   // Handle form submission
   const onSubmit = (data: StockAdjustmentData) => {
