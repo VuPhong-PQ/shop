@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using RetailPointBackend.Models;
+using RetailPointBackend.Services;
 using OfficeOpenXml;
 using OfficeOpenXml.Style;
 
@@ -11,9 +12,12 @@ namespace RetailPointBackend.Controllers
     public class ProductsController : ControllerBase
     {
         private readonly AppDbContext _context;
-        public ProductsController(AppDbContext context)
+        private readonly IImageSearchService _imageSearchService;
+        
+        public ProductsController(AppDbContext context, IImageSearchService imageSearchService)
         {
             _context = context;
+            _imageSearchService = imageSearchService;
         }
 
 
@@ -842,6 +846,60 @@ namespace RetailPointBackend.Controllers
                 return StatusCode(500, new { message = "Lỗi khi xử lý file Excel", error = ex.Message });
             }
         }
+
+        // AI Image Search Endpoints
+        [HttpPost("search-image")]
+        public async Task<IActionResult> SearchAndDownloadImage([FromBody] ImageSearchRequest request)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(request.ProductName))
+                {
+                    return BadRequest(new { message = "Tên sản phẩm là bắt buộc" });
+                }
+
+                var imageUrl = await _imageSearchService.SearchAndDownloadImageAsync(
+                request.ProductName, 
+                request.ProductGroupName, 
+                request.Description
+            );
+                
+                if (string.IsNullOrEmpty(imageUrl))
+                {
+                    return NotFound(new { message = "Không tìm thấy hình ảnh phù hợp" });
+                }
+
+                return Ok(new { imageUrl = imageUrl });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Lỗi khi tìm kiếm hình ảnh", error = ex.Message });
+            }
+        }
+
+        [HttpPost("search-images")]
+        public async Task<IActionResult> SearchImages([FromBody] ImageSearchRequest request)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(request.ProductName))
+                {
+                    return BadRequest(new { message = "Tên sản phẩm là bắt buộc" });
+                }
+
+            var limit = request.Limit ?? 5;
+            var imageUrls = await _imageSearchService.SearchImagesAsync(
+                request.ProductName, 
+                limit, 
+                request.ProductGroupName, 
+                request.Description
+            );                return Ok(new { images = imageUrls });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Lỗi khi tìm kiếm hình ảnh", error = ex.Message });
+            }
+        }
     }
 
     // Model cho request điều chỉnh tồn kho
@@ -865,5 +923,14 @@ namespace RetailPointBackend.Controllers
         public string? Unit { get; set; }
         public string? ImageUrl { get; set; }
         public bool IsFeatured { get; set; } = false;
+    }
+
+    public class ImageSearchRequest
+    {
+        public string ProductName { get; set; } = string.Empty;
+        public string? ProductGroupName { get; set; }
+        public string? Description { get; set; }
+        public string? Unit { get; set; }
+        public int? Limit { get; set; }
     }
 }

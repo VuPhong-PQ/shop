@@ -12,11 +12,12 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { useNotificationSound } from "@/hooks/use-notification-sound";
 import { queryClient, apiRequest } from "@/lib/queryClient";
-import { Search, Plus, Minus, Trash2, ShoppingCart, CreditCard, Banknote, QrCode, Smartphone, AlertTriangle, FileText, Send, Printer, Tag } from "lucide-react";
+import { Search, Plus, Minus, Trash2, ShoppingCart, CreditCard, Banknote, QrCode, Smartphone, AlertTriangle, FileText, Send, Printer, Tag, Camera } from "lucide-react";
 import { cn, normalizeSearchText } from "@/lib/utils";
 import type { Product, Customer } from "@/types/backend-types";
 import { useCartDiscount, useApplyDiscount, type Discount, type DiscountCalculationResponse } from "@/hooks/useDiscount";
 import { useAuth } from "@/contexts/auth-context";
+import { BarcodeScanner } from "@/components/BarcodeScanner";
 
 type StoreInfo = {
   name: string;
@@ -90,6 +91,7 @@ export default function Sales() {
   const [qrCodeData, setQrCodeData] = useState<any>(null);
   const [showQRCode, setShowQRCode] = useState(false);
   const [activeProductTab, setActiveProductTab] = useState("all"); // "all" hoặc "featured"
+  const [showCameraScanner, setShowCameraScanner] = useState(false);
 
   // Auto-focus barcode input on keypress
   useEffect(() => {
@@ -1114,6 +1116,15 @@ export default function Sales() {
     }
   };
 
+  // Handle camera scan
+  const handleCameraScan = (code: string) => {
+    console.log('📷 Camera scanned:', code);
+    setShowCameraScanner(false);
+    
+    // Use the same logic as barcode input
+    handleBarcodeSubmit(code);
+  };
+
   // Handle barcode input change with auto-submit timer
   const handleBarcodeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -1594,12 +1605,24 @@ export default function Sales() {
                       value={barcodeInput}
                       onChange={handleBarcodeChange}
                       onKeyDown={handleBarcodeKeyDown}
-                      className="pl-10 pr-16 bg-yellow-50 border-yellow-200 focus:border-yellow-400"
+                      className="pl-10 pr-24 bg-yellow-50 border-yellow-200 focus:border-yellow-400"
                       data-testid="input-barcode-scanner"
                       autoComplete="off"
                       title="Quét mã vạch để tự động thêm sản phẩm vào giỏ hàng"
                     />
                     <Tag className="absolute left-3 top-3 h-4 w-4 text-yellow-600" />
+                    
+                    {/* Camera Scanner Button */}
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="absolute right-16 top-1 h-8 p-1 text-yellow-600 hover:text-yellow-700 hover:bg-yellow-100"
+                      onClick={() => setShowCameraScanner(true)}
+                      title="Mở camera để quét mã vạch"
+                    >
+                      <Camera className="w-4 h-4" />
+                    </Button>
+                    
                     {barcodeInput && (
                       <Button
                         size="sm"
@@ -2500,6 +2523,13 @@ export default function Sales() {
           </div>
         </div>
       )}
+
+      {/* Camera Barcode Scanner */}
+      <BarcodeScanner
+        isOpen={showCameraScanner}
+        onScan={handleCameraScan}
+        onClose={() => setShowCameraScanner(false)}
+      />
     </AppLayout>
   );
 }

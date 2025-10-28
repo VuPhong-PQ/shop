@@ -11,6 +11,18 @@ async function uploadImage(file) {
   const data = await res.json();
   return data.url.startsWith("/") ? `http://localhost:5271${data.url}` : data.url;
 }
+
+// Hàm AI tìm kiếm và tải hình ảnh tự động
+async function searchAndDownloadImage(productName) {
+  const res = await fetch("http://localhost:5271/api/products/search-image", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ productName }),
+  });
+  if (!res.ok) throw new Error("Tìm kiếm hình ảnh thất bại");
+  const data = await res.json();
+  return data.imageUrl.startsWith("/") ? `http://localhost:5271${data.imageUrl}` : data.imageUrl;
+}
 import React, { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { AppLayout } from "@/components/layout/app-layout";
@@ -70,6 +82,9 @@ export default function Products() {
   const [importFile, setImportFile] = useState<File | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize] = useState(20);
+  const [isSearchingImage, setIsSearchingImage] = useState(false);
+  const [availableImages, setAvailableImages] = useState<string[]>([]);
+  const [showImageSelector, setShowImageSelector] = useState(false);
 
   // Fetch products with pagination
   const { data: productsResponse, isLoading } = useQuery({
@@ -420,6 +435,85 @@ export default function Products() {
   console.log('Current page:', currentPage);
   console.log('Total pages:', totalPages);
 
+  // Handle AI image search
+  const handleAIImageSearch = async () => {
+    const productName = form.getValues("name");
+    if (!productName?.trim()) {
+      toast({
+        title: "Lỗi",
+        description: "Vui lòng nhập tên sản phẩm trước khi tìm kiếm hình ảnh",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSearchingImage(true);
+    try {
+      // Lấy thêm metadata để cải thiện tìm kiếm
+      const productGroupId = form.getValues("productGroupId");
+      const description = form.getValues("description");
+      const unit = form.getValues("unit");
+      
+      // Tìm tên nhóm sản phẩm
+      const selectedGroup = productGroups.find(g => 
+        String(g.productGroupId ?? g.ProductGroupId) === productGroupId
+      );
+      
+      // Tìm nhiều hình ảnh để người dùng lựa chọn
+      const response = await fetch('/api/products/search-images', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          productName: productName,
+          productGroupName: selectedGroup?.name || null,
+          description: description || null,
+          unit: unit || null,
+          limit: 6 // Lấy 6 hình để người dùng chọn
+        })
+      });
+      
+      if (!response.ok) throw new Error('Tìm kiếm thất bại');
+      
+      const data = await response.json();
+      const images = data.images || [];
+      
+      if (images.length === 0) {
+        throw new Error('Không tìm thấy hình ảnh phù hợp');
+      }
+      
+      if (images.length === 1) {
+        // Nếu chỉ có 1 hình, tự động chọn
+        form.setValue("image", images[0]);
+        toast({
+          title: "Thành công",
+          description: "Đã tìm và chọn hình ảnh tự động cho sản phẩm",
+        });
+      } else {
+        // Nếu có nhiều hình, cho phép người dùng chọn
+        setAvailableImages(images);
+        setShowImageSelector(true);
+      }
+    } catch (error) {
+      toast({
+        title: "Lỗi",
+        description: error.message || "Không thể tìm kiếm hình ảnh phù hợp. Vui lòng thử lại sau.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSearchingImage(false);
+    }
+  };
+
+  const handleImageSelect = (imageUrl: string) => {
+    form.setValue("image", imageUrl);
+    setShowImageSelector(false);
+    setAvailableImages([]);
+    toast({
+      title: "Thành công", 
+      description: "Đã chọn hình ảnh cho sản phẩm",
+    });
+  };
+
   // Handle form submission
   const onSubmit = (data: ProductFormData) => {
     if (editingProduct) {
@@ -732,23 +826,35 @@ export default function Products() {
                         <FormItem>
                           <FormLabel>Hình ảnh</FormLabel>
                           <FormControl>
-                            <div>
-                              <Input
-                                type="file"
-                                accept="image/*"
-                                onChange={async (e) => {
-                                  const file = e.target.files?.[0];
-                                  if (file) {
-                                    try {
-                                      const url = await uploadImage(file);
-                                      field.onChange(url);
-                                      toast({ title: "Tải ảnh thành công", description: "Ảnh đã được upload." });
-                                    } catch {
-                                      toast({ title: "Lỗi", description: "Tải ảnh thất bại", variant: "destructive" });
+                            <div className="space-y-2">
+                              <div className="flex gap-2">
+                                <Input
+                                  type="file"
+                                  accept="image/*"
+                                  onChange={async (e) => {
+                                    const file = e.target.files?.[0];
+                                    if (file) {
+                                      try {
+                                        const url = await uploadImage(file);
+                                        field.onChange(url);
+                                        toast({ title: "Tải ảnh thành công", description: "Ảnh đã được upload." });
+                                      } catch {
+                                        toast({ title: "Lỗi", description: "Tải ảnh thất bại", variant: "destructive" });
+                                      }
                                     }
-                                  }
-                                }}
-                              />
+                                  }}
+                                  className="flex-1"
+                                />
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  onClick={handleAIImageSearch}
+                                  disabled={isSearchingImage}
+                                  className="whitespace-nowrap"
+                                >
+                                  {isSearchingImage ? "Đang tìm..." : "🤖 AI Tìm ảnh"}
+                                </Button>
+                              </div>
                               {typeof field.value === "string" && field.value && (
                                 <img src={field.value} alt="preview" style={{ maxWidth: 120, marginTop: 8 }} />
                               )}
@@ -827,6 +933,49 @@ export default function Products() {
                   </div>
                 </form>
               </Form>
+            </DialogContent>
+          </Dialog>
+
+          {/* AI Image Selector Dialog */}
+          <Dialog open={showImageSelector} onOpenChange={setShowImageSelector}>
+            <DialogContent className="max-w-4xl">
+              <DialogHeader>
+                <DialogTitle>Chọn hình ảnh cho sản phẩm</DialogTitle>
+              </DialogHeader>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4 max-h-[60vh] overflow-y-auto">
+                {availableImages.map((imageUrl, index) => (
+                  <div
+                    key={index}
+                    className="relative cursor-pointer rounded-lg overflow-hidden hover:ring-2 hover:ring-blue-500 transition-all"
+                    onClick={() => handleImageSelect(imageUrl)}
+                  >
+                    <img 
+                      src={imageUrl} 
+                      alt={`Option ${index + 1}`}
+                      className="w-full h-32 object-cover"
+                      onError={(e) => {
+                        e.target.style.display = 'none';
+                      }}
+                    />
+                    <div className="absolute inset-0 bg-black bg-opacity-0 hover:bg-opacity-20 transition-all flex items-center justify-center">
+                      <div className="hidden hover:block bg-white text-black px-2 py-1 rounded text-sm">
+                        Chọn ảnh này
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="flex justify-end space-x-2">
+                <Button 
+                  variant="outline" 
+                  onClick={() => {
+                    setShowImageSelector(false);
+                    setAvailableImages([]);
+                  }}
+                >
+                  Hủy
+                </Button>
+              </div>
             </DialogContent>
           </Dialog>
         </div>

@@ -313,6 +313,34 @@
       "PackagePath": "staticwebassets\\uploads\\f71c4d0c-50ae-4daf-b1be-54ff4416b702.jpeg"
     },
     {
+      "Id": "D:\\laptrinh\\thiekepm\\RetailPoint\\Backend\\RetailPointBackend\\wwwroot\\uploads\\product_2dd03773-cf5b-4c54-85b5-e528e746ef8d.jpg",
+      "PackagePath": "staticwebassets\\uploads\\product_2dd03773-cf5b-4c54-85b5-e528e746ef8d.jpg"
+    },
+    {
+      "Id": "D:\\laptrinh\\thiekepm\\RetailPoint\\Backend\\RetailPointBackend\\wwwroot\\uploads\\product_2f1cb338-541f-4824-b115-a8d7bcf1eacf.jpg",
+      "PackagePath": "staticwebassets\\uploads\\product_2f1cb338-541f-4824-b115-a8d7bcf1eacf.jpg"
+    },
+    {
+      "Id": "D:\\laptrinh\\thiekepm\\RetailPoint\\Backend\\RetailPointBackend\\wwwroot\\uploads\\product_305edd01-90a2-4bcf-84d7-8b1a91c244dc.jpg",
+      "PackagePath": "staticwebassets\\uploads\\product_305edd01-90a2-4bcf-84d7-8b1a91c244dc.jpg"
+    },
+    {
+      "Id": "D:\\laptrinh\\thiekepm\\RetailPoint\\Backend\\RetailPointBackend\\wwwroot\\uploads\\product_3211ea01-71cf-44c0-9074-d67efc6be097.jpg",
+      "PackagePath": "staticwebassets\\uploads\\product_3211ea01-71cf-44c0-9074-d67efc6be097.jpg"
+    },
+    {
+      "Id": "D:\\laptrinh\\thiekepm\\RetailPoint\\Backend\\RetailPointBackend\\wwwroot\\uploads\\product_c11ff43e-6227-476a-ba73-5e772b447414.jpg",
+      "PackagePath": "staticwebassets\\uploads\\product_c11ff43e-6227-476a-ba73-5e772b447414.jpg"
+    },
+    {
+      "Id": "D:\\laptrinh\\thiekepm\\RetailPoint\\Backend\\RetailPointBackend\\wwwroot\\uploads\\product_cefe629d-e495-4d1a-bad7-a00c9e3eb00d.jpg",
+      "PackagePath": "staticwebassets\\uploads\\product_cefe629d-e495-4d1a-bad7-a00c9e3eb00d.jpg"
+    },
+    {
+      "Id": "D:\\laptrinh\\thiekepm\\RetailPoint\\Backend\\RetailPointBackend\\wwwroot\\uploads\\product_d8a69fbd-151f-4eb5-ac63-9329a621d233.jpg",
+      "PackagePath": "staticwebassets\\uploads\\product_d8a69fbd-151f-4eb5-ac63-9329a621d233.jpg"
+    },
+    {
       "Id": "obj\\Debug\\net9.0\\staticwebassets\\msbuild.RetailPointBackend.Microsoft.AspNetCore.StaticWebAssetEndpoints.props",
       "PackagePath": "build\\Microsoft.AspNetCore.StaticWebAssetEndpoints.props"
     },
