@@ -129,6 +129,9 @@ export default function PrintOrder() {
               size: 80mm auto;
               margin: 0;
             }
+            * {
+              box-sizing: border-box;
+            }
             body {
               margin: 0;
               padding: 0;
@@ -136,6 +139,8 @@ export default function PrintOrder() {
               font-size: 9px;
               line-height: 1.1;
               width: 80mm;
+              max-width: 80mm;
+              overflow-x: hidden;
             }
             body * {
               visibility: hidden;
@@ -148,10 +153,13 @@ export default function PrintOrder() {
               left: 0;
               top: 0;
               width: 80mm;
-              padding: 1mm;
+              max-width: 80mm;
+              padding: 2mm;
               background: white;
               box-sizing: border-box;
               font-size: 9px;
+              overflow-x: hidden;
+              word-wrap: break-word;
             }
             .no-print {
               display: none !important;
@@ -162,30 +170,38 @@ export default function PrintOrder() {
               margin-bottom: 2mm;
               border-bottom: 1px dashed #000;
               padding-bottom: 2mm;
+              width: 100%;
+              max-width: 76mm;
             }
             .store-info .store-name {
               font-weight: bold;
               font-size: 12px;
               margin-bottom: 1mm;
+              word-wrap: break-word;
             }
             .store-info div {
               font-size: 8px;
               margin: 0.5mm 0;
+              word-wrap: break-word;
             }
             .order-header {
               text-align: center;
               font-weight: bold;
               font-size: 11px;
               margin: 2mm 0;
+              word-wrap: break-word;
             }
             .order-details {
               font-size: 8px;
               margin-bottom: 2mm;
               border-bottom: 1px dashed #666;
               padding-bottom: 2mm;
+              width: 100%;
+              max-width: 76mm;
             }
             .order-details div {
               margin: 0.5mm 0;
+              word-wrap: break-word;
             }
             .item-list {
               margin: 2mm 0;
@@ -195,27 +211,39 @@ export default function PrintOrder() {
               font-size: 8px;
               border-bottom: 1px dotted #ccc;
               padding-bottom: 1mm;
+              width: 100%;
+              max-width: 76mm;
             }
             .item-name {
               font-weight: bold;
               margin-bottom: 0.5mm;
               word-wrap: break-word;
+              overflow-wrap: break-word;
+              max-width: 76mm;
+              white-space: normal;
             }
             .item-line {
               display: flex;
               justify-content: space-between;
               font-size: 7px;
+              width: 100%;
+              max-width: 76mm;
+              flex-wrap: nowrap;
             }
             .totals {
               border-top: 1px dashed #000;
               padding-top: 2mm;
               margin-top: 2mm;
+              width: 100%;
+              max-width: 76mm;
             }
             .total-line {
               display: flex;
               justify-content: space-between;
               font-size: 8px;
               margin: 0.5mm 0;
+              width: 100%;
+              max-width: 76mm;
             }
             .grand-total {
               display: flex;
@@ -224,6 +252,8 @@ export default function PrintOrder() {
               font-size: 10px;
               border-top: 2px solid #000;
               border-bottom: 2px solid #000;
+              width: 100%;
+              max-width: 76mm;
               padding: 1mm 0;
               margin: 2mm 0;
             }
@@ -233,6 +263,9 @@ export default function PrintOrder() {
               margin-top: 3mm;
               border-top: 1px dashed #000;
               padding-top: 2mm;
+              width: 100%;
+              max-width: 76mm;
+              word-wrap: break-word;
             }
           }
         `}</style>
@@ -278,11 +311,28 @@ export default function PrintOrder() {
         @media screen {
           .print-content {
             max-width: ${isPOSPrinter ? '80mm' : '800px'};
+            width: ${isPOSPrinter ? '80mm' : 'auto'};
             margin: 0 auto;
             background: white;
             box-shadow: 0 0 10px rgba(0,0,0,0.1);
             padding: 20px;
+            overflow-x: ${isPOSPrinter ? 'hidden' : 'auto'};
+            word-wrap: break-word;
           }
+          ${isPOSPrinter ? `
+          .print-content * {
+            max-width: 100%;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+          }
+          .print-content .item-name {
+            white-space: normal;
+            line-height: 1.2;
+          }
+          .print-content .item-line {
+            font-size: 0.9em;
+          }
+          ` : ''}
         }
       `}</style>
 

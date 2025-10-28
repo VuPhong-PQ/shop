@@ -5743,6 +5743,88 @@
       ]
     },
     {
+      "Route": "uploads/d11e1757-24b9-4ee5-a8e8-d9c9a4ec24f4.96kkgmdbkj.jpg",
+      "AssetFile": "uploads/d11e1757-24b9-4ee5-a8e8-d9c9a4ec24f4.jpg",
+      "Selectors": [],
+      "ResponseHeaders": [
+        {
+          "Name": "Accept-Ranges",
+          "Value": "bytes"
+        },
+        {
+          "Name": "Cache-Control",
+          "Value": "max-age=31536000, immutable"
+        },
+        {
+          "Name": "Content-Length",
+          "Value": "7802"
+        },
+        {
+          "Name": "Content-Type",
+          "Value": "image/jpeg"
+        },
+        {
+          "Name": "ETag",
+          "Value": "\"36T8IdvUsATFRc+pDQEh+Xi2uAo7QtGnrpjD87Xbq5I=\""
+        },
+        {
+          "Name": "Last-Modified",
+          "Value": "Tue, 28 Oct 2025 07:53:00 GMT"
+        }
+      ],
+      "EndpointProperties": [
+        {
+          "Name": "fingerprint",
+          "Value": "96kkgmdbkj"
+        },
+        {
+          "Name": "integrity",
+          "Value": "sha256-36T8IdvUsATFRc+pDQEh+Xi2uAo7QtGnrpjD87Xbq5I="
+        },
+        {
+          "Name": "label",
+          "Value": "uploads/d11e1757-24b9-4ee5-a8e8-d9c9a4ec24f4.jpg"
+        }
+      ]
+    },
+    {
+      "Route": "uploads/d11e1757-24b9-4ee5-a8e8-d9c9a4ec24f4.jpg",
+      "AssetFile": "uploads/d11e1757-24b9-4ee5-a8e8-d9c9a4ec24f4.jpg",
+      "Selectors": [],
+      "ResponseHeaders": [
+        {
+          "Name": "Accept-Ranges",
+          "Value": "bytes"
+        },
+        {
+          "Name": "Cache-Control",
+          "Value": "max-age=3600, must-revalidate"
+        },
+        {
+          "Name": "Content-Length",
+          "Value": "7802"
+        },
+        {
+          "Name": "Content-Type",
+          "Value": "image/jpeg"
+        },
+        {
+          "Name": "ETag",
+          "Value": "\"36T8IdvUsATFRc+pDQEh+Xi2uAo7QtGnrpjD87Xbq5I=\""
+        },
+        {
+          "Name": "Last-Modified",
+          "Value": "Tue, 28 Oct 2025 07:53:00 GMT"
+        }
+      ],
+      "EndpointProperties": [
+        {
+          "Name": "integrity",
+          "Value": "sha256-36T8IdvUsATFRc+pDQEh+Xi2uAo7QtGnrpjD87Xbq5I="
+        }
+      ]
+    },
+    {
       "Route": "uploads/d2fc3546-a1b8-4f13-91f4-6dab1e037950.81cbkyz6b5.jpg",
       "AssetFile": "uploads/d2fc3546-a1b8-4f13-91f4-6dab1e037950.jpg",
       "Selectors": [],
