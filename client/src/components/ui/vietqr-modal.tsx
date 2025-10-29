@@ -23,11 +23,11 @@ export const VietQRModal: React.FC<VietQRModalProps> = ({ open, onClose, qrImage
         ) : (
           <div className="w-48 h-48 flex items-center justify-center bg-gray-100 mb-4">Không có QR</div>
         )}
-        <div className="mb-2"><b>Ngân hàng:</b> {bankName || "-"}</div>
-        <div className="mb-2"><b>Số tài khoản:</b> {bankAccount || "-"}</div>
-        <div className="mb-2"><b>Chủ tài khoản:</b> {accountHolder || "-"}</div>
-        {amount && <div className="mb-2"><b>Số tiền:</b> {amount}</div>}
-        {description && <div className="mb-2"><b>Nội dung:</b> {description}</div>}
+        <div className="mb-2 print:text-black"><b>Ngân hàng:</b> {bankName || "-"}</div>
+        <div className="mb-2 print:text-black"><b>Số tài khoản:</b> {bankAccount || "-"}</div>
+        <div className="mb-2 print:text-black"><b>Chủ tài khoản:</b> {accountHolder || "-"}</div>
+        {amount && <div className="mb-2 print:text-black"><b>Số tiền:</b> {amount}</div>}
+        {description && <div className="mb-2 print:text-black"><b>Nội dung:</b> {description}</div>}
       </div>
     </div>
   );

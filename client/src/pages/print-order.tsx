@@ -84,6 +84,26 @@ export default function PrintOrder() {
     }
   };
 
+  // Format payment status
+  const formatPaymentStatus = (status?: string) => {
+    switch (status) {
+      case 'paid': return 'Đã thanh toán';
+      case 'pending': return 'Chờ thanh toán';
+      case 'failed': return 'Thanh toán thất bại';
+      default: return 'Đã thanh toán';
+    }
+  };
+
+  // Format order status
+  const formatOrderStatus = (status?: string) => {
+    switch (status) {
+      case 'completed': return 'Hoàn thành';
+      case 'pending': return 'Đang xử lý';
+      case 'cancelled': return 'Đã hủy';
+      default: return 'Hoàn thành';
+    }
+  };
+
   // Handle print
   const handlePrint = () => {
     setIsPrinting(true);
@@ -147,6 +167,44 @@ export default function PrintOrder() {
             }
             .print-content, .print-content * {
               visibility: visible;
+            }
+            /* Force all green colors to black for thermal printing */
+            .text-green-600,
+            .text-green-700,
+            .text-green-800,
+            .text-green-500,
+            .text-green-900,
+            [class*="text-green"] {
+              color: #000 !important;
+            }
+            /* Force all gray colors to black for thermal printing */
+            .text-gray-500,
+            .text-gray-600,
+            .text-gray-700,
+            .text-gray-800,
+            [class*="text-gray"] {
+              color: #000 !important;
+            }
+            .bg-green-50,
+            .bg-green-100,
+            .bg-green-200,
+            [class*="bg-green"] {
+              background-color: transparent !important;
+            }
+            .border-green-200,
+            .border-green-400,
+            .border-green-600,
+            [class*="border-green"] {
+              border-color: #000 !important;
+            }
+            /* Force ALL text to black for thermal printing */
+            * {
+              color: #000 !important;
+              background-color: transparent !important;
+            }
+            /* Ensure strong contrast for thermal printing */
+            p, span, div, label, input, button, a {
+              color: #000 !important;
             }
             .print-content {
               position: absolute;
@@ -266,6 +324,25 @@ export default function PrintOrder() {
               width: 100%;
               max-width: 76mm;
               word-wrap: break-word;
+              font-weight: bold;
+              color: #000 !important;
+            }
+            .payment-status, .order-status {
+              font-weight: bold;
+              color: #000 !important;
+              background: none !important;
+              border: 1px solid #000 !important;
+              padding: 1mm;
+              margin: 0.5mm 0;
+              display: inline-block;
+              font-size: 7px;
+            }
+            .bank-info {
+              font-weight: bold;
+              color: #000 !important;
+              font-size: 7px;
+              text-align: center;
+              margin: 1mm 0;
             }
           }
         `}</style>
@@ -301,6 +378,65 @@ export default function PrintOrder() {
             }
             .no-print {
               display: none !important;
+            }
+            .payment-status, .order-status {
+              font-weight: bold;
+              color: #000 !important;
+              background: none !important;
+              border: 1px solid #000 !important;
+              padding: 2mm;
+              margin: 1mm;
+              display: inline-block;
+              font-size: 11px;
+            }
+            .bank-info {
+              font-weight: bold;
+              color: #000 !important;
+              font-size: 11px;
+              text-align: center;
+              margin: 3mm 0;
+            }
+            .footer {
+              color: #000 !important;
+              font-weight: bold;
+            }
+            /* Force all green colors to black for thermal printing */
+            .text-green-600,
+            .text-green-700,
+            .text-green-800,
+            .text-green-500,
+            .text-green-900,
+            [class*="text-green"] {
+              color: #000 !important;
+            }
+            /* Force all gray colors to black for thermal printing */
+            .text-gray-500,
+            .text-gray-600,
+            .text-gray-700,
+            .text-gray-800,
+            [class*="text-gray"] {
+              color: #000 !important;
+            }
+            .bg-green-50,
+            .bg-green-100,
+            .bg-green-200,
+            [class*="bg-green"] {
+              background-color: transparent !important;
+            }
+            .border-green-200,
+            .border-green-400,
+            .border-green-600,
+            [class*="border-green"] {
+              border-color: #000 !important;
+            }
+            /* Force ALL text to black for thermal printing */
+            * {
+              color: #000 !important;
+              background-color: transparent !important;
+            }
+            /* Ensure strong contrast for thermal printing */
+            p, span, div, label, input, button, a {
+              color: #000 !important;
             }
           }
         `}</style>
@@ -388,6 +524,17 @@ export default function PrintOrder() {
             <div>Giờ: {new Date(orderDetail.createdAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</div>
             <div>Thanh toán: {formatPaymentMethod(orderDetail.paymentMethod)}</div>
             <div>Thu ngân: Admin</div>
+            
+            {/* Trạng thái thanh toán và đơn hàng */}
+            <div style={{ marginTop: '2mm' }}>
+              <span className="payment-status">
+                {formatPaymentStatus(orderDetail.paymentStatus)}
+              </span>
+              <span style={{ margin: '0 2mm' }}></span>
+              <span className="order-status">
+                {formatOrderStatus(orderDetail.status)}
+              </span>
+            </div>
           </div>
 
           {/* Items */}
@@ -458,7 +605,17 @@ export default function PrintOrder() {
 
           {/* Footer */}
           <div className="footer">
-            <div>Cảm ơn quý khách - Hẹn gặp lại!</div>
+            {/* Thông tin ngân hàng cho thanh toán QR/chuyển khoản */}
+            {(orderDetail.paymentMethod === 'qr' || orderDetail.paymentMethod === 'QR Code' || orderDetail.paymentMethod?.toLowerCase().includes('qr')) && (
+              <div className="bank-info">
+                <div>Số TK: 8811192753</div>
+                <div>Ngân hàng TMCP Đầu tư và Phát triển Việt Nam</div>
+                <div>Tên chủ TK: HO KINH DOANH PINK WISH SHOP</div>
+              </div>
+            )}
+            <div style={{ marginTop: '2mm', fontSize: '9px', fontWeight: 'bold', color: '#000' }}>
+              Cảm ơn - Hẹn gặp lại!
+            </div>
           </div>
         </div>
       </div>

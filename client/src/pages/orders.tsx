@@ -30,6 +30,24 @@ import {
 
 import { apiRequest } from "../lib/utils";
 
+// Global CSS for thermal printing
+const printStyle = `
+  @media print {
+    * {
+      color: #000 !important;
+      background-color: transparent !important;
+    }
+    p, span, div, label, input, button, a, h1, h2, h3, h4, h5, h6 {
+      color: #000 !important;
+    }
+    .text-gray-500, .text-gray-600, .text-gray-700, .text-gray-800, 
+    .text-green-600, .text-green-700, .text-green-800,
+    [class*="text-gray"], [class*="text-green"] {
+      color: #000 !important;
+    }
+  }
+`;
+
 type OrderItem = {
   productName: string;
   quantity: number;
@@ -222,13 +240,13 @@ export default function OrdersPage() {
   const getPaymentStatusBadge = (status?: string) => {
     switch (status) {
       case 'paid':
-        return <Badge className="bg-green-100 text-green-800 border-green-200">{formatPaymentStatus(status)}</Badge>;
+        return <Badge className="bg-green-100 text-green-800 border-green-200 print:bg-white print:text-black print:border-black">{formatPaymentStatus(status)}</Badge>;
       case 'pending':
-        return <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200">{formatPaymentStatus(status)}</Badge>;
+        return <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200 print:bg-white print:text-black print:border-black">{formatPaymentStatus(status)}</Badge>;
       case 'failed':
-        return <Badge className="bg-red-100 text-red-800 border-red-200">{formatPaymentStatus(status)}</Badge>;
+        return <Badge className="bg-red-100 text-red-800 border-red-200 print:bg-white print:text-black print:border-black">{formatPaymentStatus(status)}</Badge>;
       default:
-        return <Badge className="bg-green-100 text-green-800 border-green-200">{formatPaymentStatus(status)}</Badge>;
+        return <Badge className="bg-green-100 text-green-800 border-green-200 print:bg-white print:text-black print:border-black">{formatPaymentStatus(status)}</Badge>;
     }
   };
 
@@ -260,7 +278,7 @@ export default function OrdersPage() {
       return 'border-l-4 border-l-gray-400 bg-gray-50';
     }
     if (paymentStatus === 'paid' && orderStatus === 'completed') {
-      return 'border-l-4 border-l-green-400 bg-green-50';
+      return 'border-l-4 border-l-green-400 bg-green-50 print:border-l-black print:bg-white';
     }
     return '';
   };
@@ -352,8 +370,10 @@ export default function OrdersPage() {
   }, [filteredOrders]);
 
   return (
-    <div className="p-6">
-      <h1 className="text-2xl font-bold mb-4">Danh sách đơn hàng</h1>
+    <>
+      <style dangerouslySetInnerHTML={{ __html: printStyle }} />
+      <div className="p-6">
+        <h1 className="text-2xl font-bold mb-4">Danh sách đơn hàng</h1>
       
       {/* Filter và Search */}
       <Card className="mb-6">
@@ -424,7 +444,7 @@ export default function OrdersPage() {
         </Card>
         <Card className="text-center">
           <CardContent className="p-3">
-            <div className="text-2xl font-bold text-green-600">{stats.paid}</div>
+            <div className="text-2xl font-bold text-green-600 print:text-black">{stats.paid}</div>
             <div className="text-sm text-gray-600">Đã thanh toán</div>
           </CardContent>
         </Card>
@@ -741,7 +761,7 @@ export default function OrdersPage() {
                 </div>
               </div>
             )}
-            <div className="mt-6 text-center font-semibold text-gray-700">
+            <div className="mt-6 text-center font-semibold text-gray-700 print:text-black">
               Cảm ơn - Hẹn gặp lại
             </div>
             <div className="mt-4 flex flex-col sm:flex-row justify-end gap-2 print:hidden">
@@ -750,7 +770,7 @@ export default function OrdersPage() {
                 {/* Main Print Button - Primary and prominent */}
                 <Button 
                   onClick={() => window.print()} 
-                  className="bg-green-600 hover:bg-green-700 text-white flex items-center justify-center"
+                  className="bg-green-600 hover:bg-green-700 text-white flex items-center justify-center print:hidden"
                   size="lg"
                 >
                   <Printer className="w-4 h-4 mr-2" />
@@ -767,7 +787,7 @@ export default function OrdersPage() {
                     }}
                     variant="outline"
                     size="sm"
-                    className="text-green-600 border-green-600 hover:bg-green-50"
+                    className="text-green-600 border-green-600 hover:bg-green-50 print:hidden"
                   >
                     In {printConfig.printCopies} bản
                   </Button>
@@ -781,6 +801,7 @@ export default function OrdersPage() {
           </div>
         </div>
       )}
-    </div>
+      </div>
+    </>
   );
 }

@@ -291,7 +291,7 @@ export function QRSettings() {
                       e.currentTarget.src = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDIwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiBmaWxsPSIjRjNGNEY2Ii8+Cjx0ZXh0IHg9IjEwMCIgeT0iMTAwIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiM2QjczODAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIwLjNlbSI+TG9hZGluZy4uLjwvdGV4dD4KPC9zdmc+";
                     }}
                   />
-                  <p className="text-sm text-green-600 font-medium">QR Code mẫu - 100,000₫</p>
+                  <p className="text-sm text-green-600 font-medium print:text-black">QR Code mẫu - 100,000₫</p>
                 </div>
                 <div className="flex-1">
                   <div className="space-y-2">

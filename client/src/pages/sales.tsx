@@ -1568,11 +1568,11 @@ export default function Sales() {
 
   return (
     <AppLayout title="Bán hàng">
-      <div className="flex flex-col lg:flex-row h-full gap-6 min-h-screen" data-testid="sales-page">
+      <div className="lg:grid lg:grid-cols-[1fr_384px] lg:gap-2 flex flex-col gap-4 h-screen" data-testid="sales-page">
         {/* Products Section */}
-        <div className="flex-1 order-1 lg:order-1">
-          <Card className="h-full lg:sticky lg:top-6 lg:max-h-[calc(100vh-2rem)]">
-            <CardContent className="p-6 flex flex-col h-full">
+        <div className="order-1 lg:order-1 h-full">
+          <Card className="h-full lg:sticky lg:top-0 lg:max-h-screen">
+            <CardContent className="p-6 flex flex-col h-full overflow-hidden">
               <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between mb-6 gap-4 flex-shrink-0">
                 <div className="flex items-center gap-4">
                   <h2 className="text-xl font-semibold">Sản phẩm</h2>
@@ -1854,10 +1854,10 @@ export default function Sales() {
         </div>
 
         {/* Cart Section */}
-        <div className="w-full lg:w-96 order-2 lg:order-2">
-          <Card className="h-auto lg:min-h-[calc(100vh-150px)] lg:sticky lg:top-6 lg:max-h-[calc(100vh-2rem)]">
-            <CardContent className="p-6 flex flex-col h-full lg:min-h-[calc(100vh-200px)]">
-              <div className="flex items-center justify-between mb-4">
+        <div className="order-2 lg:order-2 h-full">
+          <Card className="h-full lg:sticky lg:top-0 lg:max-h-screen">
+            <CardContent className="p-6 flex flex-col h-full overflow-hidden">
+              <div className="flex items-center justify-between mb-4 flex-shrink-0">
                 <h2 className="text-xl font-semibold flex items-center">
                   <ShoppingCart className="w-5 h-5 mr-2" />
                   Giỏ hàng ({cart.length})
@@ -1873,6 +1873,9 @@ export default function Sales() {
                   </Button>
                 )}
               </div>
+
+              {/* Scrollable Content Container */}
+              <div className="flex-1 overflow-y-auto overflow-x-hidden min-h-0 space-y-4">
 
               {/* Thông báo đơn hàng được mở lại */}
               {currentReopenedOrder && (
@@ -1928,7 +1931,7 @@ export default function Sales() {
               </div>
 
               {/* Cart Items */}
-              <div className="flex-1 overflow-y-auto space-y-3 mb-4 min-h-[200px] max-h-[40vh] lg:max-h-[60vh]" style={{visibility: 'visible', display: 'block'}}>
+              <div className="space-y-3" style={{visibility: 'visible', display: 'block'}}>
                 {cart.length === 0 ? (
                   <div className="text-center py-8 text-gray-500">
                     <ShoppingCart className="w-12 h-12 mx-auto mb-2 opacity-50" />
@@ -2061,7 +2064,7 @@ export default function Sales() {
                               
                               {/* Show calculated discount amount */}
                               {manualDiscountAmount > 0 && (
-                                <div className="flex justify-between text-green-600 text-sm">
+                                <div className="flex justify-between text-green-600 text-sm print:text-black">
                                   <span>Giảm thủ công:</span>
                                   <span>-{manualDiscountAmount.toLocaleString('vi-VN')}₫</span>
                                 </div>
@@ -2094,7 +2097,7 @@ export default function Sales() {
                   
                   {/* Display total discount amount */}
                   {totalDiscountAmount > 0 && (
-                    <div className="flex justify-between text-green-600">
+                    <div className="flex justify-between text-green-600 print:text-black">
                       <span>Tổng giảm giá:</span>
                       <span data-testid="total-discount">-{totalDiscountAmount.toLocaleString('vi-VN')}₫</span>
                     </div>
@@ -2156,16 +2159,16 @@ export default function Sales() {
                       </div>
                     )}
                     
-                    <div className="text-xs text-gray-600 space-y-1">
+                    <div className="text-xs text-gray-600 space-y-1 print:text-black">
                       {qrCodeData.bankName && <p><span className="font-medium">Ngân hàng:</span> {qrCodeData.bankName}</p>}
                       {qrCodeData.accountNumber && <p><span className="font-medium">Số TK:</span> {qrCodeData.accountNumber}</p>}
                       {qrCodeData.accountHolder && <p><span className="font-medium">Chủ TK:</span> {qrCodeData.accountHolder}</p>}
                       {qrCodeData.description && (
-                        <p className="mt-2 p-2 bg-green-100 rounded">
-                          <span className="font-medium text-green-800">Nội dung CK:</span> 
-                          <span className="text-green-700"> {qrCodeData.description}</span>
+                        <p className="mt-2 p-2 bg-green-100 rounded print:bg-white print:border print:border-black">
+                          <span className="font-medium text-green-800 print:text-black">Nội dung CK:</span> 
+                          <span className="text-green-700 print:text-black"> {qrCodeData.description}</span>
                           {qrCodeData.description.includes('don hang') && (
-                            <span className="block text-xs text-green-600 mt-1">
+                            <span className="block text-xs text-green-600 mt-1 print:text-black">
                               ✓ QR đã cập nhật với mã đơn hàng
                             </span>
                           )}
@@ -2217,6 +2220,7 @@ export default function Sales() {
                   {saveOrderForLaterMutation.isPending ? "Đang lưu..." : "Thanh toán sau"}
                 </Button>
               </div>
+              </div> {/* Close scrollable content container */}
             </CardContent>
           </Card>
         </div>
@@ -2255,8 +2259,8 @@ export default function Sales() {
             
             {/* Trạng thái đơn hàng */}
             <div className="flex gap-2 my-2 print:my-1 print:pl-4">
-              <Badge className="bg-green-100 text-green-800 border-green-200 print:text-xs print:px-1 print:py-0">Đã thanh toán</Badge>
-              <Badge className="bg-blue-100 text-blue-800 border-blue-200 print:text-xs print:px-1 print:py-0">Hoàn thành</Badge>
+              <Badge className="bg-green-100 text-green-800 border-green-200 print:text-xs print:px-1 print:py-0 print:bg-white print:text-black print:border-black">Đã thanh toán</Badge>
+              <Badge className="bg-blue-100 text-blue-800 border-blue-200 print:text-xs print:px-1 print:py-0 print:bg-white print:text-black print:border-black">Hoàn thành</Badge>
             </div>
             
             {/* Thông tin bổ sung */}
@@ -2294,7 +2298,7 @@ export default function Sales() {
                     <>
                       <div>Tạm tính: <b>{subtotal.toLocaleString('vi-VN')}₫</b></div>
                       {discountAmount > 0 && (
-                        <div className="text-green-600">
+                        <div className="text-green-600 print:text-black">
                           Giảm giá {(() => {
                             if (orderDetailData.discountName && orderDetailData.discountName !== 'Giảm giá thủ công') {
                               return `(${orderDetailData.discountName})`;
