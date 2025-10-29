@@ -1568,12 +1568,12 @@ export default function Sales() {
 
   return (
     <AppLayout title="Bán hàng">
-      <div className="flex flex-col lg:flex-row h-full gap-6" data-testid="sales-page">
+      <div className="flex flex-col lg:flex-row h-full gap-6 min-h-screen" data-testid="sales-page">
         {/* Products Section */}
         <div className="flex-1 order-1 lg:order-1">
-          <Card className="h-full">
-            <CardContent className="p-6">
-              <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between mb-6 gap-4">
+          <Card className="h-full lg:sticky lg:top-6 lg:max-h-[calc(100vh-2rem)]">
+            <CardContent className="p-6 flex flex-col h-full">
+              <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between mb-6 gap-4 flex-shrink-0">
                 <div className="flex items-center gap-4">
                   <h2 className="text-xl font-semibold">Sản phẩm</h2>
                   <Button
@@ -1658,14 +1658,14 @@ export default function Sales() {
                 </div>
               </div>
 
-              <Tabs value={activeProductTab} onValueChange={setActiveProductTab} className="w-full">
-                <TabsList className="grid w-full grid-cols-2">
+              <Tabs value={activeProductTab} onValueChange={setActiveProductTab} className="w-full flex flex-col flex-1 min-h-0">
+                <TabsList className="grid w-full grid-cols-2 flex-shrink-0">
                   <TabsTrigger value="all">Tất cả sản phẩm</TabsTrigger>
                   <TabsTrigger value="featured">Sản phẩm hay bán</TabsTrigger>
                 </TabsList>
 
-                <TabsContent value="all" className="mt-4">
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-3 xl:grid-cols-4 gap-4 max-h-[40vh] lg:max-h-[calc(100vh-300px)] overflow-y-auto">
+                <TabsContent value="all" className="mt-4 flex-1 min-h-0">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-3 xl:grid-cols-4 gap-4 h-full overflow-y-auto">
                     {filteredProducts.map((product) => {
                       const stockQty = product.stockQuantity || 0;
                       const minStock = product.minStockLevel || 0;
@@ -1746,14 +1746,14 @@ export default function Sales() {
                   </div>
                 </TabsContent>
 
-                <TabsContent value="featured" className="mt-4">
+                <TabsContent value="featured" className="mt-4 flex-1 min-h-0">
                   {featuredLoading && (
                     <div className="flex justify-center py-8">
                       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
                     </div>
                   )}
 
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-3 xl:grid-cols-4 gap-4 max-h-[40vh] lg:max-h-[calc(100vh-300px)] overflow-y-auto">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-3 xl:grid-cols-4 gap-4 h-full overflow-y-auto">
                     {Array.isArray(featuredProducts) && featuredProducts.map((product: Product) => {
                       const stockQty = product.stockQuantity || 0;
                       const minStock = product.minStockLevel || 0;
@@ -1855,8 +1855,8 @@ export default function Sales() {
 
         {/* Cart Section */}
         <div className="w-full lg:w-96 order-2 lg:order-2">
-          <Card className="h-auto lg:min-h-[calc(100vh-150px)]">
-            <CardContent className="p-6 flex flex-col h-auto lg:min-h-[calc(100vh-200px)]">
+          <Card className="h-auto lg:min-h-[calc(100vh-150px)] lg:sticky lg:top-6 lg:max-h-[calc(100vh-2rem)]">
+            <CardContent className="p-6 flex flex-col h-full lg:min-h-[calc(100vh-200px)]">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-semibold flex items-center">
                   <ShoppingCart className="w-5 h-5 mr-2" />
